@@ -19,12 +19,19 @@
  {
   "slug": "v2_ev_satan_nine",
   "title": "Evini Satan Nine",
-  "status": "Senaryo Hazır",
-  "script": "Doksan yaşındaki bir kadının evini, \"nasıl olsa yakında ölür\" diye alan avukat, hayatının en pahalı hatasını yaptı.\nKulağa dahiyane bir yatırım gibi geliyor, değil mi?\nBin dokuz yüz altmış beşte kırk yedi yaşındaki Fransız avukat Raffray, doksan yaşındaki Jeanne Calment ile ilginç bir sözleşme imzaladı.\nKadın ölene kadar her ay iki bin beş yüz frank ödeyecek, vefat edince de daire avukatın olacaktı.\nAvukat \"en fazla birkaç yıl öderim\" diye düşündü.\nAma Jeanne bisiklete biniyor, kiloyla çikolata yiyor ve hiç yaşlanmıyordu!\nOn yıl geçti, yüz yaşına bastı. Yirmi yıl geçti, hala dipdiriydi!\nOtuzuncu yılda yetmiş yedi yaşındaki avukat vefat etti; Jeanne ise yüz yirmi yaşındaydı.\nSözleşme gereği ailesi ödemeye devam etti.\nEv değerinin iki katı ödendikten sonra Jeanne yüz yirmi iki yaşında rekor kırdı.\nPeki bütün bunlar nasıl başladı biliyor musun?",
-  "words": 130,
-  "frames": 0,
-  "voice": null,
-  "qa": null
+  "status": "Hazır",
+  "script": "Doksan yaşındaki bir kadının evini, \"nasıl olsa yakında ölür\" diye alan avukat... hayatının en pahalı hatasını yaptı.\nKulağa dahiyane bir yatırım gibi geliyor, değil mi?\nBin dokuz yüz altmış beşte, kırk yedi yaşındaki Fransız avukat Raffray, doksan yaşındaki Jeanne Calment ile ilginç bir sözleşme imzaladı.\nKadın ölene kadar her ay iki bin beş yüz frank ödeyecek, vefat edince de daire avukatın olacaktı.\n\"En fazla birkaç yıl öderim\" diye düşündü.\nAma Jeanne bisiklete biniyor, çikolatayı kiloyla yiyor ve bir türlü pes etmiyordu!\nOn yıl geçti, yüz yaşına bastı. Yirmi yıl geçti... hâlâ dipdiriydi!\nOtuzuncu yılda, yetmiş yedi yaşındaki avukat vefat etti. Jeanne ise yüz yirmi yaşındaydı.\nSözleşme gereği, ailesi ödemeye devam etti.\nEvin değerinin iki katı ödendi ve Jeanne, yüz yirmi iki yaşında dünya rekoru kırdı!\nVe bu hikâye bugün hâlâ şöyle anlatılır:",
+  "words": 132,
+  "frames": 1437,
+  "voice": "files/v2_ev_satan_nine/work/voice.mp3",
+  "qa": "files/v2_ev_satan_nine/out/qa_sheet.jpg",
+  "video": "files/v2_ev_satan_nine/out/Video2-Evini-Satan-Nine.mp4",
+  "fileName": "Video2-Evini-Satan-Nine.mp4",
+  "sizeMB": 12.2,
+  "updated": "2026-11-22T09:11:54.085Z",
+  "width": 1080,
+  "height": 1920,
+  "duration": 47.9
  },
  {
   "slug": "v3_emu_savasi",

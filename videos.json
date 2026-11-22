@@ -56,8 +56,8 @@
  {
   "slug": "v3_emu_savasi",
   "title": "Büyük Emu Savaşı",
-  "status": "Senaryo Hazır",
-  "script": "Avustralya ordusu makineli tüfeklerle kuşlara savaş açtı ve gerçekten de kaybetti.\nCiddiyim, şaka değil; modern bir ordu uçamayan dev kuşlara yenildi!\nBin dokuz yüz otuz ikide yirmi bin emu kuşu, Batı Avustralya'daki buğday tarlalarını istila etti.\nÇiftçiler çaresiz kalınca hükümet orduyu çağırdı.\nİki makineli tüfek ve on bin mermiyle gelen askerler, işin bir günde biteceğini sandı.\nİlk pusu kuruldu, tetiğe basıldı... ama emular saatte elli kilometre hızla koşup küçük gruplara bölündü.\nSanki gerilla taktiği uyguluyorlardı!\nAskerler tüfeği kamyon kasasına bağlayıp peşlerine düştü; fakat tümsekli tarlada nişan bile alamadılar, üstelik bir kuş direksiyona çarpıp kamyonu çite soktu.\nİki ay sonunda on bin mermi bitti, kuşların neredeyse tamamı kaçtı.\nOrdu rezil olup geri çekildi, mecliste alay konusu oldular.\nVe bugün hala tarih kitapları o olayı şöyle anlatır:",
+  "status": "Hazır",
+  "script": "Avustralya ordusu makineli tüfeklerle kuşlara savaş açtı... ve gerçekten de kaybetti.\nCiddiyim, şaka değil! Modern bir ordu, uçamayan dev kuşlara yenildi!\nBin dokuz yüz otuz ikide yirmi bin emu kuşu, Batı Avustralya'daki buğday tarlalarını istila etti.\nÇiftçiler çaresiz kalınca hükümet doğrudan orduyu çağırdı.\nİki makineli tüfek ve on bin mermiyle gelen askerler, işin bir günde biteceğini sandı.\nİlk pusu kuruldu, tetiğe basıldı... ama emular saatte elli kilometre hızla koşup küçük gruplara bölündü!\nSanki gerilla taktiği uyguluyorlardı!\nAskerler tüfeği kamyon kasasına bağlayıp peşlerine düştü; fakat tümsekli tarlada nişan bile alamadılar. Üstelik bir kuş direksiyona çarpıp kamyonu çite soktu!\nİki ay sonunda on bin mermi bitti, kuşların neredeyse tamamı kaçtı.\nOrdu rezil olup geri çekildi, mecliste alay konusu oldular.\nVe bugün hâlâ tarih kitapları o olayı şöyle anlatır:",
   "meta": {
    "youtube": {
     "title": "Avustralya Ordusu Kuşlara Savaş Açtı ve Kaybetti! 🐦💥",
@@ -68,16 +68,23 @@
    },
    "flow_prompt": "Vertical 9:16 viral YouTube Shorts cover illustration in stylized painted 3D toon background with bold 2D inked cartoon characters (thick dark outlines, expressive bean-shaped heads, stick-style limbs). Foreground center-left: a giant smug cartoon emu bird wearing tiny aviator sunglasses, sprinting triumphantly across a golden Australian outback wheat field kicking up stylized dust clouds, holding a tiny white surrender flag won from the army. Foreground right: two panicked comical 1932 Australian soldiers in khaki slouch hats hanging off the back of a bumpy vintage pickup truck crashing into a wooden fence, wide shocked eyes and flying sweat drops. Sun-drenched ochre desert sky, vibrant teal-and-gold contrast, dynamic motion lines, clean composition with safe top/bottom space for text, no text in image."
   },
-  "words": 125,
-  "frames": 0,
-  "voice": null,
-  "qa": null
+  "words": 126,
+  "frames": 1508,
+  "voice": "files/v3_emu_savasi/work/voice.mp3",
+  "qa": "files/v3_emu_savasi/out/qa_sheet.jpg",
+  "video": "files/v3_emu_savasi/out/Video3-Buyuk-Emu-Savasi.mp4",
+  "fileName": "Video3-Buyuk-Emu-Savasi.mp4",
+  "sizeMB": 12.3,
+  "updated": "2026-11-22T10:16:58.982Z",
+  "width": 1080,
+  "height": 1920,
+  "duration": 50.267
  },
  {
   "slug": "v4_sahte_kasaba",
   "title": "Haritadaki Sahte Kasaba",
-  "status": "Senaryo Hazır",
-  "script": "Haritacıların kopyacıları yakalamak için uydurduğu sahte kasaba, yıllar sonra gerçekten kuruldu.\nPeki var olmayan bir yer nasıl gerçeğe dönüşebilir?\nBin dokuz yüz otuzlarda iki harita mühendisi, çizdikleri New York haritasının rakip firmalarca çalınmasından bıkmıştı.\nDahiyane bir tuzak kurdular: Kendi baş harflerini birleştirip ormanın ortasına \"Agloe\" adında hayali bir kasaba çizdiler.\nPlan basitti: Rakip haritada Agloe çıkarsa, hırsızlık kanıtlanacaktı!\nYıllar sonra rakip şirketin haritasında Agloe gerçekten belirdi.\nMühendisler sevinçle dava açtı: \"Sizi yakaladık, orada öyle bir yer yok!\"\nAma rakip avukat masaya bir fotoğraf koydu ve herkes buz kesti.\nFotoğrafta o boş kavşakta koskoca bir market vardı, tabelasında \"Agloe Marketi\" yazıyordu!\nMeğer bir vatandaş eski haritada adı görüp oraya dükkan açmıştı.\nTuzak kendini gerçeğe dönüştürdü; işte böylece,",
+  "status": "Ses Hazır",
+  "script": "Haritacıların kopyacıları yakalamak için uydurduğu sahte kasaba... yıllar sonra gerçekten kuruldu.\nPeki var olmayan bir yer nasıl gerçeğe dönüşebilir?\nBin dokuz yüz otuzlarda iki harita mühendisi, çizdikleri New York haritasının rakip firmalarca çalınmasından bıkmıştı.\nDahiyane bir tuzak kurdular: Kendi baş harflerini birleştirip ormanın ortasına \"Agloe\" adında hayali bir kasaba çizdiler.\nPlan basitti: Rakip haritada Agloe çıkarsa, hırsızlık kanıtlanacaktı!\nYıllar sonra rakip şirketin haritasında Agloe gerçekten belirdi.\nMühendisler sevinçle dava açtı: \"Sizi yakaladık, orada öyle bir yer yok!\"\nAma rakip avukat masaya bir fotoğraf koydu ve herkes buz kesti.\nFotoğrafta o boş kavşakta koskoca bir market vardı, tabelasında \"Agloe Marketi\" yazıyordu!\nMeğer bir vatandaş eski haritada adı görüp oraya dükkân açmıştı.\nTuzak kendini gerçeğe dönüştürdü; ve bu hikâye şöyle başlar:",
   "meta": {
    "youtube": {
     "title": "Haritada Uydurulan Sahte Kasaba Gerçekten Kuruldu! 🗺️🤯",
@@ -88,16 +95,16 @@
    },
    "flow_prompt": "Vertical 9:16 viral YouTube Shorts cover illustration in stylized painted 3D toon background with bold 2D inked cartoon characters (thick dark outlines, expressive bean-shaped heads, stick-style limbs). Foreground: a stunned cartoon cartographer in glasses and suspenders holding a large vintage unfolded paper road map with a glowing red pin and magnifying glass, jaw dropped in total disbelief. Behind him in a sunny autumn New York pine forest crossroads, a charming wooden country general store has magically popped into existence out of the map itself, with a smiling shopkeeper waving proudly in front of the rustic storefront. Crisp painted 3D trees and wooden beams, golden autumn lighting, vibrant storytelling composition, clean top/bottom margins for text, no text in image."
   },
-  "words": 116,
+  "words": 119,
   "frames": 0,
-  "voice": null,
+  "voice": "files/v4_sahte_kasaba/work/voice.mp3",
   "qa": null
  },
  {
   "slug": "v5_335_yil_savasi",
   "title": "335 Yıl Süren Savaş",
-  "status": "Senaryo Hazır",
-  "script": "Dünyanın en uzun savaşı üç yüz otuz beş yıl sürdü ama tek bir kurşun bile atılmadı.\nÜç asır süren bir savaşta nasıl kimsenin burnu bile kanamaz?\nBin altı yüz elli birde, Hollanda donanması Scilly Adaları'na sığınan İngiliz gemilerine öfkelenip bu küçük adalara resmen savaş ilan etti.\nFakat birkaç ay sonra adalar zaten teslim oldu.\nHollanda filosu da tek el ateş etmeden dönüp evine gitti.\nKüçük bir sorun vardı: Kimse resmi barış antlaşması imzalamayı akıl etmemişti!\nYüzyıllar geçti, krallar değişti, dünya savaşları yaşandı ama kağıt üzerinde iki taraf hala düşmandı.\nTa ki bin dokuz yüz seksen altıda yerel bir tarihçi eski arşivlerde bu unutulan savaş ilanını bulana kadar!\nHollanda büyükelçisi hemen adaya davet edildi, gülüşmeler arasında barış imzalandı.\nBüyükelçi espriyi patlattı: \"Üç yüz yıldır saldıracağız diye korktuğunuzu biliyorum!\"\nİşte bu garip unutkanlık yüzünden,",
+  "status": "Ses Hazır",
+  "script": "Dünyanın en uzun savaşı üç yüz otuz beş yıl sürdü... ama tek bir kurşun bile atılmadı.\nÜç asır süren bir savaşta nasıl kimsenin burnu bile kanamaz?\nBin altı yüz elli birde, Hollanda donanması Scilly Adaları'na sığınan İngiliz gemilerine öfkelenip bu küçük adalara resmen savaş ilan etti.\nFakat birkaç ay sonra adalar zaten teslim oldu.\nHollanda filosu da tek el ateş etmeden dönüp evine gitti.\nKüçük bir sorun vardı: Kimse resmi barış antlaşması imzalamayı akıl etmemişti!\nYüzyıllar geçti, krallar değişti, dünya savaşları yaşandı; ama kâğıt üzerinde iki taraf hâlâ düşmandı.\nTa ki bin dokuz yüz seksen altıda yerel bir tarihçi, eski arşivlerde bu unutulan savaş ilanını bulana kadar!\nHollanda büyükelçisi hemen adaya davet edildi, gülüşmeler arasında barış imzalandı.\nBüyükelçi espriyi patlattı: \"Üç yüz yıldır saldıracağız diye korktuğunuzu biliyorum!\"\nVe tarih kitapları bu garip unutkanlığı hâlâ şöyle anlatır:",
   "meta": {
    "youtube": {
     "title": "335 Yıl Süren ve Tek Kurşun Atılmayan Savaş! ⚓😂",
@@ -108,9 +115,9 @@
    },
    "flow_prompt": "Vertical 9:16 viral YouTube Shorts cover illustration in stylized painted 3D toon background with bold 2D inked cartoon characters (thick dark outlines, expressive bean-shaped heads, stick-style limbs). Foreground: on a picturesque sunny green coastal cliff overlooking sparkling turquoise ocean waves and a miniature 17th-century wooden Dutch sailing ship anchored peacefully in the bay, a cheerful modern diplomat in a tailored suit and a friendly island historian shake hands warmly while holding a dusty old rolled parchment peace treaty with a giant red wax seal and glowing golden sparkles; both laughing joyfully. Cobwebbed antique cannon peacefully covered in blooming yellow wildflowers beside them. Bright painterly 3D ocean sky, crisp cartoon outlines, balanced vertical framing with room at top/bottom for text, no text in image."
   },
-  "words": 132,
+  "words": 136,
   "frames": 0,
-  "voice": null,
+  "voice": "files/v5_335_yil_savasi/work/voice.mp3",
   "qa": null
  }
 ]

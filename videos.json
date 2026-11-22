@@ -83,7 +83,7 @@
  {
   "slug": "v4_sahte_kasaba",
   "title": "Haritadaki Sahte Kasaba",
-  "status": "Ses Hazır",
+  "status": "Hazır",
   "script": "Haritacıların kopyacıları yakalamak için uydurduğu sahte kasaba... yıllar sonra gerçekten kuruldu.\nPeki var olmayan bir yer nasıl gerçeğe dönüşebilir?\nBin dokuz yüz otuzlarda iki harita mühendisi, çizdikleri New York haritasının rakip firmalarca çalınmasından bıkmıştı.\nDahiyane bir tuzak kurdular: Kendi baş harflerini birleştirip ormanın ortasına \"Agloe\" adında hayali bir kasaba çizdiler.\nPlan basitti: Rakip haritada Agloe çıkarsa, hırsızlık kanıtlanacaktı!\nYıllar sonra rakip şirketin haritasında Agloe gerçekten belirdi.\nMühendisler sevinçle dava açtı: \"Sizi yakaladık, orada öyle bir yer yok!\"\nAma rakip avukat masaya bir fotoğraf koydu ve herkes buz kesti.\nFotoğrafta o boş kavşakta koskoca bir market vardı, tabelasında \"Agloe Marketi\" yazıyordu!\nMeğer bir vatandaş eski haritada adı görüp oraya dükkân açmıştı.\nTuzak kendini gerçeğe dönüştürdü; ve bu hikâye şöyle başlar:",
   "meta": {
    "youtube": {
@@ -96,9 +96,16 @@
    "flow_prompt": "Vertical 9:16 viral YouTube Shorts cover illustration in stylized painted 3D toon background with bold 2D inked cartoon characters (thick dark outlines, expressive bean-shaped heads, stick-style limbs). Foreground: a stunned cartoon cartographer in glasses and suspenders holding a large vintage unfolded paper road map with a glowing red pin and magnifying glass, jaw dropped in total disbelief. Behind him in a sunny autumn New York pine forest crossroads, a charming wooden country general store has magically popped into existence out of the map itself, with a smiling shopkeeper waving proudly in front of the rustic storefront. Crisp painted 3D trees and wooden beams, golden autumn lighting, vibrant storytelling composition, clean top/bottom margins for text, no text in image."
   },
   "words": 119,
-  "frames": 0,
+  "frames": 1482,
   "voice": "files/v4_sahte_kasaba/work/voice.mp3",
-  "qa": null
+  "qa": "files/v4_sahte_kasaba/out/qa_sheet.jpg",
+  "video": "files/v4_sahte_kasaba/out/Video4-Haritadaki-Sahte-Kasaba.mp4",
+  "fileName": "Video4-Haritadaki-Sahte-Kasaba.mp4",
+  "sizeMB": 10.9,
+  "updated": "2026-11-22T10:41:19.426Z",
+  "width": 1080,
+  "height": 1920,
+  "duration": 49.4
  },
  {
   "slug": "v5_335_yil_savasi",

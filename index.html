@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shorts Stüdyo Paneli</title>
+<style>
+  :root { --bg:#0e0f13; --card:#171920; --line:#262a35; --fg:#eceef3; --mut:#8b91a1; --acc:#ffcc33; --ok:#3ecf8e; --warn:#f5a524; --info:#5aa9ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 24px; border-bottom:1px solid var(--line); position:sticky; top:0; background:rgba(14,15,19,.92); backdrop-filter:blur(8px); z-index:5; }
+  h1 { font-size:18px; margin:0; } h1 span { color:var(--acc); }
+  .sub { color:var(--mut); font-size:12px; }
+  button, .btn { background:var(--card); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:7px 12px; font-size:13px; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
+  button:hover, .btn:hover { border-color:var(--acc); }
+  .btn.primary { background:var(--acc); color:#111; border-color:var(--acc); font-weight:600; }
+  main { display:grid; grid-template-columns: 320px 1fr; gap:20px; padding:20px 24px; }
+  @media (max-width:860px){ main{ grid-template-columns:1fr; } }
+  .list { display:flex; flex-direction:column; gap:10px; }
+  .item { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; cursor:pointer; }
+  .item.active { border-color:var(--acc); box-shadow:0 0 0 1px var(--acc) inset; }
+  .item .t { font-weight:600; } .item .m { color:var(--mut); font-size:12px; margin-top:4px; }
+  .badge { display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; margin-left:6px; vertical-align:middle; }
+  .b-ok { background:rgba(62,207,142,.15); color:var(--ok); }
+  .b-warn { background:rgba(245,165,36,.15); color:var(--warn); }
+  .b-info { background:rgba(90,169,255,.15); color:var(--info); }
+  .b-mut { background:#22252e; color:var(--mut); }
+  .detail { display:grid; grid-template-columns: minmax(260px, 380px) 1fr; gap:20px; align-items:start; }
+  @media (max-width:1100px){ .detail{ grid-template-columns:1fr; } }
+  .player { background:#000; border-radius:14px; overflow:hidden; aspect-ratio:9/16; display:flex; align-items:center; justify-content:center; border:1px solid var(--line); }
+  .player video { width:100%; height:100%; object-fit:contain; background:#000; }
+  .ph { color:var(--mut); text-align:center; padding:20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .tabs { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
+  .tabs button.on { border-color:var(--acc); color:var(--acc); }
+  .meta { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px; margin-bottom:14px; }
+  .meta div { background:#12141a; border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
+  .meta b { display:block; font-size:15px; } .meta small { color:var(--mut); font-size:11px; }
+  pre { white-space:pre-wrap; word-wrap:break-word; margin:0; font:14px/1.7 system-ui, sans-serif; color:var(--fg); }
+  img.qa { width:100%; border-radius:8px; border:1px solid var(--line); }
+  .row { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  label.tg { color:var(--mut); font-size:13px; display:inline-flex; align-items:center; gap:6px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🎬 Shorts Stüdyo <span>Paneli</span></h1>
+    <div class="sub" id="sum">Yükleniyor…</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <label class="tg"><input type="checkbox" id="auto" checked> Otomatik yenile</label>
+    <button onclick="load(true)">⟳ Yenile</button>
+  </div>
+</header>
+<main>
+  <div class="list" id="list"></div>
+  <div id="detail"></div>
+</main>
+<script>
+let videos = [], sel = null, tab = 'script', sig = '';
+const badge = s => ({'Hazır':'b-ok','Render Ediliyor':'b-warn','Ses Hazır':'b-info'}[s] || 'b-mut');
+const fmt = s => s ? `${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}` : '—';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+async function load(force) {
+  try {
+    const r = await fetch('videos.json', {cache:'no-store'});
+    const data = await r.json();
+    const ns = JSON.stringify(data.map(v => [v.slug, v.status, v.updated, v.frames]));
+    if (!force && ns === sig) return;
+    sig = ns; videos = data;
+    if (!sel || !videos.find(v => v.slug === sel)) sel = (videos.find(v => v.video) || videos[0] || {}).slug;
+    const ready = videos.filter(v => v.video).length;
+    document.getElementById('sum').textContent = `${videos.length} proje · ${ready} video hazır · son kontrol ${new Date().toLocaleTimeString('tr-TR')}`;
+    renderList(); renderDetail(force);
+  } catch (e) { document.getElementById('sum').textContent = 'Sunucuya ulaşılamadı: ' + e; }
+}
+
+function renderList() {
+  document.getElementById('list').innerHTML = videos.map((v, i) => `
+    <div class="item ${v.slug === sel ? 'active' : ''}" onclick="pick('${v.slug}')">
+      <div class="t">${i+1}. ${esc(v.title)} <span class="badge ${badge(v.status)}">${v.status}</span></div>
+      <div class="m">${v.video ? `${fmt(v.duration)} · ${v.sizeMB} MB · ${v.width}×${v.height}` :
+        v.status === 'Render Ediliyor' ? `${v.frames} kare render edildi` : `${v.words} kelime senaryo`}</div>
+    </div>`).join('');
+}
+
+function pick(slug) { sel = slug; tab = 'script'; renderList(); renderDetail(true); }
+function setTab(t) { tab = t; renderDetail(false, true); }
+
+function renderDetail(full, tabOnly) {
+  const v = videos.find(x => x.slug === sel);
+  const el = document.getElementById('detail');
+  if (!v) { el.innerHTML = '<div class="card ph">Henüz proje yok.</div>'; return; }
+  const tabsHtml = `
+    <div class="tabs">
+      <button class="${tab==='script'?'on':''}" onclick="setTab('script')">📝 Senaryo</button>
+      ${v.qa ? `<button class="${tab==='qa'?'on':''}" onclick="setTab('qa')">🖼️ Kare Önizleme</button>` : ''}
+      ${v.voice ? `<button class="${tab==='voice'?'on':''}" onclick="setTab('voice')">🎙️ Seslendirme</button>` : ''}
+    </div>
+    ${tab==='qa' && v.qa ? `<img class="qa" src="${v.qa}?t=${Date.now()}">` :
+      tab==='voice' && v.voice ? `<audio controls style="width:100%" src="${v.voice}"></audio>` :
+      `<pre>${esc(v.script || 'Senaryo bulunamadı.')}</pre>`}`;
+  if (tabOnly && document.getElementById('tabbox')) { document.getElementById('tabbox').innerHTML = tabsHtml; return; }
+  const vid = document.querySelector('#detail video');
+  if (!full && vid && vid.dataset.slug === v.slug) { document.getElementById('tabbox').innerHTML = tabsHtml; return; }
+  el.innerHTML = `
+    <div class="detail">
+      <div>
+        <div class="player">${v.video
+          ? `<video data-slug="${v.slug}" src="${v.video}?v=${encodeURIComponent(v.updated)}" controls playsinline loop preload="metadata"></video>`
+          : `<div class="ph">Video henüz hazır değil.<br><span class="badge ${badge(v.status)}">${v.status}</span></div>`}</div>
+        ${v.video ? `<div class="row">
+          <a class="btn primary" href="${v.video}" download="${v.fileName}">⬇ MP4 İndir (${v.sizeMB} MB)</a>
+          <label class="tg"><input type="checkbox" checked onchange="document.querySelector('#detail video').loop=this.checked"> Döngü (loop) testi</label>
+        </div>` : ''}
+      </div>
+      <div class="card">
+        <h2 style="margin:0 0 4px;font-size:17px">${esc(v.title)} <span class="badge ${badge(v.status)}">${v.status}</span></h2>
+        <div class="sub" style="margin-bottom:12px">${esc(v.fileName || v.slug)}</div>
+        <div class="meta">
+          <div><b>${fmt(v.duration)}</b><small>Süre</small></div>
+          <div><b>${v.width ? v.width+'×'+v.height : '—'}</b><small>Çözünürlük</small></div>
+          <div><b>${v.sizeMB ?? '—'}${v.sizeMB ? ' MB' : ''}</b><small>Dosya boyutu</small></div>
+          <div><b>${v.words}</b><small>Kelime</small></div>
+        </div>
+        <div id="tabbox">${tabsHtml}</div>
+      </div>
+    </div>`;
+}
+
+load(true);
+setInterval(() => { if (document.getElementById('auto').checked) load(false); }, 10000);
+</script>
+</body>
+</html>

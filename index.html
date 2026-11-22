@@ -31,15 +31,22 @@
   .player video { width:100%; height:100%; object-fit:contain; background:#000; }
   .ph { color:var(--mut); text-align:center; padding:20px; }
   .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; }
-  .tabs { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
+  .tabs { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
   .tabs button.on { border-color:var(--acc); color:var(--acc); }
   .meta { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px; margin-bottom:14px; }
   .meta div { background:#12141a; border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
   .meta b { display:block; font-size:15px; } .meta small { color:var(--mut); font-size:11px; }
-  pre { white-space:pre-wrap; word-wrap:break-word; margin:0; font:14px/1.7 system-ui, sans-serif; color:var(--fg); }
+  pre { white-space:pre-wrap; word-wrap:break-word; margin:0; font:14px/1.65 system-ui, sans-serif; color:var(--fg); }
   img.qa { width:100%; border-radius:8px; border:1px solid var(--line); }
   .row { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
   label.tg { color:var(--mut); font-size:13px; display:inline-flex; align-items:center; gap:6px; }
+  .copy-card { background:#12141a; border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:12px; }
+  .copy-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+  .copy-head b { font-size:13px; color:var(--acc); }
+  .copy-btn { padding:4px 10px; font-size:12px; border-radius:6px; }
+  .copy-btn.ok { border-color:var(--ok); color:var(--ok); }
+  .copy-body { white-space:pre-wrap; word-wrap:break-word; font:13px/1.6 system-ui, sans-serif; color:var(--fg); user-select:all; }
+  .copy-body.mono { font:12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color:#d7deee; }
 </style>
 </head>
 <body>
@@ -58,16 +65,37 @@
   <div id="detail"></div>
 </main>
 <script>
-let videos = [], sel = null, tab = 'script', sig = '';
+let videos = [], sel = null, tab = 'social', sig = '';
 const badge = s => ({'Hazır':'b-ok','Render Ediliyor':'b-warn','Ses Hazır':'b-info'}[s] || 'b-mut');
 const fmt = s => s ? `${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}` : '—';
-const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const copyStore = {};
+
+async function copyText(id, btn) {
+  const txt = copyStore[id] || '';
+  try { await navigator.clipboard.writeText(txt); }
+  catch {
+    const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); ta.remove();
+  }
+  const orig = btn.textContent;
+  btn.textContent = '✓ Kopyalandı'; btn.classList.add('ok');
+  setTimeout(() => { btn.textContent = orig; btn.classList.remove('ok'); }, 1500);
+}
+
+function copyBlock(id, label, text, mono = false) {
+  copyStore[id] = text || '';
+  return `<div class="copy-card">
+    <div class="copy-head"><b>${label}</b><button class="copy-btn" onclick="copyText('${id}', this)">📋 Kopyala</button></div>
+    <div class="copy-body ${mono ? 'mono' : ''}">${esc(text)}</div>
+  </div>`;
+}
 
 async function load(force) {
   try {
-    const r = await fetch('videos.json', {cache:'no-store'});
+    const r = await fetch('videos.json?t=' + Date.now(), {cache:'no-store'});
     const data = await r.json();
-    const ns = JSON.stringify(data.map(v => [v.slug, v.status, v.updated, v.frames]));
+    const ns = JSON.stringify(data.map(v => [v.slug, v.status, v.updated, v.frames, !!v.meta]));
     if (!force && ns === sig) return;
     sig = ns; videos = data;
     if (!sel || !videos.find(v => v.slug === sel)) sel = (videos.find(v => v.video) || videos[0] || {}).slug;
@@ -86,30 +114,44 @@ function renderList() {
     </div>`).join('');
 }
 
-function pick(slug) { sel = slug; tab = 'script'; renderList(); renderDetail(true); }
+function pick(slug) { sel = slug; const v = videos.find(x => x.slug === slug); tab = v?.meta ? 'social' : 'script'; renderList(); renderDetail(true); }
 function setTab(t) { tab = t; renderDetail(false, true); }
+
+function renderSocial(v) {
+  const m = v.meta;
+  if (!m) return '<div class="ph">Bu video için henüz paylaşım metni eklenmedi.</div>';
+  return [
+    copyBlock(v.slug + '_yt_t', '▶️ YouTube Shorts — Başlık', m.youtube?.title),
+    copyBlock(v.slug + '_yt_d', '▶️ YouTube Shorts — Açıklama & Etiketler', m.youtube?.description),
+    copyBlock(v.slug + '_ig',   '📸 Instagram Reels — Açıklama & Etiketler', m.instagram?.caption),
+    copyBlock(v.slug + '_flow', '🎨 Google Flow — Kapak (Thumbnail) Promptu (EN)', m.flow_prompt, true),
+  ].join('');
+}
 
 function renderDetail(full, tabOnly) {
   const v = videos.find(x => x.slug === sel);
   const el = document.getElementById('detail');
   if (!v) { el.innerHTML = '<div class="card ph">Henüz proje yok.</div>'; return; }
+  if (tab === 'social' && !v.meta) tab = 'script';
   const tabsHtml = `
     <div class="tabs">
+      ${v.meta ? `<button class="${tab==='social'?'on':''}" onclick="setTab('social')">📣 Paylaşım & Kapak</button>` : ''}
       <button class="${tab==='script'?'on':''}" onclick="setTab('script')">📝 Senaryo</button>
       ${v.qa ? `<button class="${tab==='qa'?'on':''}" onclick="setTab('qa')">🖼️ Kare Önizleme</button>` : ''}
       ${v.voice ? `<button class="${tab==='voice'?'on':''}" onclick="setTab('voice')">🎙️ Seslendirme</button>` : ''}
     </div>
-    ${tab==='qa' && v.qa ? `<img class="qa" src="${v.qa}?t=${Date.now()}">` :
-      tab==='voice' && v.voice ? `<audio controls style="width:100%" src="${v.voice}"></audio>` :
+    ${tab==='social' && v.meta ? renderSocial(v) :
+      tab==='qa' && v.qa ? `<img class="qa" src="${v.qa}?t=${encodeURIComponent(v.updated||Date.now())}">` :
+      tab==='voice' && v.voice ? `<audio controls style="width:100%" src="${v.voice}?t=${encodeURIComponent(v.updated||Date.now())}"></audio>` :
       `<pre>${esc(v.script || 'Senaryo bulunamadı.')}</pre>`}`;
   if (tabOnly && document.getElementById('tabbox')) { document.getElementById('tabbox').innerHTML = tabsHtml; return; }
   const vid = document.querySelector('#detail video');
-  if (!full && vid && vid.dataset.slug === v.slug) { document.getElementById('tabbox').innerHTML = tabsHtml; return; }
+  if (!full && vid && vid.dataset.slug === v.slug && vid.dataset.upd === (v.updated || '')) { document.getElementById('tabbox').innerHTML = tabsHtml; return; }
   el.innerHTML = `
     <div class="detail">
       <div>
         <div class="player">${v.video
-          ? `<video data-slug="${v.slug}" src="${v.video}?v=${encodeURIComponent(v.updated)}" controls playsinline loop preload="metadata"></video>`
+          ? `<video data-slug="${v.slug}" data-upd="${esc(v.updated||'')}" src="${v.video}?v=${encodeURIComponent(v.updated)}" controls playsinline loop preload="metadata"></video>`
           : `<div class="ph">Video henüz hazır değil.<br><span class="badge ${badge(v.status)}">${v.status}</span></div>`}</div>
         ${v.video ? `<div class="row">
           <a class="btn primary" href="${v.video}" download="${v.fileName}">⬇ MP4 İndir (${v.sizeMB} MB)</a>

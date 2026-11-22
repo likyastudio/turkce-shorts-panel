@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Shorts Stüdyo Paneli</title>
+<title>Shorts Stüdyo Paneli — Likya Control Center</title>
 <style>
-  :root { --bg:#0e0f13; --card:#171920; --line:#262a35; --fg:#eceef3; --mut:#8b91a1; --acc:#ffcc33; --ok:#3ecf8e; --warn:#f5a524; --info:#5aa9ff; }
+  :root { --bg:#0e0f13; --card:#171920; --line:#262a35; --fg:#eceef3; --mut:#8b91a1; --acc:#ffcc33; --ok:#3ecf8e; --warn:#f5a524; --info:#5aa9ff; --err:#ff595e; --ind:#6366f1; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
   header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 24px; border-bottom:1px solid var(--line); position:sticky; top:0; background:rgba(14,15,19,.94); backdrop-filter:blur(8px); z-index:5; flex-wrap:wrap; }
@@ -13,20 +13,26 @@
   .sub { color:var(--mut); font-size:12px; }
   button, .btn { background:var(--card); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:7px 12px; font-size:13px; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
   button:hover, .btn:hover { border-color:var(--acc); }
+  button:disabled { opacity:.55; cursor:not-allowed; }
   .btn.primary, button.nav-on { background:var(--acc); color:#111; border-color:var(--acc); font-weight:600; }
+  .btn.share { background:var(--ind); color:#fff; border-color:var(--ind); font-weight:600; }
+  .btn.share:hover { filter:brightness(1.1); }
+  .btn.danger { border-color:rgba(255,89,94,.4); color:var(--err); }
   .nav { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  main { display:grid; grid-template-columns: 320px 1fr; gap:20px; padding:20px 24px; }
+  main { display:grid; grid-template-columns: 330px 1fr; gap:20px; padding:20px 24px; }
   main.full { grid-template-columns: 1fr; max-width:1160px; margin:0 auto; }
   @media (max-width:860px){ main{ grid-template-columns:1fr; } }
   .list { display:flex; flex-direction:column; gap:10px; }
   .item { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; cursor:pointer; }
   .item.active { border-color:var(--acc); box-shadow:0 0 0 1px var(--acc) inset; }
   .item .t { font-weight:600; } .item .m { color:var(--mut); font-size:12px; margin-top:4px; }
-  .badge { display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; margin-left:6px; vertical-align:middle; }
+  .badge { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; margin-left:4px; vertical-align:middle; text-decoration:none; }
   .b-ok { background:rgba(62,207,142,.15); color:var(--ok); }
   .b-warn { background:rgba(245,165,36,.15); color:var(--warn); }
   .b-info { background:rgba(90,169,255,.15); color:var(--info); }
+  .b-err { background:rgba(255,89,94,.16); color:var(--err); }
   .b-mut { background:#22252e; color:var(--mut); }
+  .plat-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
   .detail { display:grid; grid-template-columns: minmax(260px, 380px) 1fr; gap:20px; align-items:start; }
   @media (max-width:1100px){ .detail{ grid-template-columns:1fr; } }
   .player { background:#000; border-radius:14px; overflow:hidden; aspect-ratio:9/16; display:flex; align-items:center; justify-content:center; border:1px solid var(--line); }
@@ -40,7 +46,7 @@
   .meta b { display:block; font-size:15px; } .meta small { color:var(--mut); font-size:11px; }
   pre { white-space:pre-wrap; word-wrap:break-word; margin:0; font:14px/1.65 system-ui, sans-serif; color:var(--fg); }
   img.qa { width:100%; border-radius:8px; border:1px solid var(--line); }
-  .row { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; align-items:center; }
   label.tg { color:var(--mut); font-size:13px; display:inline-flex; align-items:center; gap:6px; }
   .copy-card { background:#12141a; border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:12px; }
   .copy-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
@@ -55,6 +61,12 @@
   table.sch { width:100%; border-collapse:collapse; font-size:13px; }
   table.sch th, table.sch td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); }
   table.sch th { color:var(--acc); font-weight:600; }
+  input[type=text], input[type=password], input[type=number], textarea, select {
+    width:100%; background:#101218; color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:13px/1.5 system-ui, sans-serif;
+  }
+  .fld { margin-bottom:12px; } .fld label { display:block; font-size:12px; color:var(--mut); margin-bottom:4px; }
+  .modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.72); display:flex; align-items:center; justify-content:center; padding:16px; z-index:20; }
+  .modal { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px 20px; width:min(580px, 100%); max-height:90vh; overflow:auto; }
 </style>
 </head>
 <body>
@@ -65,18 +77,57 @@
   </div>
   <div class="nav">
     <button id="btn-videos" class="nav-on" onclick="setView('videos')">🎥 Videolar</button>
-    <button id="btn-channel" onclick="setView('channel')">🚀 Kanal Kurulumu (YT & IG)</button>
+    <button id="btn-channel" onclick="setView('channel')">🚀 Kanal Kurulumu</button>
+    <button id="btn-settings" onclick="setView('settings')">⚙️ Ayarlar (OAuth & API)</button>
     <label class="tg"><input type="checkbox" id="auto" checked> Oto yenile</label>
     <button onclick="load(true)">⟳</button>
   </div>
 </header>
 <main id="app"></main>
+<div id="modal-root"></div>
 <script>
 let videos = [], kit = null, sel = null, tab = 'social', view = 'videos', sig = '';
-const badge = s => ({'Hazır':'b-ok','Render Ediliyor':'b-warn','Ses Hazır':'b-info'}[s] || 'b-mut');
+let accounts = [], pubByVideo = {}, apiHealth = null;
+const badge = s => ({'Hazır':'b-ok','Yayında':'b-ok','Render Ediliyor':'b-warn','Yükleniyor':'b-warn','Ses Hazır':'b-info','Bekliyor':'b-mut','Hata':'b-err'}[s] || 'b-mut');
 const fmt = s => s ? `${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}` : '—';
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const copyStore = {};
+
+const getCfg = () => ({
+  apiUrl: (localStorage.getItem('likya_api_url') || '').replace(/\/$/, ''),
+  apiKey: localStorage.getItem('likya_api_key') || '',
+});
+const setCfg = (url, key) => {
+  localStorage.setItem('likya_api_url', (url || '').trim().replace(/\/$/, ''));
+  localStorage.setItem('likya_api_key', (key || '').trim());
+};
+
+async function apiFetch(path, opts = {}) {
+  const { apiUrl, apiKey } = getCfg();
+  if (!apiUrl) throw new Error('Önce ⚙️ Ayarlar sekmesinden Cloud Run API URL girin.');
+  const headers = { ...(opts.headers || {}) };
+  if (apiKey) headers['X-API-Key'] = apiKey;
+  const r = await fetch(apiUrl + path, { ...opts, headers });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.detail || `HTTP ${r.status}`);
+  return data;
+}
+
+async function syncBackend() {
+  const { apiUrl } = getCfg();
+  if (!apiUrl) { apiHealth = null; accounts = []; pubByVideo = {}; return; }
+  try {
+    apiHealth = await fetch(apiUrl + '/api/health', { cache: 'no-store' }).then(r => r.json());
+    const [accRes, stRes] = await Promise.all([
+      apiFetch('/api/accounts').catch(() => ({ accounts: [] })),
+      apiFetch('/api/publish/status').catch(() => ({ by_video: {} })),
+    ]);
+    accounts = accRes.accounts || [];
+    pubByVideo = stRes.by_video || {};
+  } catch (e) {
+    apiHealth = { ok: false, error: String(e.message || e) };
+  }
+}
 
 async function copyText(id, btn) {
   const txt = copyStore[id] || '';
@@ -100,9 +151,21 @@ function copyBlock(id, label, text, mono = false) {
 
 function setView(v) {
   view = v;
-  document.getElementById('btn-videos').classList.toggle('nav-on', v === 'videos');
-  document.getElementById('btn-channel').classList.toggle('nav-on', v === 'channel');
+  ['videos','channel','settings'].forEach(k => document.getElementById('btn-' + k).classList.toggle('nav-on', v === k));
   renderAll(true);
+}
+
+function platformBadgesHtml(slug) {
+  const logs = pubByVideo[slug] || [];
+  if (!logs.length) return '';
+  return `<div class="plat-row">${logs.map(l => {
+    const ic = l.platform === 'YT' ? '▶️ YT' : '📸 IG';
+    const name = l.account_name ? ` (${esc(l.account_name)})` : '';
+    const inner = `${ic}${name} · ${esc(l.status)}`;
+    return l.platform_post_url
+      ? `<a class="badge ${badge(l.status)}" href="${esc(l.platform_post_url)}" target="_blank" rel="noreferrer" title="${esc(l.error_message||'')}">${inner} ↗</a>`
+      : `<span class="badge ${badge(l.status)}" title="${esc(l.error_message||'')}">${inner}</span>`;
+  }).join('')}</div>`;
 }
 
 async function load(force) {
@@ -113,23 +176,22 @@ async function load(force) {
     ]);
     const data = await rv.json();
     if (rk && rk.ok) kit = await rk.json();
-    const ns = JSON.stringify(data.map(v => [v.slug, v.status, v.updated, v.frames, !!v.meta])) + (kit ? '1' : '0');
+    await syncBackend();
+    const ns = JSON.stringify([data.map(v => [v.slug, v.status, v.updated, v.frames, !!v.meta]), pubByVideo, accounts.length]);
     if (!force && ns === sig) return;
     sig = ns; videos = data;
     if (!sel || !videos.find(v => v.slug === sel)) sel = (videos.find(v => v.video) || videos[0] || {}).slug;
     const ready = videos.filter(v => v.video).length;
-    document.getElementById('sum').textContent = `${videos.length} proje · ${ready} video hazır · son kontrol ${new Date().toLocaleTimeString('tr-TR')}`;
+    const apiTxt = apiHealth?.ok ? ` · API bağlı (${accounts.length} kanal)` : '';
+    document.getElementById('sum').textContent = `${videos.length} proje · ${ready} video hazır${apiTxt} · son kontrol ${new Date().toLocaleTimeString('tr-TR')}`;
     renderAll(force);
   } catch (e) { document.getElementById('sum').textContent = 'Sunucuya ulaşılamadı: ' + e; }
 }
 
 function renderAll(force) {
   const app = document.getElementById('app');
-  if (view === 'channel') {
-    app.className = 'full';
-    renderChannel(app);
-    return;
-  }
+  if (view === 'channel') { app.className = 'full'; renderChannel(app); return; }
+  if (view === 'settings') { app.className = 'full'; renderSettings(app); return; }
   app.className = '';
   if (!document.getElementById('list')) {
     app.innerHTML = '<div class="list" id="list"></div><div id="detail"></div>';
@@ -144,11 +206,70 @@ function renderList() {
       <div class="t">${i+1}. ${esc(v.title)} <span class="badge ${badge(v.status)}">${v.status}</span></div>
       <div class="m">${v.video ? `${fmt(v.duration)} · ${v.sizeMB} MB · ${v.width}×${v.height}` :
         v.status === 'Render Ediliyor' ? `${v.frames} kare render edildi` : `${v.words} kelime senaryo`}</div>
+      ${platformBadgesHtml(v.slug)}
     </div>`).join('');
 }
 
 function pick(slug) { sel = slug; const v = videos.find(x => x.slug === slug); tab = v?.meta ? 'social' : 'script'; renderList(); renderDetail(true); }
 function setTab(t) { tab = t; renderDetail(false, true); }
+
+function openPublishModal(slug) {
+  const v = videos.find(x => x.slug === slug);
+  if (!v) return;
+  const { apiUrl } = getCfg();
+  const absUrl = new URL(v.video, location.href).href;
+  const chHtml = !apiUrl
+    ? `<div class="copy-card" style="border-color:var(--warn)"><b>⚠️ Cloud Run API URL henüz tanımlı değil</b><div class="sub" style="margin-top:4px">Paylaşımı aktifleştirmek için üstteki <b>⚙️ Ayarlar (OAuth & API)</b> sekmesinden Cloud Run URL'nizi girip YouTube/Instagram hesaplarınızı bağlayın.</div><div class="row"><button class="btn primary" onclick="closeModal();setView('settings')">⚙️ Ayarlara Git</button></div></div>`
+    : accounts.length === 0
+      ? `<div class="copy-card" style="border-color:var(--warn)"><b>⚠️ Bağlı kanal bulunamadı</b><div class="sub" style="margin-top:4px">Önce Ayarlar sekmesinden YouTube veya Instagram hesabı bağlayın.</div><div class="row"><button class="btn primary" onclick="closeModal();setView('settings')">🔗 Kanal Bağla</button></div></div>`
+      : `<div class="fld"><label>Hedef Kanallar (Çoklu Seçim)</label>${accounts.map(a =>
+          `<label class="name-row" style="cursor:pointer"><span><input type="checkbox" name="acc_id" value="${a.id}" checked> <b>${a.platform==='YT'?'▶️ YouTube':'📸 Instagram'}</b> · ${esc(a.account_name)}</span><span class="badge b-ok">Bağlı</span></label>`
+        ).join('')}</div>`;
+  document.getElementById('modal-root').innerHTML = `
+    <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="copy-head"><h3 style="margin:0">🚀 YT & IG Ortak Paylaşım — ${esc(v.title)}</h3><button onclick="closeModal()">✕</button></div>
+        ${chHtml}
+        <div class="fld"><label>YouTube Shorts Başlık</label><input id="p_title" type="text" value="${esc(v.meta?.youtube?.title || v.title)}"></div>
+        <div class="fld"><label>YouTube Shorts Açıklama</label><textarea id="p_desc" rows="4">${esc(v.meta?.youtube?.description || '')}</textarea></div>
+        <div class="fld"><label>Instagram Reels Açıklama</label><textarea id="p_ig" rows="4">${esc(v.meta?.instagram?.caption || '')}</textarea></div>
+        <div class="fld"><label>Instagram Kapak Karesi (ms — isteğe bağlı)</label><input id="p_thumb" type="number" value="1500" min="0" step="500"></div>
+        <div id="p_msg" class="sub" style="margin-bottom:8px"></div>
+        <div class="row">
+          <button class="btn share" ${(!apiUrl || !accounts.length)?'disabled':''} onclick="submitPublish('${v.slug}', '${esc(absUrl)}')">🚀 Şimdi Yayınla (YT & IG)</button>
+          <button onclick="closeModal()">İptal</button>
+        </div>
+      </div>
+    </div>`;
+}
+function closeModal() { document.getElementById('modal-root').innerHTML = ''; }
+
+async function submitPublish(slug, videoUrl) {
+  const msg = document.getElementById('p_msg');
+  const checked = [...document.querySelectorAll('input[name="acc_id"]:checked')].map(el => Number(el.value));
+  if (!checked.length) { msg.textContent = 'En az bir hedef kanal seçin.'; return; }
+  msg.textContent = 'Kuyruğa gönderiliyor…';
+  try {
+    await apiFetch('/api/publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        video_id: slug,
+        video_url: videoUrl,
+        title: document.getElementById('p_title').value,
+        description: document.getElementById('p_desc').value,
+        ig_caption: document.getElementById('p_ig').value,
+        thumb_offset_ms: Number(document.getElementById('p_thumb').value || 0),
+        account_ids: checked,
+      }),
+    });
+    closeModal();
+    await load(true);
+  } catch (e) {
+    msg.style.color = 'var(--err)';
+    msg.textContent = 'Hata: ' + e.message;
+  }
+}
 
 function renderSocial(v) {
   const m = v.meta;
@@ -179,7 +300,11 @@ function renderDetail(full, tabOnly) {
       `<pre>${esc(v.script || 'Senaryo bulunamadı.')}</pre>`}`;
   if (tabOnly && document.getElementById('tabbox')) { document.getElementById('tabbox').innerHTML = tabsHtml; return; }
   const vid = document.querySelector('#detail video');
-  if (!full && vid && vid.dataset.slug === v.slug && vid.dataset.upd === (v.updated || '')) { document.getElementById('tabbox').innerHTML = tabsHtml; return; }
+  if (!full && vid && vid.dataset.slug === v.slug && vid.dataset.upd === (v.updated || '')) {
+    document.getElementById('tabbox').innerHTML = tabsHtml;
+    const pb = document.getElementById('platbox'); if (pb) pb.innerHTML = platformBadgesHtml(v.slug);
+    return;
+  }
   el.innerHTML = `
     <div class="detail">
       <div>
@@ -187,9 +312,10 @@ function renderDetail(full, tabOnly) {
           ? `<video data-slug="${v.slug}" data-upd="${esc(v.updated||'')}" src="${v.video}?v=${encodeURIComponent(v.updated)}" controls playsinline loop preload="metadata"></video>`
           : `<div class="ph">Video henüz hazır değil.<br><span class="badge ${badge(v.status)}">${v.status}</span></div>`}</div>
         ${v.video ? `<div class="row">
+          <button class="btn share" onclick="openPublishModal('${v.slug}')">🚀 YT & IG Paylaş</button>
           <a class="btn primary" href="${v.video}" download="${v.fileName}">⬇ MP4 İndir (${v.sizeMB} MB)</a>
-          <label class="tg"><input type="checkbox" checked onchange="document.querySelector('#detail video').loop=this.checked"> Döngü (loop) testi</label>
-        </div>` : ''}
+          <label class="tg"><input type="checkbox" checked onchange="document.querySelector('#detail video').loop=this.checked"> Döngü</label>
+        </div><div id="platbox">${platformBadgesHtml(v.slug)}</div>` : ''}
       </div>
       <div class="card">
         <h2 style="margin:0 0 4px;font-size:17px">${esc(v.title)} <span class="badge ${badge(v.status)}">${v.status}</span></h2>
@@ -205,6 +331,54 @@ function renderDetail(full, tabOnly) {
     </div>`;
 }
 
+function renderSettings(el) {
+  const { apiUrl, apiKey } = getCfg();
+  const stBadge = apiHealth?.ok
+    ? `<span class="badge b-ok">Bağlı · DB: ${esc(apiHealth.db)} · Bucket: ${esc(apiHealth.gcs_bucket)}</span>`
+    : apiUrl ? `<span class="badge b-err">Bağlantı Hatası: ${esc(apiHealth?.error||'Ulaşılamadı')}</span>` : `<span class="badge b-mut">Henüz yapılandırılmadı</span>`;
+  const retUrl = encodeURIComponent(location.origin + location.pathname);
+  el.innerHTML = `
+    <div class="card" style="margin-bottom:16px">
+      <h2 style="margin:0 0 6px;font-size:18px">⚙️ Ortak Paylaşım Ayarları (Cloud Run + OAuth 2.0) ${stBadge}</h2>
+      <div class="sub">Google Cloud Run üzerindeki FastAPI Cross-Posting Worker adresini bağlayın; ardından tek tıkla çoklu YouTube ve Instagram kanalları ekleyin.</div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3 style="margin:0 0 10px;color:var(--acc)">☁️ Cloud Run Backend Bağlantısı</h3>
+        <div class="fld"><label>Cloud Run API URL</label><input id="cfg_url" type="text" placeholder="https://likya-crosspost-api-xxxx-ew.a.run.app" value="${esc(apiUrl)}"></div>
+        <div class="fld"><label>X-API-Key (API_SECRET_KEY — isteğe bağlı)</label><input id="cfg_key" type="password" placeholder="••••••••" value="${esc(apiKey)}"></div>
+        <div class="row">
+          <button class="btn primary" onclick="saveSettings()">💾 Kaydet & Bağlantıyı Test Et</button>
+        </div>
+        <div class="sub" style="margin-top:12px">Backend kodu depodaki <code>crosspost-api/</code> klasöründe hazır: <code>PROJECT_ID=... bash deploy_cloudrun.sh</code> ile Cloud Run'a tek komutla çıkarabilirsiniz.</div>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 10px;color:var(--acc)">🔗 OAuth 2.0 Çoklu Kanal Bağlama</h3>
+        <div class="row" style="margin-top:0;margin-bottom:14px">
+          <a class="btn share" ${!apiUrl?'style="pointer-events:none;opacity:.5"':''} href="${apiUrl ? `${apiUrl}/api/oauth/youtube/start?redirect_to=${retUrl}` : '#'}">▶️ YouTube Kanalı Bağla (OAuth)</a>
+          <a class="btn share" ${!apiUrl?'style="pointer-events:none;opacity:.5"':''} href="${apiUrl ? `${apiUrl}/api/oauth/instagram/start?redirect_to=${retUrl}` : '#'}">📸 Instagram Hesabı Bağla (OAuth)</a>
+        </div>
+        <b style="font-size:13px">Bağlı Kanallar (${accounts.length})</b>
+        <div style="margin-top:8px">
+          ${accounts.length ? accounts.map(a => `
+            <div class="name-row">
+              <div><b>${a.platform==='YT'?'▶️ YouTube':'📸 Instagram'}</b> · ${esc(a.account_name)}<div class="sub">ID: ${esc(a.external_id)}</div></div>
+              <button class="btn danger" onclick="delAccount(${a.id})">Kaldır</button>
+            </div>`).join('') : '<div class="sub">Henüz bağlı kanal yok.</div>'}
+        </div>
+      </div>
+    </div>`;
+}
+
+async function saveSettings() {
+  setCfg(document.getElementById('cfg_url').value, document.getElementById('cfg_key').value);
+  await load(true);
+}
+async function delAccount(id) {
+  await apiFetch('/api/accounts/' + id, { method: 'DELETE' });
+  await load(true);
+}
+
 function renderChannel(el) {
   if (!kit) { el.innerHTML = '<div class="card ph">Kanal kurulum kiti yükleniyor…</div>'; return; }
   const namesHtml = kit.names.map((n, i) => {
@@ -217,10 +391,7 @@ function renderChannel(el) {
       <div class="sub">Hem YouTube hem Instagram'da aynı marka adıyla tutarlı başlangıç için kopyala-yapıştır metinler, ayarlar ve Google Flow görsel promptları.</div>
     </div>
     <div class="grid2">
-      <div class="card">
-        <h3 style="margin:0 0 10px;color:var(--acc)">🏷️ Kanal Adı & Kullanıcı Adı Önerileri</h3>
-        ${namesHtml}
-      </div>
+      <div class="card"><h3 style="margin:0 0 10px;color:var(--acc)">🏷️ Kanal Adı & Kullanıcı Adı Önerileri</h3>${namesHtml}</div>
       <div class="card">
         <h3 style="margin:0 0 10px;color:var(--acc)">🎨 Marka Görselleri (Google Flow Promptları)</h3>
         ${copyBlock('kit_logo', 'Profil Logosu (1:1 — YT & IG Ortak)', kit.brand_prompts.logo_flow, true)}
@@ -253,8 +424,12 @@ function renderChannel(el) {
     </div>`;
 }
 
+if (location.hash.startsWith('#settings')) view = 'settings';
 load(true);
-setInterval(() => { if (document.getElementById('auto').checked && view === 'videos') load(false); }, 10000);
+setInterval(() => {
+  const activePoll = Object.values(pubByVideo).flat().some(l => l.status === 'Bekliyor' || l.status === 'Yükleniyor');
+  if (activePoll || (document.getElementById('auto').checked && view === 'videos')) load(false);
+}, 4000);
 </script>
 </body>
 </html>

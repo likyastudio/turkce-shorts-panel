@@ -110,7 +110,7 @@
  {
   "slug": "v5_335_yil_savasi",
   "title": "335 Yıl Süren Savaş",
-  "status": "Ses Hazır",
+  "status": "Hazır",
   "script": "Dünyanın en uzun savaşı üç yüz otuz beş yıl sürdü... ama tek bir kurşun bile atılmadı.\nÜç asır süren bir savaşta nasıl kimsenin burnu bile kanamaz?\nBin altı yüz elli birde, Hollanda donanması Scilly Adaları'na sığınan İngiliz gemilerine öfkelenip bu küçük adalara resmen savaş ilan etti.\nFakat birkaç ay sonra adalar zaten teslim oldu.\nHollanda filosu da tek el ateş etmeden dönüp evine gitti.\nKüçük bir sorun vardı: Kimse resmi barış antlaşması imzalamayı akıl etmemişti!\nYüzyıllar geçti, krallar değişti, dünya savaşları yaşandı; ama kâğıt üzerinde iki taraf hâlâ düşmandı.\nTa ki bin dokuz yüz seksen altıda yerel bir tarihçi, eski arşivlerde bu unutulan savaş ilanını bulana kadar!\nHollanda büyükelçisi hemen adaya davet edildi, gülüşmeler arasında barış imzalandı.\nBüyükelçi espriyi patlattı: \"Üç yüz yıldır saldıracağız diye korktuğunuzu biliyorum!\"\nVe tarih kitapları bu garip unutkanlığı hâlâ şöyle anlatır:",
   "meta": {
    "youtube": {
@@ -123,8 +123,15 @@
    "flow_prompt": "Vertical 9:16 viral YouTube Shorts cover illustration in stylized painted 3D toon background with bold 2D inked cartoon characters (thick dark outlines, expressive bean-shaped heads, stick-style limbs). Foreground: on a picturesque sunny green coastal cliff overlooking sparkling turquoise ocean waves and a miniature 17th-century wooden Dutch sailing ship anchored peacefully in the bay, a cheerful modern diplomat in a tailored suit and a friendly island historian shake hands warmly while holding a dusty old rolled parchment peace treaty with a giant red wax seal and glowing golden sparkles; both laughing joyfully. Cobwebbed antique cannon peacefully covered in blooming yellow wildflowers beside them. Bright painterly 3D ocean sky, crisp cartoon outlines, balanced vertical framing with room at top/bottom for text, no text in image."
   },
   "words": 136,
-  "frames": 0,
+  "frames": 1520,
   "voice": "files/v5_335_yil_savasi/work/voice.mp3",
-  "qa": null
+  "qa": "files/v5_335_yil_savasi/out/qa_sheet.jpg",
+  "video": "files/v5_335_yil_savasi/out/Video5-335-Yil-Suren-Savas.mp4",
+  "fileName": "Video5-335-Yil-Suren-Savas.mp4",
+  "sizeMB": 11.1,
+  "updated": "2026-11-22T11:02:25.069Z",
+  "width": 1080,
+  "height": 1920,
+  "duration": 50.676
  }
 ]

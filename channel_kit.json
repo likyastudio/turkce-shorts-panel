@@ -1,0 +1,45 @@
+{
+  "names": [
+    { "name": "Absürt Tarih", "handle": "@absurttarih", "note": "En net niş uyumu; akılda kalıcı, hem YT hem IG aramalarında güçlü." },
+    { "name": "Garip Gerçekler", "handle": "@garipgerceklertr", "note": "Tarih + psikoloji + suç + bilim konularının hepsini kapsar." },
+    { "name": "Gerçek Mi Bu?", "handle": "@gercekmibutr", "note": "Merak uyandıran kanca tarzı marka; izleyici yorumunu tetikler." },
+    { "name": "Tuhaf Klipler", "handle": "@tuhafklipler", "note": "@RicksClips3000 tarzı kısa çizgi film hissini doğrudan taşır." },
+    { "name": "Akıl Almaz Tarih", "handle": "@akilalmaztarih", "note": "Yüksek tıklanma (CTR) potansiyelli, hikâye odaklı marka." }
+  ],
+  "youtube": {
+    "about": "Tarihin en absürt gerçek olayları, akıl almaz dolandırıcılıklar, tuhaf bilimsel deneyler ve \"bu gerçekten yaşandı mı?\" dedirten kısa çizgi hikâyeler — hepsi 60 saniyenin altında!\n\nHer gün yeni bir gerçek hikâye. Abone ol, tarihin en garip köşelerini kaçırma! 🎬⚡",
+    "keywords": "ilginç bilgiler, absürt tarih, gerçek hikayeler, tuhaf olaylar, kısa animasyon, youtube shorts türkiye, psikoloji gerçekleri, tarihteki garip olaylar, komik gerçekler, dunning kruger, emu savaşı, agloe, jeanne calment",
+    "settings": [
+      "Kanal Kategorisi: Eğlence (Entertainment) — Shorts keşfet havuzu Eğitim'den daha geniştir.",
+      "Dil & Konum: Video dili Türkçe, Ülke Türkiye.",
+      "\"Çocuklara özel değil\" (Hayır, çocuklara özel değil) seçeneğini mutlaka işaretle — aksi halde yorumlar kapanır ve erişim düşer.",
+      "Telefon doğrulaması yap (özel küçük resim / 15 dk+ / canlı yayın özellikleri açılır).",
+      "İlk 5 videoyu tek seferde değil, günde 1 video olacak şekilde düzenli saatte (18:00–20:30 TR) paylaş.",
+      "Her videoda ilk yoruma merak uyandıran bir soru yazıp sabitle (yorum etkileşimi algoritmayı hızlandırır)."
+    ]
+  },
+  "instagram": {
+    "bio_1": "🎬 Tarihin en absürt GERÇEK olayları\n⚡ 50 saniyede çizgi hikâyeler\n🤯 \"Bu gerçekten yaşandı mı?\" serisi\n👇 Yeni bölüm her gün!",
+    "bio_2": "📜 Gerçek ama inanması zor hikâyeler\n🎨 Kısa animasyon • Tarih • Psikoloji • Suç\n🔥 Her gün 1 yeni gerçek olay\n▶️ YouTube'da da aynı isimdeyiz",
+    "bio_3": "🍋 Limon suyuyla banka soyan adamdan kuşlara kaybedilen savaşa...\n🎬 Tarihin en tuhaf gerçekleri, 1 dakikanın altında!\n👇 Takip et, sıradaki hikâyeyi kaçırma",
+    "settings": [
+      "Hesap Türü: Profesyonel Hesap → İçerik Üreticisi → Dijital İçerik Üreticisi (istatistikler ve Reels analizleri açılır).",
+      "Ayarlar → Medya Kalitesi → \"En yüksek kalitede yükle\" seçeneğini AÇ (çizgi film çizgileri net kalır).",
+      "Reels paylaşırken kapak görseli olarak Google Flow ile ürettiğin 9:16 kapağı seç ve profil ızgarasını (4:5 kırpma) ortala.",
+      "Profildeki ilk 3 videoyu (Limon Suyu Soyguncusu, Evini Satan Nine, Büyük Emu Savaşı) en çok izlenenleri üste sabitlemek için hazır tut.",
+      "Her Reels sonunda \"Böyle daha fazla gerçek hikâye için takip et\" yerine videonun kendi döngüsüne güven; açıklamaya tek bir tartışma sorusu koy.",
+      "İlk 3 gün günde 10–15 dakika kendi nişindeki Türkçe tarih/bilgi Reels'lerini izleyip doğal etkileşim ver (yeni hesap spam filtresine takılmaz)."
+    ]
+  },
+  "brand_prompts": {
+    "logo_flow": "Square 1:1 bold iconic YouTube and Instagram profile avatar illustration in stylized painted 3D toon background with crisp 2D inked cartoon character (thick dark purple-black outlines, expressive bean-shaped head, wide amazed eyes, big mischievous grin, round glasses). Center close-up bust of a quirky cartoon storyteller wearing a warm burgundy jacket and tiny golden lightbulb floating above his head with bright yellow spark rays, holding a vintage rolled history scroll in one hand. Vivid deep teal-to-navy sunburst background with subtle halftone texture, high contrast, ultra-readable even at tiny mobile avatar size, no text.",
+    "banner_flow": "Wide 16:9 (2560x1440) YouTube channel banner illustration in stylized painted 3D toon world with bold 2D inked cartoon characters (thick dark outlines, expressive bean-shaped heads, stick-style limbs). Keep the central safe band clean and balanced with a warm spotlight glow; flanking the left and right sides are playful cartoon vignettes from absurd true history: on the left a goofy bank robber with yellow lemon drips and a smiling French grandmother riding a red retro bicycle with a chocolate bar; on the right a smug cartoon emu bird in sunglasses, a glowing red-pinned vintage map, and a tiny 17th-century sailing ship under a starry teal-and-gold sky. Vibrant cinema colors, rich painted shading, clean negative space in the exact center for a channel logo overlay, no text baked into image."
+  },
+  "schedule": [
+    { "day": "1. Gün", "video": "Video 1 — Limon Suyu Banka Soyguncusu", "time": "19:30 TR", "tip": "En güçlü kanca! İlk yoruma: \"Bu adamın özgüveni 10 üzerinden kaç? 🍋\" yazıp sabitle." },
+    { "day": "2. Gün", "video": "Video 2 — Evini Satan Nine (Jeanne Calment)", "time": "19:30 TR", "tip": "Yüksek paylaşım potansiyelli hikâye. Loop geçişi çok akıcı; kaydetme çağrısı ekle." },
+    { "day": "3. Gün", "video": "Video 3 — Büyük Emu Savaşı (1932)", "time": "19:30 TR", "tip": "Tarih + mizah kombosu. Yorum sorusu: \"Kuşlara kaybedilen bu savaşı duymuş muydun?\"" },
+    { "day": "4. Gün", "video": "Video 4 — Haritadaki Sahte Kasaba (Agloe)", "time": "19:30 TR", "tip": "Ters köşe son! İzlenme sonu tutma (retention) en yüksek format." },
+    { "day": "5. Gün", "video": "Video 5 — 335 Yıl Süren Savaş", "time": "19:30 TR", "tip": "İlk 5 videonun analitiğine bak: en yüksek ortalama izlenme süresine sahip konu tipinden devam et." }
+  ]
+}

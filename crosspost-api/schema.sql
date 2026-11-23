@@ -46,8 +46,10 @@ CREATE TABLE IF NOT EXISTS scheduled_posts (
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS brand VARCHAR(32) NOT NULL DEFAULT 'akilalmaz';
 ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS yt_uploaded BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS yt_video_url TEXT;
+ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS brand VARCHAR(32) NOT NULL DEFAULT 'akilalmaz';
 
 CREATE INDEX IF NOT EXISTS idx_scheduled_posts_due ON scheduled_posts (status, scheduled_at ASC);
 

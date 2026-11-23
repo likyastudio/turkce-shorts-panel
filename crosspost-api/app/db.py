@@ -62,6 +62,7 @@ def init_db() -> None:
                 CREATE TABLE IF NOT EXISTS social_accounts (
                     id            INTEGER PRIMARY KEY AUTOINCREMENT,
                     platform      TEXT NOT NULL CHECK (platform IN ('YT', 'IG')),
+                    brand         TEXT NOT NULL DEFAULT 'akilalmaz',
                     account_name  TEXT NOT NULL,
                     external_id   TEXT NOT NULL,
                     access_token  TEXT NOT NULL,
@@ -85,6 +86,7 @@ def init_db() -> None:
                 CREATE INDEX IF NOT EXISTS idx_publish_logs_video ON publish_logs (video_id, updated_at);
                 CREATE TABLE IF NOT EXISTS scheduled_posts (
                     id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                    brand           TEXT NOT NULL DEFAULT 'akilalmaz',
                     video_id        TEXT NOT NULL,
                     video_url       TEXT NOT NULL,
                     title           TEXT NOT NULL,
@@ -117,6 +119,7 @@ def upsert_account(
     access_token: str,
     refresh_token: Optional[str] = None,
     expires_at: Optional[str] = None,
+    brand: str = "akilalmaz",
 ) -> dict[str, Any]:
     now = _now()
     with get_conn() as (conn, p, is_pg):
@@ -136,35 +139,45 @@ def upsert_account(
         else:
             if is_pg:
                 cur.execute(
-                    "INSERT INTO social_accounts (platform, account_name, external_id, access_token, refresh_token, expires_at, created_at) "
-                    "VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id",
-                    (platform, account_name, external_id, access_token, refresh_token, expires_at, now),
+                    "INSERT INTO social_accounts (platform, brand, account_name, external_id, access_token, refresh_token, expires_at, created_at) "
+                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+                    (platform, brand, account_name, external_id, access_token, refresh_token, expires_at, now),
                 )
                 acc_id = cur.fetchone()[0]
             else:
                 cur.execute(
-                    "INSERT INTO social_accounts (platform, account_name, external_id, access_token, refresh_token, expires_at, created_at) "
-                    "VALUES (?,?,?,?,?,?,?)",
-                    (platform, account_name, external_id, access_token, refresh_token, expires_at, now),
+                    "INSERT INTO social_accounts (platform, brand, account_name, external_id, access_token, refresh_token, expires_at, created_at) "
+                    "VALUES (?,?,?,?,?,?,?,?)",
+                    (platform, brand, account_name, external_id, access_token, refresh_token, expires_at, now),
                 )
                 acc_id = cur.lastrowid
         cur.execute(
-            f"SELECT id, platform, account_name, external_id, expires_at, created_at FROM social_accounts WHERE id={p}",
+            f"SELECT id, platform, brand, account_name, external_id, expires_at, created_at FROM social_accounts WHERE id={p}",
             (acc_id,),
         )
         return _rows(cur, is_pg)[0]
 
 
-def list_accounts(include_tokens: bool = False) -> list[dict[str, Any]]:
+def list_accounts(include_tokens: bool = False, brand: Optional[str] = None) -> list[dict[str, Any]]:
     cols = (
-        "id, platform, account_name, external_id, access_token, refresh_token, expires_at, created_at"
+        "id, platform, brand, account_name, external_id, access_token, refresh_token, expires_at, created_at"
         if include_tokens
-        else "id, platform, account_name, external_id, expires_at, created_at"
+        else "id, platform, brand, account_name, external_id, expires_at, created_at"
     )
-    with get_conn() as (conn, _p, is_pg):
+    with get_conn() as (conn, p, is_pg):
         cur = conn.cursor()
-        cur.execute(f"SELECT {cols} FROM social_accounts ORDER BY platform, id")
+        if brand:
+            cur.execute(f"SELECT {cols} FROM social_accounts WHERE brand={p} ORDER BY platform, id", (brand,))
+        else:
+            cur.execute(f"SELECT {cols} FROM social_accounts ORDER BY brand, platform, id")
         return _rows(cur, is_pg)
+
+
+def set_account_brand(account_id: int, brand: str) -> bool:
+    with get_conn() as (conn, p, _is_pg):
+        cur = conn.cursor()
+        cur.execute(f"UPDATE social_accounts SET brand={p} WHERE id={p}", (brand, account_id))
+        return cur.rowcount > 0
 
 
 def get_accounts_by_ids(ids: list[int]) -> list[dict[str, Any]]:
@@ -255,7 +268,7 @@ def list_publish_logs(video_id: Optional[str] = None) -> list[dict[str, Any]]:
 
 
 _SCHED_COLS = (
-    "id, video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, "
+    "id, brand, video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, "
     "account_ids, scheduled_at, status, yt_uploaded, yt_video_url, error_message, created_at, updated_at"
 )
 
@@ -271,6 +284,7 @@ def _norm_sched_row(r: dict[str, Any]) -> dict[str, Any]:
         except Exception:
             r["account_ids"] = []
     r["yt_uploaded"] = bool(r.get("yt_uploaded"))
+    r["brand"] = r.get("brand") or "akilalmaz"
     return r
 
 
@@ -284,6 +298,7 @@ def create_scheduled_post(
     cover_url: Optional[str] = None,
     thumb_offset_ms: int = 1500,
     account_ids: Optional[list[int]] = None,
+    brand: str = "akilalmaz",
 ) -> dict[str, Any]:
     import json as _json
     now = _now()
@@ -293,29 +308,34 @@ def create_scheduled_post(
         if is_pg:
             cur.execute(
                 "INSERT INTO scheduled_posts "
-                "(video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, account_ids, scheduled_at, status, yt_uploaded, created_at, updated_at) "
-                f"VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,'Planlandı',FALSE,%s,%s) RETURNING {_SCHED_COLS}",
-                (video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, acc_json, scheduled_at_iso, now, now),
+                "(brand, video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, account_ids, scheduled_at, status, yt_uploaded, created_at, updated_at) "
+                f"VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'Planlandı',FALSE,%s,%s) RETURNING {_SCHED_COLS}",
+                (brand, video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, acc_json, scheduled_at_iso, now, now),
             )
             return _norm_sched_row(_rows(cur, True)[0])
         cur.execute(
             "INSERT INTO scheduled_posts "
-            "(video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, account_ids, scheduled_at, status, yt_uploaded, created_at, updated_at) "
-            "VALUES (?,?,?,?,?,?,?,?,?,'Planlandı',0,?,?)",
-            (video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, acc_json, scheduled_at_iso, now, now),
+            "(brand, video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, account_ids, scheduled_at, status, yt_uploaded, created_at, updated_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,'Planlandı',0,?,?)",
+            (brand, video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, acc_json, scheduled_at_iso, now, now),
         )
         rid = int(cur.lastrowid)
         cur.execute(f"SELECT {_SCHED_COLS} FROM scheduled_posts WHERE id=?", (rid,))
         return _norm_sched_row(_rows(cur, False)[0])
 
 
-def list_scheduled_posts(status: Optional[str] = None) -> list[dict[str, Any]]:
+def list_scheduled_posts(status: Optional[str] = None, brand: Optional[str] = None) -> list[dict[str, Any]]:
     with get_conn() as (conn, p, is_pg):
         cur = conn.cursor()
+        conds, vals = [], []
         if status:
-            cur.execute(f"SELECT {_SCHED_COLS} FROM scheduled_posts WHERE status={p} ORDER BY scheduled_at ASC LIMIT 200", (status,))
-        else:
-            cur.execute(f"SELECT {_SCHED_COLS} FROM scheduled_posts ORDER BY scheduled_at ASC LIMIT 200")
+            conds.append(f"status={p}")
+            vals.append(status)
+        if brand:
+            conds.append(f"brand={p}")
+            vals.append(brand)
+        where = f"WHERE {' AND '.join(conds)}" if conds else ""
+        cur.execute(f"SELECT {_SCHED_COLS} FROM scheduled_posts {where} ORDER BY scheduled_at ASC LIMIT 200", tuple(vals))
         return [_norm_sched_row(r) for r in _rows(cur, is_pg)]
 
 
@@ -393,4 +413,15 @@ def delete_scheduled_post(post_id: int) -> bool:
         cur = conn.cursor()
         cur.execute(f"DELETE FROM scheduled_posts WHERE id={p}", (post_id,))
         return cur.rowcount > 0
+
+
+def update_scheduled_cover_url(video_id: str, cover_url: str) -> int:
+    now = _now()
+    with get_conn() as (conn, p, _is_pg):
+        cur = conn.cursor()
+        cur.execute(
+            f"UPDATE scheduled_posts SET cover_url={p}, updated_at={p} WHERE video_id={p}",
+            (cover_url, now, video_id),
+        )
+        return cur.rowcount
 

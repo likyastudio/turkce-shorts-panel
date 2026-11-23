@@ -530,10 +530,22 @@
 let videos = [], kit = null, sel = null, tab = 'social', view = 'videos', sig = '';
 let accounts = [], pubByVideo = {}, apiHealth = null;
 let savedCovers = {}, generatingCovers = {};
-let scheduledPosts = [], nextSlot = null, schedRule = '', ytQuotaToday = { used: 0, limit: 5 };
+let scheduledPosts = [], nextSlot = null, nextByBrand = {}, schedRule = '', ytQuotaToday = { used: 0, limit: 5 };
+let activeBrandFilter = 'all';
 let searchQuery = '', studioKey = 'brand_logo';
 const copyStore = {};
 const styleChoice = {};
+
+const BRANDS_LIST = [
+  { id: 'akilalmaz',    label: 'AKILALMAZ',     icon: '⚡', handles: '@akilalmaz' },
+  { id: 'kadimanadolu', label: 'Kadim Anadolu', icon: '🏛️', handles: '@kadimanadoluu · @kadimanadollu' },
+  { id: 'likyastudios', label: 'Likya Studios', icon: '🎬', handles: '@likyastudios' },
+  { id: 'foodballstv',  label: 'FoodBallsTV',   icon: '🍔', handles: '@FoodBallsTV · @foodballstv' },
+];
+const brandLabel = id => {
+  const b = BRANDS_LIST.find(x => x.id === id);
+  return b ? `${b.icon} ${b.label}` : (id || 'AKILALMAZ');
+};
 
 const COVER_STYLES = [
   { id: 'default', label: 'Varsayılan Prompt', suffix: '' },
@@ -598,20 +610,21 @@ async function apiFetch(path, opts = {}) {
 
 async function syncBackend() {
   const { apiUrl } = getCfg();
-  if (!apiUrl) { apiHealth = null; accounts = []; pubByVideo = {}; scheduledPosts = []; nextSlot = null; return; }
+  if (!apiUrl) { apiHealth = null; accounts = []; pubByVideo = {}; scheduledPosts = []; nextSlot = null; nextByBrand = {}; return; }
   try {
     apiHealth = await fetch(apiUrl + '/api/health', { cache: 'no-store' }).then(r => r.json());
     const [accRes, stRes, covRes, schRes] = await Promise.all([
       apiFetch('/api/accounts').catch(() => ({ accounts: [] })),
       apiFetch('/api/publish/status').catch(() => ({ by_video: {} })),
       apiFetch('/api/covers').catch(() => ({ covers: {} })),
-      apiFetch('/api/schedule').catch(() => ({ posts: [], next_slot: null, rule: '', yt_quota_today: { used: 0, limit: 5 } })),
+      apiFetch('/api/schedule').catch(() => ({ posts: [], next_slot: null, next_by_brand: {}, rule: '', yt_quota_today: { used: 0, limit: 5 } })),
     ]);
     accounts = accRes.accounts || [];
     pubByVideo = stRes.by_video || {};
     savedCovers = { ...savedCovers, ...(covRes.covers || {}) };
     scheduledPosts = schRes.posts || [];
     nextSlot = schRes.next_slot || null;
+    nextByBrand = schRes.next_by_brand || {};
     ytQuotaToday = schRes.yt_quota_today || { used: 0, limit: 5 };
     schedRule = schRes.rule || 'Pzt 06:01 · Sal 06:02 · Çar 06:03 · Per 06:04 · Cum 06:05 · Cmt 06:06 · Paz 06:07 (TR)';
   } catch (e) {
@@ -1242,56 +1255,185 @@ async function runScheduleNow(id) {
   }
 }
 
+function openUploadModal(defaultBrand) {
+  const b = (defaultBrand && defaultBrand !== 'all') ? defaultBrand : (activeBrandFilter !== 'all' ? activeBrandFilter : 'kadimanadolu');
+  const slotLbl = nextByBrand[b]?.label_tr || nextSlot?.label_tr || '06:01–06:07 TR';
+  document.getElementById('modal-root').innerHTML = `
+    <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="panel-head" style="margin-bottom:14px">
+          <div>
+            <h3 style="margin:0;font-size:18px;font-weight:800">➕ MP4 Yükle & <span class="serif">Planla</span></h3>
+            <div class="panel-sub">Claude Code ile ürettiğiniz MP4'ü seçin; seçtiğiniz markanın YouTube + Instagram kuyruğuna eklensin.</div>
+          </div>
+          <button class="btn ghost icon-btn" onclick="closeModal()" aria-label="Kapat">✕</button>
+        </div>
+        <div class="fld">
+          <label for="u_brand">Hedef Marka <span class="hint" id="u_slot_hint">${esc(slotLbl)}</span></label>
+          <select id="u_brand" onchange="document.getElementById('u_slot_hint').textContent=(nextByBrand[this.value]?.label_tr||'06:01–06:07 TR')">
+            ${BRANDS_LIST.map(x => `<option value="${x.id}" ${x.id===b?'selected':''}>${x.icon} ${x.label} (${x.handles})</option>`).join('')}
+          </select>
+        </div>
+        <div class="fld">
+          <label for="u_file">Video Dosyası (.mp4)</label>
+          <input id="u_file" type="file" accept="video/mp4" style="padding:8px;background:var(--paper);border:1px dashed var(--line-strong);border-radius:6px;width:100%">
+        </div>
+        <div class="fld"><label for="u_title">YouTube Shorts Başlığı</label><input id="u_title" type="text" placeholder="Çarpıcı başlık #shorts"></div>
+        <div class="fld"><label for="u_desc">YouTube Açıklama & Etiketler</label><textarea id="u_desc" rows="2" placeholder="Kısa açıklama + #shorts #etiketler"></textarea></div>
+        <div class="fld"><label for="u_ig">Instagram Reels Açıklama (opsiyonel — boşsa YT açıklaması kullanılır)</label><textarea id="u_ig" rows="2"></textarea></div>
+        <div class="fld"><label for="u_cov">Vertex AI 9:16 Kapak Promptu (opsiyonel — doluysa kapağı otomatik üretir)</label><textarea id="u_cov" class="mono-input" rows="2" placeholder="Bold vertical 9:16 illustration..., no text"></textarea></div>
+        <label class="tg" style="margin-bottom:10px"><input type="checkbox" id="u_yt_sync" checked> YouTube Studio'ya hemen <b>"Planlandı"</b> olarak yükle (<code class="mono">publishAt</code>)</label>
+        <div id="u_msg" class="panel-sub" style="margin-bottom:10px"></div>
+        <div class="row">
+          <button id="u_btn" class="btn primary" onclick="submitUploadAndSchedule()">🚀 Yükle & Planla</button>
+          <button class="btn" onclick="closeModal()">İptal</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function submitUploadAndSchedule() {
+  const { apiUrl, apiKey } = getCfg();
+  const msg = document.getElementById('u_msg');
+  const btn = document.getElementById('u_btn');
+  const fileEl = document.getElementById('u_file');
+  const file = fileEl?.files?.[0];
+  const brand = document.getElementById('u_brand').value;
+  const title = document.getElementById('u_title').value.trim();
+  const desc = document.getElementById('u_desc').value.trim() || title;
+  const ig = document.getElementById('u_ig').value.trim() || desc;
+  const covPrompt = document.getElementById('u_cov').value.trim();
+  const syncYt = document.getElementById('u_yt_sync').checked;
+
+  if (!file) { msg.textContent = 'Lütfen bir .mp4 dosyası seçin.'; return; }
+  if (!title) { msg.textContent = 'Lütfen bir başlık girin.'; return; }
+
+  btn.disabled = true;
+  msg.style.color = 'var(--ink-mute)';
+  try {
+    msg.textContent = '1/3 · MP4 buluta yükleniyor…';
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('brand', brand);
+    const upResp = await fetch(apiUrl + '/api/media/upload', {
+      method: 'POST',
+      headers: apiKey ? { 'X-API-Key': apiKey } : {},
+      body: fd,
+    });
+    const upData = await upResp.json().catch(() => ({}));
+    if (!upResp.ok) throw new Error(upData.detail || `Yükleme hatası (${upResp.status})`);
+
+    let coverUrl = undefined;
+    if (covPrompt) {
+      msg.textContent = '2/3 · Vertex AI 9:16 kapak üretiliyor…';
+      const covRes = await apiFetch('/api/covers/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: upData.video_id, prompt: covPrompt, aspect_ratio: '9:16' }),
+      });
+      coverUrl = covRes.image_url;
+    }
+
+    msg.textContent = '3/3 · Yayın planına ve YouTube Studio\'ya ekleniyor…';
+    const schRes = await apiFetch('/api/schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        brand,
+        video_id: upData.video_id,
+        video_url: upData.video_url,
+        title,
+        description: desc,
+        ig_caption: ig,
+        cover_url: coverUrl,
+        auto_next_slot: true,
+        sync_youtube_now: syncYt,
+      }),
+    });
+    closeModal();
+    toast(`${brandLabel(brand)} için planlandı: ${schRes.post?.label_tr || ''}`, 'ok');
+    await load(true);
+  } catch (e) {
+    msg.style.color = 'var(--err)';
+    msg.textContent = 'Hata: ' + (e.message || e);
+    btn.disabled = false;
+  }
+}
+
+function setBrandFilter(b) {
+  activeBrandFilter = b;
+  renderSchedule(document.getElementById('app'));
+}
+
 function renderSchedule(el) {
   const { apiUrl } = getCfg();
-  const planned = scheduledPosts.filter(p => p.status === 'Planlandı').length;
-  const ytSynced = scheduledPosts.filter(p => p.yt_uploaded).length;
+  const visible = activeBrandFilter === 'all'
+    ? scheduledPosts
+    : scheduledPosts.filter(p => (p.brand || 'akilalmaz') === activeBrandFilter);
+  const planned = visible.filter(p => p.status === 'Planlandı').length;
+  const ytSynced = visible.filter(p => p.yt_uploaded).length;
+  const activeSlot = activeBrandFilter === 'all'
+    ? nextSlot
+    : (nextByBrand[activeBrandFilter] || nextSlot);
 
   el.innerHTML = `
     <div class="workspace-full">
       <div class="studio-hero">
         <div>
-          <div class="eyebrow">BÖLÜM III · OTONOM YAYIN TAKVİMİ</div>
+          <div class="eyebrow">BÖLÜM III · 4 MARKA OTONOM YAYIN TAKVİMİ</div>
           <h2>Yayın Planı & <span class="serif">YouTube Studio</span> Senkronu</h2>
-          <p>Haftalık kural: <b>Pzt 06:01 → Sal 06:02 → Çar 06:03 → Per 06:04 → Cum 06:05 → Cmt 06:06 → Paz 06:07 (TR)</b>. Planlanan videolar güvenli günlük kota dahilinde hemen <b>YouTube Studio'ya "Planlandı"</b> olarak yüklenir.</p>
+          <p>Her marka için ayrı haftalık kural: <b>Pzt 06:01 → Paz 06:07 (TR)</b>. Claude Code ile ürettiğiniz videoları ister tek komutla (<code class="mono">likya_push.py</code>) ister aşağıdaki <b>MP4 Yükle</b> butonuyla anında planlayın.</p>
         </div>
         <div class="row">
-          <button class="btn primary" ${!apiUrl?'disabled':''} onclick="bulkScheduleAll()">⚡ Hazır Videoları Günlük Sıraya Diz</button>
-          <button class="btn" ${!apiUrl?'disabled':''} onclick="runSchedulerTick()">▶ Şimdi Senkronize Et</button>
+          <button class="btn primary" ${!apiUrl?'disabled':''} onclick="openUploadModal()">➕ MP4 Yükle & Planla</button>
+          <button class="btn ink-btn" ${!apiUrl?'disabled':''} onclick="bulkScheduleAll()">⚡ AKILALMAZ Videolarını Sırala</button>
+          <button class="btn" ${!apiUrl?'disabled':''} onclick="runSchedulerTick()">▶ Senkronize Et</button>
         </div>
+      </div>
+
+      <div class="style-pills" style="margin-bottom:18px">
+        <button class="style-pill ${activeBrandFilter==='all'?'on':''}" onclick="setBrandFilter('all')">Tümü (${scheduledPosts.length})</button>
+        ${BRANDS_LIST.map(b => {
+          const c = scheduledPosts.filter(p => (p.brand || 'akilalmaz') === b.id).length;
+          return `<button class="style-pill ${activeBrandFilter===b.id?'on':''}" onclick="setBrandFilter('${b.id}')">${b.icon} ${b.label} (${c})</button>`;
+        }).join('')}
       </div>
 
       <div class="grid3">
         <div class="panel">
-          <div class="block-label">Sıradaki Boş Haftalık Slot</div>
-          <div style="font-size:19px;font-weight:800;margin-top:6px;color:var(--coral)" class="mono">${esc(nextSlot?.label_tr || 'API bağlantısı gerekli')}</div>
-          <div class="panel-sub" style="margin-top:6px">Her Pazartesi 06:01 TR'ye otomatik sıfırlanır.</div>
+          <div class="block-label">Sıradaki Boş Slot (${activeBrandFilter==='all'?'AKILALMAZ':brandLabel(activeBrandFilter)})</div>
+          <div style="font-size:19px;font-weight:800;margin-top:6px;color:var(--coral)" class="mono">${esc(activeSlot?.label_tr || 'API bağlantısı gerekli')}</div>
+          <div class="panel-sub" style="margin-top:6px">Her marka kendi bağımsız 06:01–06:07 TR kuyruğuna sahiptir.</div>
         </div>
         <div class="panel">
-          <div class="block-label">YouTube Studio Ön-Yükleme Kotası</div>
+          <div class="block-label">YouTube Studio Günlük Kotası</div>
           <div style="font-size:19px;font-weight:800;margin-top:6px" class="mono">${ytQuotaToday.used} / ${ytQuotaToday.limit} <span style="font-size:12px;color:var(--ink-mute);font-weight:500">bugün</span></div>
-          <div class="panel-sub" style="margin-top:6px">${ytSynced} video YouTube Studio'da "Planlandı" olarak hazır; kalanlar ertesi gün otomatik aktarılır.</div>
+          <div class="panel-sub" style="margin-top:6px">${ytSynced} video YouTube Studio'da "Planlandı" olarak hazır.</div>
         </div>
         <div class="panel">
-          <div class="block-label">Tam Otonom Günlük Üretim</div>
-          <div style="font-size:19px;font-weight:800;margin-top:6px">Her Gece <span style="color:var(--ok)" class="mono">02:00 TR</span></div>
-          <div class="panel-sub" style="margin-top:6px">Gemini senaryo → ERKAN ses → Vertex kapak → 1080×1920 MP4 → YouTube Planla.</div>
+          <div class="block-label">Claude Code Entegrasyon Kiti</div>
+          <div class="row" style="margin-top:8px">
+            <a class="btn sm ink-btn" href="claude-code-kit/likya_push.py" download="likya_push.py">⬇ likya_push.py</a>
+            <a class="btn sm" href="claude-code-kit/CLAUDE.md" download="CLAUDE.md">⬇ CLAUDE.md</a>
+          </div>
+          <div class="panel-sub" style="margin-top:8px">Claude Code klasörüne koyun; tek komutla 4 markaya otomatik planlayın.</div>
         </div>
       </div>
 
       <div class="panel">
         <div class="panel-head">
           <div>
-            <h3 style="margin:0;font-size:17px;font-weight:800">Yayın Kuyruğu (${scheduledPosts.length} kayıt · ${planned} bekliyor)</h3>
-            <div class="panel-sub">Neon PostgreSQL üzerinde 7/24 kalıcıdır · YouTube'a planlanan videolar saatinde çift yüklenmez.</div>
+            <h3 style="margin:0;font-size:17px;font-weight:800">Yayın Kuyruğu (${visible.length} kayıt · ${planned} bekliyor)</h3>
+            <div class="panel-sub">Her marka yalnızca V. Ayarlar'da kendisine atanmış YouTube & Instagram kanallarına yayınlanır.</div>
           </div>
         </div>
-        ${scheduledPosts.length ? `
+        ${visible.length ? `
           <table class="sch">
-            <thead><tr><th>Yayın Zamanı (TR)</th><th>Video</th><th>YouTube Studio</th><th>Durum</th><th>İşlem</th></tr></thead>
+            <thead><tr><th>Marka</th><th>Yayın Zamanı (TR)</th><th>Video</th><th>YouTube Studio</th><th>Durum</th><th>İşlem</th></tr></thead>
             <tbody>
-              ${scheduledPosts.map(p => `
+              ${visible.map(p => `
                 <tr>
+                  <td><span class="badge b-mut">${esc(brandLabel(p.brand || 'akilalmaz'))}</span></td>
                   <td class="mono" style="white-space:nowrap;color:var(--coral);font-weight:600">${esc(p.label_tr || p.scheduled_at)}</td>
                   <td>
                     <div style="display:flex;align-items:center;gap:10px">
@@ -1319,7 +1461,7 @@ function renderSchedule(el) {
                 </tr>`).join('')}
             </tbody>
           </table>
-        ` : `<div class="ph">Henüz planlanmış yayın yok. Yukarıdaki <b>⚡ Hazır Videoları Günlük Sıraya Diz</b> butonuna basarak 8 hazır videoyu tek tıkla 06:01–06:07 TR kuyruğuna ve YouTube Studio'ya aktarabilirsiniz.</div>`}
+        ` : `<div class="ph">Bu marka için henüz planlanmış yayın yok. Yukarıdaki <b>➕ MP4 Yükle & Planla</b> butonunu kullanabilirsiniz.</div>`}
       </div>
     </div>`;
 }
@@ -1387,6 +1529,20 @@ function renderChannel(el) {
 }
 
 /* V. Settings Workspace */
+async function changeAccountBrand(id, brand) {
+  try {
+    await apiFetch(`/api/accounts/${id}/brand`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ brand }),
+    });
+    toast(`Kanal markası güncellendi: ${brandLabel(brand)}`, 'ok');
+    await load(true);
+  } catch (e) {
+    toast('Marka güncelleme hatası: ' + e.message, 'err');
+  }
+}
+
 function renderSettings(el) {
   const { apiUrl, apiKey } = getCfg();
   const stBadge = apiHealth?.ok
@@ -1400,9 +1556,9 @@ function renderSettings(el) {
     <div class="workspace-full">
       <div class="studio-hero">
         <div>
-          <div class="eyebrow">BÖLÜM V · SİSTEM & OAUTH</div>
+          <div class="eyebrow">BÖLÜM V · SİSTEM & ÇOKLU MARKA OAUTH</div>
           <h2>Stüdyo <span class="serif">Ayarları</span></h2>
-          <p>Cloud Run API bağlantısını, Neon PostgreSQL durumunu ve çoklu YouTube / Instagram OAuth 2.0 hesaplarınızı yönetin.</p>
+          <p>Cloud Run API bağlantısını ve 4 markanızın (<b>AKILALMAZ, Kadim Anadolu, Likya Studios, FoodBallsTV</b>) YouTube & Instagram kanallarını buradan eşleştirin.</p>
         </div>
         ${stBadge}
       </div>
@@ -1425,12 +1581,17 @@ function renderSettings(el) {
             <a class="btn ${!apiUrl?'disabled':''}" href="${apiUrl ? `${apiUrl}/api/oauth/instagram/start?redirect_to=${retUrl}` : '#'}">Instagram Hesabı Bağla</a>
           </div>
           ${accounts.length ? accounts.map(a => `
-            <div class="name-row">
+            <div class="name-row" style="flex-wrap:wrap">
               <div>
-                <b>${a.platform==='YT'?'YouTube':'Instagram'}</b> · ${esc(a.account_name)}
+                <b>${a.platform==='YT'?'▶️ YouTube':'📸 Instagram'}</b> · ${esc(a.account_name)}
                 <div class="panel-sub mono">ID: ${esc(a.external_id)}</div>
               </div>
-              <button class="btn sm danger" onclick="delAccount(${a.id})">Kaldır</button>
+              <div class="row">
+                <select style="width:auto;padding:5px 8px;font-size:12px" onchange="changeAccountBrand(${a.id}, this.value)" title="Marka seç">
+                  ${BRANDS_LIST.map(b => `<option value="${b.id}" ${(a.brand||'akilalmaz')===b.id?'selected':''}>${b.icon} ${b.label}</option>`).join('')}
+                </select>
+                <button class="btn sm danger" onclick="delAccount(${a.id})">Kaldır</button>
+              </div>
             </div>`).join('') : '<div class="panel-sub">Henüz bağlı kanal yok.</div>'}
         </div>
       </div>

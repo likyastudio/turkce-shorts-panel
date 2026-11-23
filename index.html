@@ -3,103 +3,936 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Shorts Stüdyo Paneli — Likya Control Center</title>
+<title>AKILALMAZ — Likya Shorts Stüdyo & Kapak Üretim Paneli</title>
+<meta name="description" content="AKILALMAZ YouTube Shorts ve Instagram Reels üretim, yapay zekâ kapak tasarımı ve ortak yayın kontrol merkezi.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#0e0f13; --card:#171920; --line:#262a35; --fg:#eceef3; --mut:#8b91a1; --acc:#ffcc33; --ok:#3ecf8e; --warn:#f5a524; --info:#5aa9ff; --err:#ff595e; --ind:#6366f1; }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 24px; border-bottom:1px solid var(--line); position:sticky; top:0; background:rgba(14,15,19,.94); backdrop-filter:blur(8px); z-index:5; flex-wrap:wrap; }
-  h1 { font-size:18px; margin:0; } h1 span { color:var(--acc); }
-  .sub { color:var(--mut); font-size:12px; }
-  button, .btn { background:var(--card); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:7px 12px; font-size:13px; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
-  button:hover, .btn:hover { border-color:var(--acc); }
-  button:disabled { opacity:.55; cursor:not-allowed; }
-  .btn.primary, button.nav-on { background:var(--acc); color:#111; border-color:var(--acc); font-weight:600; }
-  .btn.share { background:var(--ind); color:#fff; border-color:var(--ind); font-weight:600; }
-  .btn.share:hover { filter:brightness(1.1); }
-  .btn.danger { border-color:rgba(255,89,94,.4); color:var(--err); }
-  .nav { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  main { display:grid; grid-template-columns: 330px 1fr; gap:20px; padding:20px 24px; }
-  main.full { grid-template-columns: 1fr; max-width:1160px; margin:0 auto; }
-  @media (max-width:860px){ main{ grid-template-columns:1fr; } }
-  .list { display:flex; flex-direction:column; gap:10px; }
-  .item { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; cursor:pointer; }
-  .item.active { border-color:var(--acc); box-shadow:0 0 0 1px var(--acc) inset; }
-  .item .t { font-weight:600; } .item .m { color:var(--mut); font-size:12px; margin-top:4px; }
-  .badge { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; margin-left:4px; vertical-align:middle; text-decoration:none; }
-  .b-ok { background:rgba(62,207,142,.15); color:var(--ok); }
-  .b-warn { background:rgba(245,165,36,.15); color:var(--warn); }
-  .b-info { background:rgba(90,169,255,.15); color:var(--info); }
-  .b-err { background:rgba(255,89,94,.16); color:var(--err); }
-  .b-mut { background:#22252e; color:var(--mut); }
-  .plat-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
-  .detail { display:grid; grid-template-columns: minmax(260px, 380px) 1fr; gap:20px; align-items:start; }
-  @media (max-width:1100px){ .detail{ grid-template-columns:1fr; } }
-  .player { background:#000; border-radius:14px; overflow:hidden; aspect-ratio:9/16; display:flex; align-items:center; justify-content:center; border:1px solid var(--line); }
-  .player video { width:100%; height:100%; object-fit:contain; background:#000; }
-  .ph { color:var(--mut); text-align:center; padding:20px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; }
-  .tabs { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
-  .tabs button.on { border-color:var(--acc); color:var(--acc); }
-  .meta { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px; margin-bottom:14px; }
-  .meta div { background:#12141a; border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
-  .meta b { display:block; font-size:15px; } .meta small { color:var(--mut); font-size:11px; }
-  pre { white-space:pre-wrap; word-wrap:break-word; margin:0; font:14px/1.65 system-ui, sans-serif; color:var(--fg); }
-  img.qa { width:100%; border-radius:8px; border:1px solid var(--line); }
-  .row { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; align-items:center; }
-  label.tg { color:var(--mut); font-size:13px; display:inline-flex; align-items:center; gap:6px; }
-  .copy-card { background:#12141a; border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:12px; }
-  .copy-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
-  .copy-head b { font-size:13px; color:var(--acc); }
-  .copy-btn { padding:4px 10px; font-size:12px; border-radius:6px; }
-  .copy-btn.ok { border-color:var(--ok); color:var(--ok); }
-  .copy-body { white-space:pre-wrap; word-wrap:break-word; font:13px/1.6 system-ui, sans-serif; color:var(--fg); user-select:all; }
-  .copy-body.mono { font:12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color:#d7deee; }
-  .grid2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:16px; margin-bottom:16px; }
-  ul.chk { margin:8px 0 0; padding-left:18px; } ul.chk li { margin-bottom:6px; color:#dce0ea; }
-  .name-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; background:#12141a; border:1px solid var(--line); border-radius:8px; margin-bottom:8px; }
-  table.sch { width:100%; border-collapse:collapse; font-size:13px; }
-  table.sch th, table.sch td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); }
-  table.sch th { color:var(--acc); font-weight:600; }
-  input[type=text], input[type=password], input[type=number], textarea, select {
-    width:100%; background:#101218; color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:13px/1.5 system-ui, sans-serif;
+  :root {
+    --bg: #0b0c0e;
+    --surface: #121418;
+    --surface-2: #181b21;
+    --surface-3: #1e222a;
+    --inset: #0e1014;
+    --line: rgba(255, 255, 255, 0.08);
+    --line-strong: rgba(255, 255, 255, 0.16);
+    --ink: #f3f4f6;
+    --ink-2: #a3aab8;
+    --ink-3: #6c7382;
+    --gold: #f2b830;
+    --gold-hover: #ffc847;
+    --gold-ink: #14110a;
+    --gold-soft: rgba(242, 184, 48, 0.12);
+    --ok: #30a46c;
+    --ok-soft: rgba(48, 164, 108, 0.14);
+    --warn: #e59934;
+    --warn-soft: rgba(229, 153, 52, 0.14);
+    --info: #4b9ce2;
+    --info-soft: rgba(75, 156, 226, 0.14);
+    --err: #e5484d;
+    --err-soft: rgba(229, 72, 77, 0.15);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 32px rgba(0, 0, 0, 0.35);
+    --shadow-float: 0 24px 64px rgba(0, 0, 0, 0.6);
+    --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   }
-  .fld { margin-bottom:12px; } .fld label { display:block; font-size:12px; color:var(--mut); margin-bottom:4px; }
-  .modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.72); display:flex; align-items:center; justify-content:center; padding:16px; z-index:20; }
-  .modal { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px 20px; width:min(580px, 100%); max-height:90vh; overflow:auto; }
-  .cover-box { background:#12141a; border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:14px; }
-  .cover-preview { display:flex; gap:16px; align-items:start; flex-wrap:wrap; margin-top:12px; }
-  .cover-img-916 { width:140px; aspect-ratio:9/16; object-fit:cover; border-radius:8px; border:1px solid var(--line); box-shadow:0 4px 14px rgba(0,0,0,.4); background:#0a0b0e; }
-  .cover-img-11 { width:120px; aspect-ratio:1/1; object-fit:cover; border-radius:12px; border:1px solid var(--line); box-shadow:0 4px 14px rgba(0,0,0,.4); background:#0a0b0e; }
-  .cover-img-169 { width:100%; max-width:340px; aspect-ratio:16/9; object-fit:cover; border-radius:8px; border:1px solid var(--line); box-shadow:0 4px 14px rgba(0,0,0,.4); background:#0a0b0e; }
-  .spinner { display:inline-block; width:12px; height:12px; border:2px solid var(--acc); border-top-color:transparent; border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; }
-  @keyframes spin { to { transform:rotate(360deg); } }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(900px 420px at 12% -8%, rgba(242, 184, 48, 0.055), transparent 70%),
+      radial-gradient(700px 380px at 88% -10%, rgba(255, 255, 255, 0.025), transparent 70%),
+      var(--bg);
+    background-attachment: fixed;
+    color: var(--ink);
+    font: 14px/1.55 "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+
+  /* Topbar */
+  header.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 24px;
+    background: rgba(11, 12, 14, 0.86);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+  }
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: linear-gradient(145deg, #21252e, #14171d);
+    border: 1px solid var(--line-strong);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  }
+  .brand-text h1 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .brand-text h1 .accent { color: var(--gold); }
+  .brand-text .sub {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+    margin-top: 1px;
+  }
+
+  /* Segmented Navigation */
+  nav.seg-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    flex-wrap: wrap;
+  }
+  nav.seg-nav button {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--ink-2);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 6px 13px;
+    border-radius: 8px;
+    transition: all 150ms var(--ease);
+  }
+  nav.seg-nav button:hover {
+    color: var(--ink);
+    background: rgba(255, 255, 255, 0.04);
+    border-color: transparent;
+  }
+  nav.seg-nav button.nav-on {
+    background: var(--surface-3);
+    color: var(--ink);
+    border-color: var(--line-strong);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 2px 8px rgba(0, 0, 0, 0.25);
+  }
+  nav.seg-nav button.nav-on .nav-dot {
+    background: var(--gold);
+  }
+  .nav-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ink-3);
+    display: inline-block;
+    transition: background 150ms var(--ease);
+  }
+
+  .top-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Buttons */
+  button, .btn {
+    font-family: inherit;
+    background: var(--surface-2);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 8px 13px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    transition: background 150ms var(--ease), border-color 150ms var(--ease), transform 120ms var(--ease), color 150ms var(--ease);
+  }
+  button:hover, .btn:hover {
+    background: var(--surface-3);
+    border-color: var(--line-strong);
+  }
+  button:active, .btn:active { transform: translateY(1px); }
+  button:disabled, .btn.disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+  .btn.primary {
+    background: var(--gold);
+    color: var(--gold-ink);
+    border-color: var(--gold);
+    font-weight: 700;
+  }
+  .btn.primary:hover {
+    background: var(--gold-hover);
+    border-color: var(--gold-hover);
+  }
+  .btn.publish {
+    background: var(--ink);
+    color: #0b0c0e;
+    border-color: var(--ink);
+    font-weight: 700;
+  }
+  .btn.publish:hover {
+    background: #ffffff;
+    border-color: #ffffff;
+  }
+  .btn.ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--ink-2);
+    padding: 6px 10px;
+  }
+  .btn.ghost:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--ink);
+  }
+  .btn.danger {
+    background: transparent;
+    border-color: rgba(229, 72, 77, 0.3);
+    color: var(--err);
+  }
+  .btn.danger:hover {
+    background: var(--err-soft);
+    border-color: rgba(229, 72, 77, 0.55);
+  }
+  .btn.sm { padding: 5px 10px; font-size: 12px; border-radius: 7px; }
+  .icon-btn { width: 32px; height: 32px; padding: 0; border-radius: 8px; }
+
+  /* Layout Shells */
+  main {
+    max-width: 1520px;
+    margin: 0 auto;
+    padding: 22px 24px 48px;
+  }
+  .workspace-videos {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  .workspace-full {
+    max-width: 1220px;
+    margin: 0 auto;
+  }
+  @media (max-width: 960px) {
+    .workspace-videos { grid-template-columns: 1fr; }
+  }
+
+  /* Sidebar Queue */
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: sticky;
+    top: 76px;
+    max-height: calc(100vh - 96px);
+  }
+  .sidebar-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 2px;
+  }
+  .sidebar-head span {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .search-wrap { position: relative; }
+  .search-wrap input {
+    padding-left: 32px;
+    height: 36px;
+    font-size: 13px;
+    background: var(--surface);
+  }
+  .search-wrap svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-3);
+    pointer-events: none;
+  }
+  .queue-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .q-item {
+    display: grid;
+    grid-template-columns: 42px 1fr;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background 150ms var(--ease), border-color 150ms var(--ease), transform 150ms var(--ease);
+  }
+  .q-item:hover {
+    background: var(--surface-2);
+    border-color: var(--line-strong);
+  }
+  .q-item.active {
+    background: var(--surface-2);
+    border-color: rgba(242, 184, 48, 0.55);
+    box-shadow: 0 0 0 1px rgba(242, 184, 48, 0.25) inset, 0 8px 24px rgba(0, 0, 0, 0.28);
+  }
+  .q-thumb {
+    width: 42px;
+    height: 60px;
+    border-radius: 7px;
+    background: var(--inset);
+    border: 1px solid var(--line);
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-3);
+    flex-shrink: 0;
+  }
+  .q-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .q-item.active .q-thumb { border-color: rgba(242, 184, 48, 0.45); color: var(--gold); }
+  .q-meta { min-width: 0; }
+  .q-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .q-sub {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 3px;
+    font-size: 11.5px;
+    color: var(--ink-3);
+    font-family: "JetBrains Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    line-height: 1.4;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .b-ok { background: var(--ok-soft); color: var(--ok); }
+  .b-warn { background: var(--warn-soft); color: var(--warn); }
+  .b-info { background: var(--info-soft); color: var(--info); }
+  .b-err { background: var(--err-soft); color: var(--err); }
+  .b-gold { background: var(--gold-soft); color: var(--gold); }
+  .b-mut { background: rgba(255, 255, 255, 0.06); color: var(--ink-2); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .plat-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+
+  /* Video Stage */
+  .stage {
+    display: grid;
+    grid-template-columns: minmax(270px, 340px) 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 1180px) { .stage { grid-template-columns: 1fr; } }
+
+  .monitor-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .player {
+    background: #050506;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    aspect-ratio: 9 / 16;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--line-strong);
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55);
+  }
+  .player video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+  .monitor-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .monitor-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 2px;
+  }
+
+  /* Surfaces */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 22px 24px;
+    box-shadow: var(--shadow-card);
+  }
+  .panel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .panel-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.25;
+  }
+  .panel-sub {
+    color: var(--ink-3);
+    font-size: 12.5px;
+    margin-top: 3px;
+  }
+  .mono { font-family: "JetBrains Mono", monospace; }
+
+  /* Spec Strip */
+  .spec-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    padding: 12px 0;
+    margin-bottom: 16px;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .spec-item { display: flex; flex-direction: column; gap: 1px; }
+  .spec-item small {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--ink-3);
+    font-weight: 600;
+  }
+  .spec-item b {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  /* Underline Tabs */
+  .utabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 18px;
+    overflow-x: auto;
+  }
+  .utabs button {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    color: var(--ink-2);
+    padding: 9px 14px 11px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: -1px;
+    white-space: nowrap;
+  }
+  .utabs button:hover {
+    background: transparent;
+    color: var(--ink);
+  }
+  .utabs button.on {
+    color: var(--gold);
+    border-bottom-color: var(--gold);
+  }
+
+  /* Copy & Content Blocks */
+  .block {
+    padding: 14px 16px;
+    background: var(--inset);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    margin-bottom: 12px;
+  }
+  .block:last-child { margin-bottom: 0; }
+  .block-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .block-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink-2);
+    letter-spacing: 0.01em;
+  }
+  .block-body {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--ink);
+    user-select: all;
+  }
+  .block-body.mono {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    color: #cfd6e4;
+  }
+  .copy-btn.ok { border-color: var(--ok); color: var(--ok); }
+
+  /* Cover Studio Components */
+  .studio-hero {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  .studio-hero h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+  .studio-hero p {
+    margin: 5px 0 0;
+    color: var(--ink-2);
+    font-size: 13.5px;
+    max-width: 660px;
+  }
+
+  .studio-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 1060px) { .studio-grid { grid-template-columns: 1fr; } }
+
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+    gap: 14px;
+  }
+  .gal-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 160ms var(--ease), transform 160ms var(--ease);
+    display: flex;
+    flex-direction: column;
+  }
+  .gal-card:hover {
+    border-color: var(--line-strong);
+    transform: translateY(-2px);
+  }
+  .gal-card.selected {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 1px rgba(242, 184, 48, 0.3) inset;
+  }
+  .gal-media {
+    aspect-ratio: 4 / 5;
+    background: var(--inset);
+    position: relative;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+  }
+  .gal-media.wide { aspect-ratio: 16 / 10; }
+  .gal-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .gal-empty {
+    text-align: center;
+    padding: 16px;
+    color: var(--ink-3);
+    font-size: 12px;
+  }
+  .gal-ratio {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(11, 12, 14, 0.78);
+    backdrop-filter: blur(6px);
+    color: var(--ink);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+  }
+  .gal-info {
+    padding: 10px 12px;
+    border-top: 1px solid var(--line);
+  }
+  .gal-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .gal-status {
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--ink-3);
+  }
+
+  /* Cover Generator Workbench */
+  .cover-bench {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .cover-preview-stage {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 18px;
+    align-items: start;
+    padding: 16px;
+    background: var(--inset);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+  }
+  @media (max-width: 640px) { .cover-preview-stage { grid-template-columns: 1fr; } }
+  .cover-frame {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--line-strong);
+    background: #07080a;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    cursor: zoom-in;
+  }
+  .cover-frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .cf-916 { width: 152px; aspect-ratio: 9 / 16; }
+  .cf-11 { width: 152px; aspect-ratio: 1 / 1; }
+  .cf-169 { width: 280px; max-width: 100%; aspect-ratio: 16 / 9; }
+
+  .style-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .style-pill {
+    padding: 4px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    border-radius: 999px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    color: var(--ink-2);
+  }
+  .style-pill.on {
+    background: var(--gold-soft);
+    border-color: rgba(242, 184, 48, 0.5);
+    color: var(--gold);
+  }
+
+  /* Forms */
+  .fld { margin-bottom: 12px; }
+  .fld:last-child { margin-bottom: 0; }
+  .fld label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-2);
+    margin-bottom: 6px;
+  }
+  .fld label span.hint {
+    font-weight: 400;
+    color: var(--ink-3);
+    font-size: 11px;
+  }
+  input[type=text], input[type=password], input[type=number], textarea, select {
+    width: 100%;
+    background: var(--inset);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    font: 13px/1.5 "Plus Jakarta Sans", system-ui, sans-serif;
+    transition: border-color 150ms var(--ease), box-shadow 150ms var(--ease);
+  }
+  textarea.mono-input {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    line-height: 1.55;
+  }
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: rgba(242, 184, 48, 0.6);
+    box-shadow: 0 0 0 3px rgba(242, 184, 48, 0.1);
+  }
+
+  /* Grids & Tables */
+  .grid2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 18px;
+    margin-bottom: 18px;
+  }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .name-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--inset);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+  }
+  .name-row:last-child { margin-bottom: 0; }
+  ul.chk { margin: 8px 0 0; padding-left: 18px; color: var(--ink-2); }
+  ul.chk li { margin-bottom: 6px; font-size: 13px; }
+  table.sch { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.sch th, table.sch td {
+    text-align: left;
+    padding: 11px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  table.sch th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-3);
+    font-weight: 700;
+  }
+  table.sch tr:last-child td { border-bottom: none; }
+  pre.script-pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin: 0;
+    font: 14px/1.75 "Plus Jakarta Sans", system-ui, sans-serif;
+    color: #e4e7ee;
+    padding: 16px;
+    background: var(--inset);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+  }
+  img.qa {
+    width: 100%;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line);
+    display: block;
+  }
+  .ph {
+    color: var(--ink-3);
+    text-align: center;
+    padding: 36px 20px;
+    font-size: 13.5px;
+  }
+  label.tg {
+    color: var(--ink-2);
+    font-size: 12.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+  }
+  input[type=checkbox] { accent-color: var(--gold); cursor: pointer; }
+
+  /* Modal & Lightbox */
+  .modal-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 6, 8, 0.78);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 50;
+  }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-lg);
+    padding: 22px 24px;
+    width: min(580px, 100%);
+    max-height: 90vh;
+    overflow: auto;
+    box-shadow: var(--shadow-float);
+  }
+  .lightbox img {
+    max-width: min(92vw, 960px);
+    max-height: 86vh;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line-strong);
+    box-shadow: var(--shadow-float);
+  }
+
+  /* Spinner & Toast */
+  .spinner {
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #toast-root {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 80;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .toast {
+    pointer-events: auto;
+    background: var(--surface-3);
+    color: var(--ink);
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: var(--shadow-float);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: toastIn 200ms var(--ease);
+  }
+  .toast.ok { border-left: 3px solid var(--ok); }
+  .toast.err { border-left: 3px solid var(--err); }
+  .toast.info { border-left: 3px solid var(--gold); }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 </style>
 </head>
 <body>
-<header>
-  <div>
-    <h1>🎬 Shorts Stüdyo <span>Paneli</span></h1>
-    <div class="sub" id="sum">Yükleniyor…</div>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M13.5 2L4.5 13.5H11.5L10.5 22L19.5 10.5H12.5L13.5 2Z" fill="#f2b830"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <h1>AKILALMAZ <span class="accent">Studio</span></h1>
+      <div class="sub" id="sum">Yükleniyor…</div>
+    </div>
   </div>
-  <div class="nav">
-    <button id="btn-videos" class="nav-on" onclick="setView('videos')">🎥 Videolar</button>
-    <button id="btn-channel" onclick="setView('channel')">🚀 Kanal Kurulumu</button>
-    <button id="btn-settings" onclick="setView('settings')">⚙️ Ayarlar (OAuth & API)</button>
+
+  <nav class="seg-nav" aria-label="Ana Menü">
+    <button id="btn-videos" class="nav-on" onclick="setView('videos')"><span class="nav-dot"></span> Videolar</button>
+    <button id="btn-covers" onclick="setView('covers')"><span class="nav-dot"></span> Kapak Stüdyosu</button>
+    <button id="btn-channel" onclick="setView('channel')"><span class="nav-dot"></span> Kanal Kurulumu</button>
+    <button id="btn-settings" onclick="setView('settings')"><span class="nav-dot"></span> Ayarlar</button>
+  </nav>
+
+  <div class="top-actions">
     <label class="tg"><input type="checkbox" id="auto" checked> Oto yenile</label>
-    <button onclick="load(true)">⟳</button>
+    <button class="icon-btn" onclick="load(true)" title="Şimdi Yenile" aria-label="Yenile">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+    </button>
   </div>
 </header>
+
 <main id="app"></main>
 <div id="modal-root"></div>
+<div id="toast-root" aria-live="polite"></div>
+
 <script>
 let videos = [], kit = null, sel = null, tab = 'social', view = 'videos', sig = '';
 let accounts = [], pubByVideo = {}, apiHealth = null;
 let savedCovers = {}, generatingCovers = {};
-const badge = s => ({'Hazır':'b-ok','Yayında':'b-ok','Render Ediliyor':'b-warn','Yükleniyor':'b-warn','Ses Hazır':'b-info','Bekliyor':'b-mut','Hata':'b-err'}[s] || 'b-mut');
+let searchQuery = '', studioKey = 'brand_logo';
+const copyStore = {};
+const styleChoice = {};
+
+const COVER_STYLES = [
+  { id: 'default', label: 'Varsayılan Prompt', suffix: '' },
+  { id: 'comic',   label: 'Çizgi Roman',       suffix: ', vibrant editorial comic-book illustration, crisp ink outlines, dramatic studio contrast' },
+  { id: '3d',      label: 'Sinematik 3D',      suffix: ', stylized Pixar-grade 3D render, volumetric rim lighting, ultra-sharp focal subject' },
+  { id: 'poster',  label: 'Belgesel Poster',   suffix: ', dramatic documentary movie poster art direction, rich film grain, moody spotlight' },
+  { id: 'minimal', label: 'Minimalist Vektör', suffix: ', ultra-clean flat geometric vector artwork, bold high-contrast silhouette, modern editorial design' },
+];
+
+const badge = s => ({
+  'Hazır': 'b-ok', 'Yayında': 'b-ok',
+  'Render Ediliyor': 'b-warn', 'Yükleniyor': 'b-warn',
+  'Ses Hazır': 'b-info', 'Bekliyor': 'b-mut', 'Hata': 'b-err'
+}[s] || 'b-mut');
+
 const fmt = s => s ? `${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}` : '—';
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const copyStore = {};
 
 const getCfg = () => ({
   apiUrl: (localStorage.getItem('likya_api_url') || '').replace(/\/$/, ''),
@@ -110,9 +943,21 @@ const setCfg = (url, key) => {
   localStorage.setItem('likya_api_key', (key || '').trim());
 };
 
+const getCoverHeadline = key => localStorage.getItem('likya_cov_hl_' + key) || '';
+const setCoverHeadline = (key, val) => localStorage.setItem('likya_cov_hl_' + key, val || '');
+
+function toast(msg, type = 'info') {
+  const root = document.getElementById('toast-root');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  root.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 200ms'; setTimeout(() => el.remove(), 220); }, 3200);
+}
+
 async function apiFetch(path, opts = {}) {
   const { apiUrl, apiKey } = getCfg();
-  if (!apiUrl) throw new Error('Önce ⚙️ Ayarlar sekmesinden Cloud Run API URL girin.');
+  if (!apiUrl) throw new Error('Önce Ayarlar sekmesinden Cloud Run API URL girin.');
   const headers = { ...(opts.headers || {}) };
   if (apiKey) headers['X-API-Key'] = apiKey;
   const r = await fetch(apiUrl + path, { ...opts, headers });
@@ -146,53 +991,110 @@ async function copyText(id, btn) {
     const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta);
     ta.select(); document.execCommand('copy'); ta.remove();
   }
-  const orig = btn.textContent;
-  btn.textContent = '✓ Kopyalandı'; btn.classList.add('ok');
-  setTimeout(() => { btn.textContent = orig; btn.classList.remove('ok'); }, 1500);
+  if (btn) {
+    const orig = btn.textContent;
+    btn.textContent = '✓ Kopyalandı'; btn.classList.add('ok');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('ok'); }, 1500);
+  }
+  toast('Panoya kopyalandı', 'ok');
+}
+
+function copyRaw(text, label = 'URL kopyalandı') {
+  navigator.clipboard?.writeText(text).then(() => toast(label, 'ok')).catch(() => toast('Kopyalanamadı', 'err'));
 }
 
 function copyBlock(id, label, text, mono = false) {
   copyStore[id] = text || '';
-  return `<div class="copy-card">
-    <div class="copy-head"><b>${label}</b><button class="copy-btn" onclick="copyText('${id}', this)">📋 Kopyala</button></div>
-    <div class="copy-body ${mono ? 'mono' : ''}">${esc(text)}</div>
+  return `<div class="block">
+    <div class="block-head">
+      <span class="block-label">${label}</span>
+      <button class="btn sm copy-btn" onclick="copyText('${id}', this)">Kopyala</button>
+    </div>
+    <div class="block-body ${mono ? 'mono' : ''}">${esc(text)}</div>
   </div>`;
 }
 
-function coverBoxHtml(key, title, defaultPrompt, aspectRatio = '9:16') {
+function openLightbox(url, title) {
+  document.getElementById('modal-root').innerHTML = `
+    <div class="modal-bg lightbox" onclick="closeModal()">
+      <img src="${esc(url)}" alt="${esc(title || 'Kapak önizleme')}" onclick="event.stopPropagation()">
+    </div>`;
+}
+function closeModal() { document.getElementById('modal-root').innerHTML = ''; }
+
+function setCoverStyle(key, styleId) {
+  styleChoice[key] = styleId;
+  renderAll(false);
+}
+
+function coverWorkbenchHtml(key, heading, defaultPrompt, aspectRatio = '9:16', helperNote = '') {
   const isGen = !!generatingCovers[key];
   const url = savedCovers[key];
   const promptId = 'prompt_' + key;
+  const hlId = 'hl_' + key;
+  const savedHl = getCoverHeadline(key);
+  const activeStyle = styleChoice[key] || 'default';
   copyStore[promptId] = defaultPrompt || '';
-  const imgClass = aspectRatio === '9:16' ? 'cover-img-916' : aspectRatio === '1:1' ? 'cover-img-11' : 'cover-img-169';
+  const cfClass = aspectRatio === '9:16' ? 'cf-916' : aspectRatio === '1:1' ? 'cf-11' : 'cf-169';
 
   return `
-  <div class="cover-box">
-    <div class="copy-head">
-      <b>🎨 ${esc(title)} <span class="badge b-info">${aspectRatio}</span></b>
-      <button class="copy-btn" onclick="copyText('${promptId}', this)">📋 Prompt Kopyala</button>
+  <div class="cover-bench">
+    <div class="panel-head" style="margin-bottom:4px">
+      <div>
+        <h3 style="margin:0;font-size:16px;font-weight:700;letter-spacing:-0.015em">${esc(heading)}</h3>
+        ${helperNote ? `<div class="panel-sub">${esc(helperNote)}</div>` : ''}
+      </div>
+      <div class="row">
+        <span class="badge b-gold mono">${aspectRatio}</span>
+        ${url ? `<span class="badge b-ok"><span class="dot"></span> Kayıtlı</span>` : `<span class="badge b-mut">Henüz üretilmedi</span>`}
+      </div>
     </div>
-    <div class="fld" style="margin-bottom:8px">
-      <textarea id="${promptId}" rows="2" style="font-size:12px;color:#d7deee">${esc(defaultPrompt || '')}</textarea>
+
+    <div class="fld">
+      <label for="${hlId}">
+        <span>Kapak Üzeri / Görsel Başlığı</span>
+        <span class="hint">Video başlığından bağımsızdır · Boş bırakılırsa yazısız üretilir</span>
+      </label>
+      <input id="${hlId}" type="text" placeholder="Örn: GÖRÜNMEZ SOYGUNCU? veya 2 KEZ SATTI! (opsiyonel)" value="${esc(savedHl)}" oninput="setCoverHeadline('${key}', this.value)">
     </div>
-    <div class="row" style="margin-top:6px;margin-bottom:8px">
+
+    <div class="fld">
+      <label><span>Görsel Sanat Yönetimi</span><span class="hint">Tek tıkla stil tonu</span></label>
+      <div class="style-pills">
+        ${COVER_STYLES.map(s => `<button type="button" class="style-pill ${activeStyle === s.id ? 'on' : ''}" onclick="setCoverStyle('${key}', '${s.id}')">${esc(s.label)}</button>`).join('')}
+      </div>
+    </div>
+
+    <div class="fld">
+      <label for="${promptId}">
+        <span>Sahne & Kompozisyon Promptu</span>
+        <button type="button" class="btn sm ghost" onclick="copyText('${promptId}', this)">Promptu Kopyala</button>
+      </label>
+      <textarea id="${promptId}" class="mono-input" rows="3">${esc(defaultPrompt || '')}</textarea>
+    </div>
+
+    <div class="row">
       <button class="btn primary" ${isGen ? 'disabled' : ''} onclick="generateCover('${key}', '${aspectRatio}')">
-        ${isGen ? '<span class="spinner"></span> Üretiliyor (Vertex AI)…' : (url ? '🔄 Farklı Kapak Üret' : '✨ Kapağı Otomatik Üret (Vertex AI)')}
+        ${isGen ? '<span class="spinner"></span> Vertex AI üretiyor…' : (url ? '🔄 Yeniden Üret' : '✨ Görsel Kapağı Üret')}
       </button>
       ${url ? `
-        <a class="btn" href="${esc(url)}" download="${key}_cover.png" target="_blank">⬇️ PNG İndir</a>
-        <button class="btn" onclick="navigator.clipboard.writeText('${esc(url)}');alert('Kapak görseli URL kopyalandı!')">🔗 URL Kopyala</button>
-        <span class="badge b-ok">✅ Hazır (Paylaşımda eklenir)</span>
-      ` : `<span class="sub">Google Vertex AI (Gemini 2.5 Flash Image) ile stüdyo kapağı üretir.</span>`}
+        <a class="btn" href="${esc(url)}" download="${key}_kapak.png" target="_blank">⬇ PNG İndir</a>
+        <button class="btn" onclick="copyRaw('${esc(url)}', 'Kapak URL panoya kopyalandı')">🔗 URL Kopyala</button>
+      ` : ''}
     </div>
+
     ${url ? `
-      <div class="cover-preview">
-        <a href="${esc(url)}" target="_blank" title="Büyük boyutta gör">
-          <img class="${imgClass}" src="${esc(url)}" alt="${esc(title)}">
-        </a>
-        <div class="sub" style="max-width:340px;line-height:1.6">
-          <b style="color:var(--fg)">Kayıtlı Kapak:</b> <code>covers/${esc(key)}.png</code><br>
-          Google Cloud Storage ve Cloud Run üzerinde barındırılmaktadır. YouTube Shorts veya Instagram Reels paylaşımında otomatik olarak kapak görseli olarak bağlanır.
+      <div class="cover-preview-stage">
+        <div class="cover-frame ${cfClass}" onclick="openLightbox('${esc(url)}', '${esc(heading)}')" title="Tam boyutta büyüt">
+          <img src="${esc(url)}" alt="${esc(heading)}">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+          <div class="badge b-ok" style="align-self:flex-start"><span class="dot"></span> Paylaşıma Hazır</div>
+          <div style="font-size:13px;color:var(--ink-2);line-height:1.6">
+            Görsel Google Cloud Storage üzerinde <code class="mono" style="color:var(--ink)">covers/${esc(key)}.png</code> olarak saklanıyor.
+            ${aspectRatio === '9:16' ? 'Instagram Reels ve video paylaşımında otomatik kapak görseli olarak eklenir.' : 'Kanal profil veya banner alanına doğrudan yükleyebilirsiniz.'}
+          </div>
+          <div class="panel-sub">Önizlemeye tıklayarak tam çözünürlükte inceleyebilirsiniz.</div>
         </div>
       </div>
     ` : ''}
@@ -201,8 +1103,17 @@ function coverBoxHtml(key, title, defaultPrompt, aspectRatio = '9:16') {
 
 async function generateCover(key, aspectRatio) {
   const ta = document.getElementById('prompt_' + key);
-  const prompt = ta ? ta.value.trim() : (copyStore['prompt_' + key] || '');
-  if (!prompt) { alert('Lütfen bir görsel promptu girin.'); return; }
+  let prompt = ta ? ta.value.trim() : (copyStore['prompt_' + key] || '');
+  if (!prompt) { toast('Lütfen bir görsel promptu girin.', 'err'); return; }
+
+  const hlEl = document.getElementById('hl_' + key);
+  const headline = (hlEl ? hlEl.value : getCoverHeadline(key)).trim();
+  const st = COVER_STYLES.find(s => s.id === (styleChoice[key] || 'default'));
+  if (st && st.suffix) prompt += st.suffix;
+  if (headline) {
+    prompt += `. Include bold, ultra-legible high-contrast display thumbnail title text reading "${headline}" cleanly integrated into the composition with strong drop shadow and clear margins.`;
+  }
+
   generatingCovers[key] = true;
   renderAll(false);
   try {
@@ -212,8 +1123,9 @@ async function generateCover(key, aspectRatio) {
       body: JSON.stringify({ key, prompt, aspect_ratio: aspectRatio }),
     });
     savedCovers[key] = res.image_url;
+    toast('Görsel kapak başarıyla üretildi!', 'ok');
   } catch (e) {
-    alert('Kapak üretimi hatası: ' + (e.message || e));
+    toast('Kapak üretimi hatası: ' + (e.message || e), 'err');
   } finally {
     generatingCovers[key] = false;
     renderAll(false);
@@ -222,7 +1134,10 @@ async function generateCover(key, aspectRatio) {
 
 function setView(v) {
   view = v;
-  ['videos','channel','settings'].forEach(k => document.getElementById('btn-' + k).classList.toggle('nav-on', v === k));
+  ['videos', 'covers', 'channel', 'settings'].forEach(k => {
+    const el = document.getElementById('btn-' + k);
+    if (el) el.classList.toggle('nav-on', v === k);
+  });
   renderAll(true);
 }
 
@@ -230,104 +1145,339 @@ function platformBadgesHtml(slug) {
   const logs = pubByVideo[slug] || [];
   if (!logs.length) return '';
   return `<div class="plat-row">${logs.map(l => {
-    const ic = l.platform === 'YT' ? '▶️ YT' : '📸 IG';
-    const name = l.account_name ? ` (${esc(l.account_name)})` : '';
-    const inner = `${ic}${name} · ${esc(l.status)}`;
+    const ic = l.platform === 'YT' ? 'YT' : 'IG';
+    const inner = `<span class="dot"></span>${ic} · ${esc(l.status)}`;
     return l.platform_post_url
-      ? `<a class="badge ${badge(l.status)}" href="${esc(l.platform_post_url)}" target="_blank" rel="noreferrer" title="${esc(l.error_message||'')}">${inner} ↗</a>`
-      : `<span class="badge ${badge(l.status)}" title="${esc(l.error_message||'')}">${inner}</span>`;
+      ? `<a class="badge ${badge(l.status)}" href="${esc(l.platform_post_url)}" target="_blank" rel="noreferrer" title="${esc(l.account_name || '')}">${inner} ↗</a>`
+      : `<span class="badge ${badge(l.status)}" title="${esc(l.error_message || l.account_name || '')}">${inner}</span>`;
   }).join('')}</div>`;
 }
 
 async function load(force) {
   try {
     const [rv, rk] = await Promise.all([
-      fetch('videos.json?t=' + Date.now(), {cache:'no-store'}),
-      fetch('channel_kit.json?t=' + Date.now(), {cache:'no-store'}).catch(() => null),
+      fetch('videos.json?t=' + Date.now(), { cache: 'no-store' }),
+      fetch('channel_kit.json?t=' + Date.now(), { cache: 'no-store' }).catch(() => null),
     ]);
     const data = await rv.json();
     if (rk && rk.ok) kit = await rk.json();
     await syncBackend();
-    const ns = JSON.stringify([data.map(v => [v.slug, v.status, v.updated, v.frames, !!v.meta]), pubByVideo, accounts.length, Object.keys(savedCovers).length]);
+    const ns = JSON.stringify([
+      data.map(v => [v.slug, v.status, v.updated, v.frames, !!v.meta]),
+      pubByVideo,
+      accounts.length,
+      Object.keys(savedCovers).length,
+    ]);
     if (!force && ns === sig) return;
     sig = ns; videos = data;
     if (!sel || !videos.find(v => v.slug === sel)) sel = (videos.find(v => v.video) || videos[0] || {}).slug;
     const ready = videos.filter(v => v.video).length;
+    const covCount = Object.keys(savedCovers).length;
     const apiTxt = apiHealth?.ok ? ` · API bağlı (${accounts.length} kanal)` : '';
-    document.getElementById('sum').textContent = `${videos.length} proje · ${ready} video hazır${apiTxt} · son kontrol ${new Date().toLocaleTimeString('tr-TR')}`;
+    document.getElementById('sum').textContent = `${ready}/${videos.length} video hazır · ${covCount} kapak${apiTxt}`;
     renderAll(force);
-  } catch (e) { document.getElementById('sum').textContent = 'Sunucuya ulaşılamadı: ' + e; }
+  } catch (e) {
+    document.getElementById('sum').textContent = 'Bağlantı hatası: ' + e;
+  }
 }
 
 function renderAll(force) {
   const app = document.getElementById('app');
-  if (view === 'channel') { app.className = 'full'; renderChannel(app); return; }
-  if (view === 'settings') { app.className = 'full'; renderSettings(app); return; }
-  app.className = '';
+  if (view === 'covers') { renderCoverStudio(app); return; }
+  if (view === 'channel') { renderChannel(app); return; }
+  if (view === 'settings') { renderSettings(app); return; }
   if (!document.getElementById('list')) {
-    app.innerHTML = '<div class="list" id="list"></div><div id="detail"></div>';
+    app.innerHTML = `
+      <div class="workspace-videos">
+        <aside class="sidebar">
+          <div class="sidebar-head">
+            <span>Video Kuyruğu</span>
+            <span id="q-count" class="mono"></span>
+          </div>
+          <div class="search-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="q-search" placeholder="Video ara…" value="${esc(searchQuery)}" oninput="searchQuery=this.value;renderList()">
+          </div>
+          <div class="queue-list" id="list"></div>
+        </aside>
+        <section id="detail"></section>
+      </div>`;
     force = true;
   }
-  renderList(); renderDetail(force);
+  renderList();
+  renderDetail(force);
 }
 
 function renderList() {
-  document.getElementById('list').innerHTML = videos.map((v, i) => `
-    <div class="item ${v.slug === sel ? 'active' : ''}" onclick="pick('${v.slug}')">
-      <div class="t">${i+1}. ${esc(v.title)} <span class="badge ${badge(v.status)}">${v.status}</span></div>
-      <div class="m">${v.video ? `${fmt(v.duration)} · ${v.sizeMB} MB · ${v.width}×${v.height}` :
-        v.status === 'Render Ediliyor' ? `${v.frames} kare render edildi` : `${v.words} kelime senaryo`}</div>
-      ${platformBadgesHtml(v.slug)}
-    </div>`).join('');
+  const listEl = document.getElementById('list');
+  if (!listEl) return;
+  const q = searchQuery.trim().toLowerCase();
+  const filtered = q ? videos.filter(v => (v.title + ' ' + v.slug + ' ' + v.status).toLowerCase().includes(q)) : videos;
+  const cnt = document.getElementById('q-count');
+  if (cnt) cnt.textContent = `${filtered.length}/${videos.length}`;
+  listEl.innerHTML = filtered.map((v, i) => {
+    const cov = savedCovers[v.slug];
+    return `
+      <div class="q-item ${v.slug === sel ? 'active' : ''}" onclick="pick('${v.slug}')">
+        <div class="q-thumb">${cov ? `<img src="${esc(cov)}" alt="">` : `#${videos.indexOf(v) + 1}`}</div>
+        <div class="q-meta">
+          <div class="q-title">${esc(v.title)}</div>
+          <div class="q-sub">
+            <span>${v.video ? fmt(v.duration) : v.status}</span>
+            ${v.sizeMB ? `<span>· ${v.sizeMB} MB</span>` : ''}
+            ${cov ? `<span style="color:var(--gold)">· Kapak</span>` : ''}
+          </div>
+          ${platformBadgesHtml(v.slug)}
+        </div>
+      </div>`;
+  }).join('') || '<div class="ph">Eşleşen video yok.</div>';
 }
 
-function pick(slug) { sel = slug; const v = videos.find(x => x.slug === slug); tab = v?.meta ? 'social' : 'script'; renderList(); renderDetail(true); }
+function pick(slug) {
+  sel = slug;
+  const v = videos.find(x => x.slug === slug);
+  if (tab === 'social' && !v?.meta) tab = 'script';
+  renderList();
+  renderDetail(true);
+}
 function setTab(t) { tab = t; renderDetail(false, true); }
 
+function renderSocialTextOnly(v) {
+  const m = v.meta;
+  if (!m) return '<div class="ph">Bu video için henüz paylaşım metni eklenmedi.</div>';
+  return [
+    copyBlock(v.slug + '_yt_t', 'YouTube Shorts — Video Başlığı', m.youtube?.title),
+    copyBlock(v.slug + '_yt_d', 'YouTube Shorts — Açıklama & Etiketler', m.youtube?.description),
+    copyBlock(v.slug + '_ig',   'Instagram Reels — Açıklama & Etiketler', m.instagram?.caption),
+  ].join('');
+}
+
+function renderVideoCoverTab(v) {
+  const m = v.meta || {};
+  return coverWorkbenchHtml(
+    v.slug,
+    'Görsel Kapak & Thumbnail Üretimi',
+    m.flow_prompt || '',
+    '9:16',
+    `${v.title} için dikey kapak tasarımı · Başlığı video başlığından ayrı özelleştirebilirsiniz`
+  );
+}
+
+function renderDetail(full, tabOnly) {
+  const v = videos.find(x => x.slug === sel);
+  const el = document.getElementById('detail');
+  if (!el) return;
+  if (!v) { el.innerHTML = '<div class="panel ph">Henüz proje yok.</div>'; return; }
+  if (tab === 'social' && !v.meta) tab = 'script';
+
+  const tabsHtml = `
+    <div class="utabs" role="tablist">
+      ${v.meta ? `<button class="${tab==='social'?'on':''}" onclick="setTab('social')">Paylaşım Metinleri</button>` : ''}
+      <button class="${tab==='cover'?'on':''}" onclick="setTab('cover')">🎨 Kapak & Thumbnail Üret</button>
+      <button class="${tab==='script'?'on':''}" onclick="setTab('script')">Senaryo</button>
+      ${v.qa ? `<button class="${tab==='qa'?'on':''}" onclick="setTab('qa')">Kare Önizleme</button>` : ''}
+      ${v.voice ? `<button class="${tab==='voice'?'on':''}" onclick="setTab('voice')">Seslendirme</button>` : ''}
+    </div>
+    ${tab==='social' && v.meta ? renderSocialTextOnly(v) :
+      tab==='cover' ? renderVideoCoverTab(v) :
+      tab==='qa' && v.qa ? `<img class="qa" src="${v.qa}?t=${encodeURIComponent(v.updated||Date.now())}" alt="Kare önizleme">` :
+      tab==='voice' && v.voice ? `<div class="block"><div class="block-head"><span class="block-label">Seslendirme Kaydı</span></div><audio controls style="width:100%" src="${v.voice}?t=${encodeURIComponent(v.updated||Date.now())}"></audio></div>` :
+      `<pre class="script-pre">${esc(v.script || 'Senaryo bulunamadı.')}</pre>`}`;
+
+  if (tabOnly && document.getElementById('tabbox')) {
+    document.getElementById('tabbox').innerHTML = tabsHtml;
+    return;
+  }
+  const vid = document.querySelector('#detail video');
+  if (!full && vid && vid.dataset.slug === v.slug && vid.dataset.upd === (v.updated || '')) {
+    document.getElementById('tabbox').innerHTML = tabsHtml;
+    const pb = document.getElementById('platbox'); if (pb) pb.innerHTML = platformBadgesHtml(v.slug);
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="stage">
+      <div class="monitor-wrap">
+        <div class="player">${v.video
+          ? `<video data-slug="${v.slug}" data-upd="${esc(v.updated||'')}" src="${v.video}?v=${encodeURIComponent(v.updated)}" controls playsinline loop preload="metadata"></video>`
+          : `<div class="ph">Video henüz hazır değil.<br><span class="badge ${badge(v.status)}" style="margin-top:8px">${v.status}</span></div>`}
+        </div>
+        ${v.video ? `
+          <div class="monitor-actions">
+            <button class="btn publish" onclick="openPublishModal('${v.slug}')">🚀 YT & IG Yayınla</button>
+            <a class="btn" href="${v.video}" download="${v.fileName}">⬇ MP4 İndir</a>
+          </div>
+          <div class="monitor-foot">
+            <label class="tg"><input type="checkbox" checked onchange="document.querySelector('#detail video').loop=this.checked"> Döngüde oynat</label>
+            <span class="panel-sub mono">${v.sizeMB} MB</span>
+          </div>
+          <div id="platbox">${platformBadgesHtml(v.slug)}</div>
+        ` : ''}
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2 class="panel-title">${esc(v.title)}</h2>
+            <div class="panel-sub mono">${esc(v.fileName || v.slug)}</div>
+          </div>
+          <span class="badge ${badge(v.status)}"><span class="dot"></span>${esc(v.status)}</span>
+        </div>
+
+        <div class="spec-strip">
+          <div class="spec-item"><small>Süre</small><b>${fmt(v.duration)}</b></div>
+          <div class="spec-item"><small>Çözünürlük</small><b>${v.width ? v.width + '×' + v.height : '—'}</b></div>
+          <div class="spec-item"><small>Boyut</small><b>${v.sizeMB ? v.sizeMB + ' MB' : '—'}</b></div>
+          <div class="spec-item"><small>Senaryo</small><b>${v.words} kelime</b></div>
+          <div class="spec-item"><small>Kapak</small><b style="color:${savedCovers[v.slug] ? 'var(--ok)' : 'var(--ink-3)'}">${savedCovers[v.slug] ? 'Hazır' : 'Yok'}</b></div>
+        </div>
+
+        <div id="tabbox">${tabsHtml}</div>
+      </div>
+    </div>`;
+}
+
+/* Dedicated Cover & Thumbnail Studio Workspace */
+function getStudioItems() {
+  const items = [];
+  if (kit?.brand_prompts) {
+    items.push({
+      key: 'brand_logo',
+      title: 'AKILALMAZ Profil Logosu',
+      subtitle: 'YouTube & Instagram Avatar',
+      aspect: '1:1',
+      prompt: kit.brand_prompts.logo_flow || '',
+      kind: 'Marka',
+    });
+    items.push({
+      key: 'brand_banner',
+      title: 'AKILALMAZ Kanal Bannerı',
+      subtitle: 'YouTube Kapak Görseli (2560×1440)',
+      aspect: '16:9',
+      prompt: kit.brand_prompts.banner_flow || '',
+      kind: 'Marka',
+    });
+  }
+  for (const v of videos) {
+    items.push({
+      key: v.slug,
+      title: v.title,
+      subtitle: 'Shorts & Reels Dikey Kapağı',
+      aspect: '9:16',
+      prompt: v.meta?.flow_prompt || '',
+      kind: 'Shorts',
+    });
+  }
+  return items;
+}
+
+function selectStudioItem(key) {
+  studioKey = key;
+  renderCoverStudio(document.getElementById('app'));
+}
+
+function renderCoverStudio(el) {
+  const items = getStudioItems();
+  if (!items.length) { el.innerHTML = '<div class="workspace-full panel ph">Veriler yükleniyor…</div>'; return; }
+  const current = items.find(i => i.key === studioKey) || items[0];
+  studioKey = current.key;
+  const readyCount = items.filter(i => savedCovers[i.key]).length;
+
+  el.innerHTML = `
+    <div class="workspace-full">
+      <div class="studio-hero">
+        <div>
+          <h2>🎨 Kapak & Thumbnail Stüdyosu</h2>
+          <p>Tüm Shorts kapaklarını, kanal logosunu ve banner görsellerini Vertex AI ile tek ekrandan üretin. Her görsel için video başlığından bağımsız özel kapak başlığı belirleyebilirsiniz.</p>
+        </div>
+        <div class="row">
+          <span class="badge b-gold mono">${readyCount} / ${items.length} Görsel Hazır</span>
+        </div>
+      </div>
+
+      <div class="studio-grid">
+        <div class="gallery-grid">
+          ${items.map(it => {
+            const url = savedCovers[it.key];
+            const isGen = !!generatingCovers[it.key];
+            return `
+              <div class="gal-card ${it.key === current.key ? 'selected' : ''}" onclick="selectStudioItem('${it.key}')">
+                <div class="gal-media ${it.aspect === '16:9' ? 'wide' : ''}">
+                  <span class="gal-ratio">${it.aspect}</span>
+                  ${url
+                    ? `<img src="${esc(url)}" alt="${esc(it.title)}" loading="lazy">`
+                    : `<div class="gal-empty">${isGen ? '<span class="spinner"></span><div style="margin-top:6px">Üretiliyor…</div>' : 'Henüz kapak yok'}</div>`}
+                </div>
+                <div class="gal-info">
+                  <div class="gal-name">${esc(it.title)}</div>
+                  <div class="gal-status">
+                    <span>${esc(it.kind)}</span>
+                    <span style="color:${url ? 'var(--ok)' : 'var(--ink-3)'}">${url ? '● Hazır' : '○ Boş'}</span>
+                  </div>
+                </div>
+              </div>`;
+          }).join('')}
+        </div>
+
+        <div class="panel" style="position:sticky;top:76px">
+          ${coverWorkbenchHtml(current.key, current.title, current.prompt, current.aspect, current.subtitle)}
+        </div>
+      </div>
+    </div>`;
+}
+
+/* Publish Modal */
 function openPublishModal(slug) {
   const v = videos.find(x => x.slug === slug);
   if (!v) return;
   const { apiUrl } = getCfg();
   const absUrl = new URL(v.video, location.href).href;
   const coverUrl = savedCovers[v.slug] || '';
+
   const coverBannerHtml = coverUrl ? `
-    <div class="name-row" style="margin-bottom:12px;background:#13151e;border-color:var(--ok)">
+    <div class="name-row" style="margin-bottom:14px;border-color:rgba(48,164,108,0.4)">
       <div style="display:flex;align-items:center;gap:12px">
-        <img src="${esc(coverUrl)}" style="width:38px;height:68px;object-fit:cover;border-radius:4px;border:1px solid var(--line);background:#000">
+        <img src="${esc(coverUrl)}" alt="" style="width:36px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--line)">
         <div>
-          <b style="color:var(--ok);font-size:13px">✅ Özel Shorts Kapağı Bağlandı</b>
-          <div class="sub">Paylaşım sırasında Instagram Reels ve video kapağı olarak sunucu tarafından aktarılacaktır.</div>
+          <b style="color:var(--ok);font-size:13px">Özel Shorts Kapağı Otomatik Bağlandı</b>
+          <div class="panel-sub">Paylaşımda Instagram Reels kapak görseli olarak aktarılacak.</div>
         </div>
       </div>
       <span class="badge b-ok">Aktif</span>
-    </div>` : `<div class="sub" style="margin-bottom:12px">💡 İpucu: <b>📣 Paylaşım & Kapak</b> sekmesinden kapağı üretirseniz burada otomatik olarak eklenir.</div>`;
+    </div>` : `<div class="panel-sub" style="margin-bottom:12px">İpucu: <b>Kapak & Thumbnail Üret</b> sekmesinden görsel üretirseniz burada otomatik eklenir.</div>`;
 
   const chHtml = !apiUrl
-    ? `<div class="copy-card" style="border-color:var(--warn)"><b>⚠️ Cloud Run API URL henüz tanımlı değil</b><div class="sub" style="margin-top:4px">Paylaşımı aktifleştirmek için üstteki <b>⚙️ Ayarlar (OAuth & API)</b> sekmesinden Cloud Run URL'nizi girip YouTube/Instagram hesaplarınızı bağlayın.</div><div class="row"><button class="btn primary" onclick="closeModal();setView('settings')">⚙️ Ayarlara Git</button></div></div>`
+    ? `<div class="block" style="border-color:rgba(229,153,52,0.4)"><b>Cloud Run API URL tanımlı değil</b><div class="panel-sub" style="margin-top:4px">Önce Ayarlar sekmesinden Cloud Run URL ve API anahtarınızı girin.</div><div class="row" style="margin-top:10px"><button class="btn primary sm" onclick="closeModal();setView('settings')">Ayarlara Git</button></div></div>`
     : accounts.length === 0
-      ? `<div class="copy-card" style="border-color:var(--warn)"><b>⚠️ Bağlı kanal bulunamadı</b><div class="sub" style="margin-top:4px">Önce Ayarlar sekmesinden YouTube veya Instagram hesabı bağlayın.</div><div class="row"><button class="btn primary" onclick="closeModal();setView('settings')">🔗 Kanal Bağla</button></div></div>`
-      : `<div class="fld"><label>Hedef Kanallar (Çoklu Seçim)</label>${accounts.map(a =>
-          `<label class="name-row" style="cursor:pointer"><span><input type="checkbox" name="acc_id" value="${a.id}" checked> <b>${a.platform==='YT'?'▶️ YouTube':'📸 Instagram'}</b> · ${esc(a.account_name)}</span><span class="badge b-ok">Bağlı</span></label>`
+      ? `<div class="block" style="border-color:rgba(229,153,52,0.4)"><b>Bağlı kanal bulunamadı</b><div class="panel-sub" style="margin-top:4px">Ayarlar sekmesinden YouTube veya Instagram hesabı bağlayın.</div><div class="row" style="margin-top:10px"><button class="btn primary sm" onclick="closeModal();setView('settings')">Kanal Bağla</button></div></div>`
+      : `<div class="fld"><label>Hedef Kanallar</label>${accounts.map(a =>
+          `<label class="name-row" style="cursor:pointer"><span><input type="checkbox" name="acc_id" value="${a.id}" checked> <b>${a.platform==='YT'?'YouTube':'Instagram'}</b> · ${esc(a.account_name)}</span><span class="badge b-ok">Bağlı</span></label>`
         ).join('')}</div>`;
+
   document.getElementById('modal-root').innerHTML = `
     <div class="modal-bg" onclick="if(event.target===this)closeModal()">
       <div class="modal">
-        <div class="copy-head"><h3 style="margin:0">🚀 YT & IG Ortak Paylaşım — ${esc(v.title)}</h3><button onclick="closeModal()">✕</button></div>
+        <div class="panel-head" style="margin-bottom:14px">
+          <div>
+            <h3 style="margin:0;font-size:17px">YT & IG Ortak Yayın</h3>
+            <div class="panel-sub">${esc(v.title)}</div>
+          </div>
+          <button class="btn ghost icon-btn" onclick="closeModal()" aria-label="Kapat">✕</button>
+        </div>
         ${chHtml}
         ${coverBannerHtml}
-        <div class="fld"><label>YouTube Shorts Başlık</label><input id="p_title" type="text" value="${esc(v.meta?.youtube?.title || v.title)}"></div>
-        <div class="fld"><label>YouTube Shorts Açıklama</label><textarea id="p_desc" rows="4">${esc(v.meta?.youtube?.description || '')}</textarea></div>
-        <div class="fld"><label>Instagram Reels Açıklama</label><textarea id="p_ig" rows="4">${esc(v.meta?.instagram?.caption || '')}</textarea></div>
-        <div class="fld"><label>Instagram Kapak Karesi (ms — isteğe bağlı)</label><input id="p_thumb" type="number" value="1500" min="0" step="500"></div>
-        <div id="p_msg" class="sub" style="margin-bottom:8px"></div>
+        <div class="fld"><label for="p_title">YouTube Shorts Başlık</label><input id="p_title" type="text" value="${esc(v.meta?.youtube?.title || v.title)}"></div>
+        <div class="fld"><label for="p_desc">YouTube Shorts Açıklama</label><textarea id="p_desc" rows="3">${esc(v.meta?.youtube?.description || '')}</textarea></div>
+        <div class="fld"><label for="p_ig">Instagram Reels Açıklama</label><textarea id="p_ig" rows="3">${esc(v.meta?.instagram?.caption || '')}</textarea></div>
+        <div class="fld"><label for="p_thumb">Instagram Kapak Karesi (ms)</label><input id="p_thumb" type="number" value="1500" min="0" step="500"></div>
+        <div id="p_msg" class="panel-sub" style="margin-bottom:10px"></div>
         <div class="row">
-          <button class="btn share" ${(!apiUrl || !accounts.length)?'disabled':''} onclick="submitPublish('${v.slug}', '${esc(absUrl)}')">🚀 Şimdi Yayınla (YT & IG)</button>
-          <button onclick="closeModal()">İptal</button>
+          <button class="btn primary" ${(!apiUrl || !accounts.length)?'disabled':''} onclick="submitPublish('${v.slug}', '${esc(absUrl)}')">🚀 Şimdi Yayınla</button>
+          <button class="btn" onclick="closeModal()">İptal</button>
         </div>
       </div>
     </div>`;
 }
-function closeModal() { document.getElementById('modal-root').innerHTML = ''; }
 
 async function submitPublish(slug, videoUrl) {
   const msg = document.getElementById('p_msg');
@@ -350,6 +1500,7 @@ async function submitPublish(slug, videoUrl) {
       }),
     });
     closeModal();
+    toast('Paylaşım kuyruğa alındı!', 'ok');
     await load(true);
   } catch (e) {
     msg.style.color = 'var(--err)';
@@ -357,101 +1508,112 @@ async function submitPublish(slug, videoUrl) {
   }
 }
 
-function renderSocial(v) {
-  const m = v.meta;
-  if (!m) return '<div class="ph">Bu video için henüz paylaşım metni eklenmedi.</div>';
-  return [
-    coverBoxHtml(v.slug, `${v.title} — Shorts Kapak Görseli`, m.flow_prompt || '', '9:16'),
-    copyBlock(v.slug + '_yt_t', '▶️ YouTube Shorts — Başlık', m.youtube?.title),
-    copyBlock(v.slug + '_yt_d', '▶️ YouTube Shorts — Açıklama & Etiketler', m.youtube?.description),
-    copyBlock(v.slug + '_ig',   '📸 Instagram Reels — Açıklama & Etiketler', m.instagram?.caption),
-    copyBlock(v.slug + '_flow', '🎨 Google Flow — Kapak (Thumbnail) Promptu (EN)', m.flow_prompt, true),
-  ].join('');
-}
+/* Channel Kit Workspace */
+function renderChannel(el) {
+  if (!kit) { el.innerHTML = '<div class="workspace-full panel ph">Kanal kurulum kiti yükleniyor…</div>'; return; }
+  const namesHtml = kit.names.map((n, i) => {
+    const id = 'nm_' + i; copyStore[id] = `${n.name} (${n.handle})`;
+    return `<div class="name-row"><div><b>${esc(n.name)}</b> <span style="color:var(--gold)" class="mono">${esc(n.handle)}</span><div class="panel-sub">${esc(n.note)}</div></div><button class="btn sm copy-btn" onclick="copyText('${id}', this)">Kopyala</button></div>`;
+  }).join('');
 
-function renderDetail(full, tabOnly) {
-  const v = videos.find(x => x.slug === sel);
-  const el = document.getElementById('detail');
-  if (!v) { el.innerHTML = '<div class="card ph">Henüz proje yok.</div>'; return; }
-  if (tab === 'social' && !v.meta) tab = 'script';
-  const tabsHtml = `
-    <div class="tabs">
-      ${v.meta ? `<button class="${tab==='social'?'on':''}" onclick="setTab('social')">📣 Paylaşım & Kapak</button>` : ''}
-      <button class="${tab==='script'?'on':''}" onclick="setTab('script')">📝 Senaryo</button>
-      ${v.qa ? `<button class="${tab==='qa'?'on':''}" onclick="setTab('qa')">🖼️ Kare Önizleme</button>` : ''}
-      ${v.voice ? `<button class="${tab==='voice'?'on':''}" onclick="setTab('voice')">🎙️ Seslendirme</button>` : ''}
-    </div>
-    ${tab==='social' && v.meta ? renderSocial(v) :
-      tab==='qa' && v.qa ? `<img class="qa" src="${v.qa}?t=${encodeURIComponent(v.updated||Date.now())}">` :
-      tab==='voice' && v.voice ? `<audio controls style="width:100%" src="${v.voice}?t=${encodeURIComponent(v.updated||Date.now())}"></audio>` :
-      `<pre>${esc(v.script || 'Senaryo bulunamadı.')}</pre>`}`;
-  if (tabOnly && document.getElementById('tabbox')) { document.getElementById('tabbox').innerHTML = tabsHtml; return; }
-  const vid = document.querySelector('#detail video');
-  if (!full && vid && vid.dataset.slug === v.slug && vid.dataset.upd === (v.updated || '')) {
-    document.getElementById('tabbox').innerHTML = tabsHtml;
-    const pb = document.getElementById('platbox'); if (pb) pb.innerHTML = platformBadgesHtml(v.slug);
-    return;
-  }
   el.innerHTML = `
-    <div class="detail">
-      <div>
-        <div class="player">${v.video
-          ? `<video data-slug="${v.slug}" data-upd="${esc(v.updated||'')}" src="${v.video}?v=${encodeURIComponent(v.updated)}" controls playsinline loop preload="metadata"></video>`
-          : `<div class="ph">Video henüz hazır değil.<br><span class="badge ${badge(v.status)}">${v.status}</span></div>`}</div>
-        ${v.video ? `<div class="row">
-          <button class="btn share" onclick="openPublishModal('${v.slug}')">🚀 YT & IG Paylaş</button>
-          <a class="btn primary" href="${v.video}" download="${v.fileName}">⬇ MP4 İndir (${v.sizeMB} MB)</a>
-          <label class="tg"><input type="checkbox" checked onchange="document.querySelector('#detail video').loop=this.checked"> Döngü</label>
-        </div><div id="platbox">${platformBadgesHtml(v.slug)}</div>` : ''}
-      </div>
-      <div class="card">
-        <h2 style="margin:0 0 4px;font-size:17px">${esc(v.title)} <span class="badge ${badge(v.status)}">${v.status}</span></h2>
-        <div class="sub" style="margin-bottom:12px">${esc(v.fileName || v.slug)}</div>
-        <div class="meta">
-          <div><b>${fmt(v.duration)}</b><small>Süre</small></div>
-          <div><b>${v.width ? v.width+'×'+v.height : '—'}</b><small>Çözünürlük</small></div>
-          <div><b>${v.sizeMB ?? '—'}${v.sizeMB ? ' MB' : ''}</b><small>Dosya boyutu</small></div>
-          <div><b>${v.words}</b><small>Kelime</small></div>
+    <div class="workspace-full">
+      <div class="studio-hero">
+        <div>
+          <h2>🚀 Kanal Kurulum Kiti</h2>
+          <p>AKILALMAZ YouTube Shorts ve Instagram Reels hesapları için marka kimliği, açıklama metinleri ve yayın takvimi.</p>
         </div>
-        <div id="tabbox">${tabsHtml}</div>
+        <button class="btn primary" onclick="setView('covers')">🎨 Kapak Stüdyosuna Git</button>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <h3 style="margin:0 0 12px;font-size:15px">Kanal Adı & Handle Önerileri</h3>
+          ${namesHtml}
+        </div>
+        <div class="panel">
+          <h3 style="margin:0 0 12px;font-size:15px">Marka Görselleri (Hızlı Üretim)</h3>
+          <div style="display:flex;flex-direction:column;gap:18px">
+            ${coverWorkbenchHtml('brand_logo', 'Profil Logosu (Avatar)', kit.brand_prompts?.logo_flow, '1:1')}
+            <hr style="border:none;border-top:1px solid var(--line);margin:0">
+            ${coverWorkbenchHtml('brand_banner', 'YouTube Kanal Bannerı', kit.brand_prompts?.banner_flow, '16:9')}
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <h3 style="margin:0 0 12px;font-size:15px">YouTube Shorts Kurulumu</h3>
+          ${copyBlock('kit_yt_about', 'Hakkında (About) Açıklaması', kit.youtube.about)}
+          ${copyBlock('kit_yt_kw', 'Kanal Anahtar Kelimeleri', kit.youtube.keywords)}
+          <div style="margin-top:14px;font-size:12px;font-weight:700;color:var(--ok)">Kritik YouTube Ayarları</div>
+          <ul class="chk">${kit.youtube.settings.map(s => `<li>${esc(s)}</li>`).join('')}</ul>
+        </div>
+        <div class="panel">
+          <h3 style="margin:0 0 12px;font-size:15px">Instagram Reels Kurulumu</h3>
+          ${copyBlock('kit_ig_1', 'Biyografi Alternatif 1 (Net Niş)', kit.instagram.bio_1)}
+          ${copyBlock('kit_ig_2', 'Biyografi Alternatif 2 (YouTube Köprülü)', kit.instagram.bio_2)}
+          ${copyBlock('kit_ig_3', 'Biyografi Alternatif 3 (Hikâye Kancalı)', kit.instagram.bio_3)}
+          <div style="margin-top:14px;font-size:12px;font-weight:700;color:var(--ok)">Kritik Instagram Ayarları</div>
+          <ul class="chk">${kit.instagram.settings.map(s => `<li>${esc(s)}</li>`).join('')}</ul>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 style="margin:0 0 12px;font-size:15px">Yayın & Algoritma Takvimi</h3>
+        <table class="sch">
+          <thead><tr><th>Gün</th><th>Video</th><th>Saat</th><th>Algoritma İpucu</th></tr></thead>
+          <tbody>${kit.schedule.map(r => `<tr><td><b>${esc(r.day)}</b></td><td>${esc(r.video)}</td><td class="mono">${esc(r.time)}</td><td style="color:var(--ink-2)">${esc(r.tip)}</td></tr>`).join('')}</tbody>
+        </table>
       </div>
     </div>`;
 }
 
+/* Settings Workspace */
 function renderSettings(el) {
   const { apiUrl, apiKey } = getCfg();
   const stBadge = apiHealth?.ok
-    ? `<span class="badge b-ok">Bağlı · DB: ${esc(apiHealth.db)} · Bucket: ${esc(apiHealth.gcs_bucket)}</span>`
-    : apiUrl ? `<span class="badge b-err">Bağlantı Hatası: ${esc(apiHealth?.error||'Ulaşılamadı')}</span>` : `<span class="badge b-mut">Henüz yapılandırılmadı</span>`;
+    ? `<span class="badge b-ok"><span class="dot"></span> Bağlı · ${esc(apiHealth.gcs_bucket)}</span>`
+    : apiUrl
+      ? `<span class="badge b-err"><span class="dot"></span> Bağlantı Hatası: ${esc(apiHealth?.error || 'Ulaşılamadı')}</span>`
+      : `<span class="badge b-mut">Yapılandırılmadı</span>`;
   const retUrl = encodeURIComponent(location.origin + location.pathname);
+
   el.innerHTML = `
-    <div class="card" style="margin-bottom:16px">
-      <h2 style="margin:0 0 6px;font-size:18px">⚙️ Ortak Paylaşım Ayarları (Cloud Run + OAuth 2.0) ${stBadge}</h2>
-      <div class="sub">Google Cloud Run üzerindeki FastAPI Cross-Posting Worker adresini bağlayın; ardından tek tıkla çoklu YouTube ve Instagram kanalları ekleyin.</div>
-    </div>
-    <div class="grid2">
-      <div class="card">
-        <h3 style="margin:0 0 10px;color:var(--acc)">☁️ Cloud Run Backend Bağlantısı</h3>
-        <div class="fld"><label>Cloud Run API URL</label><input id="cfg_url" type="text" placeholder="https://likya-crosspost-api-xxxx-ew.a.run.app" value="${esc(apiUrl)}"></div>
-        <div class="fld"><label>X-API-Key (API_SECRET_KEY — isteğe bağlı)</label><input id="cfg_key" type="password" placeholder="••••••••" value="${esc(apiKey)}"></div>
-        <div class="row">
-          <button class="btn primary" onclick="saveSettings()">💾 Kaydet & Bağlantıyı Test Et</button>
+    <div class="workspace-full">
+      <div class="studio-hero">
+        <div>
+          <h2>⚙️ Stüdyo Ayarları</h2>
+          <p>Cloud Run API bağlantısını, Vertex AI görsel servisini ve çoklu YouTube / Instagram OAuth 2.0 hesaplarınızı yönetin.</p>
         </div>
-        <div class="sub" style="margin-top:12px">Backend kodu depodaki <code>crosspost-api/</code> klasöründe hazır: <code>PROJECT_ID=... bash deploy_cloudrun.sh</code> ile Cloud Run'a tek komutla çıkarabilirsiniz.</div>
+        ${stBadge}
       </div>
-      <div class="card">
-        <h3 style="margin:0 0 10px;color:var(--acc)">🔗 OAuth 2.0 Çoklu Kanal Bağlama</h3>
-        <div class="row" style="margin-top:0;margin-bottom:14px">
-          <a class="btn share" ${!apiUrl?'style="pointer-events:none;opacity:.5"':''} href="${apiUrl ? `${apiUrl}/api/oauth/youtube/start?redirect_to=${retUrl}` : '#'}">▶️ YouTube Kanalı Bağla (OAuth)</a>
-          <a class="btn share" ${!apiUrl?'style="pointer-events:none;opacity:.5"':''} href="${apiUrl ? `${apiUrl}/api/oauth/instagram/start?redirect_to=${retUrl}` : '#'}">📸 Instagram Hesabı Bağla (OAuth)</a>
+
+      <div class="grid2">
+        <div class="panel">
+          <h3 style="margin:0 0 14px;font-size:15px">Cloud Run Backend Bağlantısı</h3>
+          <div class="fld"><label for="cfg_url">Cloud Run API URL</label><input id="cfg_url" type="text" placeholder="https://likya-crosspost-api-xxxx-ew.a.run.app" value="${esc(apiUrl)}"></div>
+          <div class="fld"><label for="cfg_key">X-API-Key (API_SECRET_KEY)</label><input id="cfg_key" type="password" placeholder="••••••••" value="${esc(apiKey)}"></div>
+          <div class="row" style="margin-top:14px">
+            <button class="btn primary" onclick="saveSettings()">Kaydet & Test Et</button>
+          </div>
+          <div class="panel-sub" style="margin-top:14px">Ayarlar yalnızca tarayıcınızın yerel depolamasında (<code class="mono">localStorage</code>) saklanır.</div>
         </div>
-        <b style="font-size:13px">Bağlı Kanallar (${accounts.length})</b>
-        <div style="margin-top:8px">
+
+        <div class="panel">
+          <h3 style="margin:0 0 14px;font-size:15px">OAuth 2.0 Bağlı Kanallar (${accounts.length})</h3>
+          <div class="row" style="margin-bottom:16px">
+            <a class="btn publish ${!apiUrl?'disabled':''}" href="${apiUrl ? `${apiUrl}/api/oauth/youtube/start?redirect_to=${retUrl}` : '#'}">YouTube Kanalı Bağla</a>
+            <a class="btn ${!apiUrl?'disabled':''}" href="${apiUrl ? `${apiUrl}/api/oauth/instagram/start?redirect_to=${retUrl}` : '#'}">Instagram Hesabı Bağla</a>
+          </div>
           ${accounts.length ? accounts.map(a => `
             <div class="name-row">
-              <div><b>${a.platform==='YT'?'▶️ YouTube':'📸 Instagram'}</b> · ${esc(a.account_name)}<div class="sub">ID: ${esc(a.external_id)}</div></div>
-              <button class="btn danger" onclick="delAccount(${a.id})">Kaldır</button>
-            </div>`).join('') : '<div class="sub">Henüz bağlı kanal yok.</div>'}
+              <div>
+                <b>${a.platform==='YT'?'YouTube':'Instagram'}</b> · ${esc(a.account_name)}
+                <div class="panel-sub mono">ID: ${esc(a.external_id)}</div>
+              </div>
+              <button class="btn sm danger" onclick="delAccount(${a.id})">Kaldır</button>
+            </div>`).join('') : '<div class="panel-sub">Henüz bağlı kanal yok.</div>'}
         </div>
       </div>
     </div>`;
@@ -460,58 +1622,16 @@ function renderSettings(el) {
 async function saveSettings() {
   setCfg(document.getElementById('cfg_url').value, document.getElementById('cfg_key').value);
   await load(true);
+  toast(apiHealth?.ok ? 'Cloud Run bağlantısı doğrulandı!' : 'Ayarlar kaydedildi', apiHealth?.ok ? 'ok' : 'info');
 }
 async function delAccount(id) {
   await apiFetch('/api/accounts/' + id, { method: 'DELETE' });
+  toast('Kanal bağlantısı kaldırıldı', 'info');
   await load(true);
 }
 
-function renderChannel(el) {
-  if (!kit) { el.innerHTML = '<div class="card ph">Kanal kurulum kiti yükleniyor…</div>'; return; }
-  const namesHtml = kit.names.map((n, i) => {
-    const id = 'nm_' + i; copyStore[id] = `${n.name} (${n.handle})`;
-    return `<div class="name-row"><div><b>${esc(n.name)}</b> <span style="color:var(--acc)">${esc(n.handle)}</span><div class="sub">${esc(n.note)}</div></div><button class="copy-btn" onclick="copyText('${id}', this)">📋</button></div>`;
-  }).join('');
-  el.innerHTML = `
-    <div class="card" style="margin-bottom:16px">
-      <h2 style="margin:0 0 6px;font-size:18px">🚀 Sıfırdan Kanal Kurulum Kiti (YouTube Shorts + Instagram Reels)</h2>
-      <div class="sub">Hem YouTube hem Instagram'da aynı marka adıyla tutarlı başlangıç için kopyala-yapıştır metinler, ayarlar ve Google Flow görsel promptları.</div>
-    </div>
-    <div class="grid2">
-      <div class="card"><h3 style="margin:0 0 10px;color:var(--acc)">🏷️ Kanal Adı & Kullanıcı Adı Önerileri</h3>${namesHtml}</div>
-      <div class="card">
-        <h3 style="margin:0 0 10px;color:var(--acc)">🎨 Marka Görselleri (Vertex AI ile Otomatik Üret)</h3>
-        ${coverBoxHtml('brand_logo', 'AKILALMAZ Profil Logosu (1:1 Avatar)', kit.brand_prompts?.logo_flow, '1:1')}
-        ${coverBoxHtml('brand_banner', 'AKILALMAZ YouTube Kanal Bannerı (16:9)', kit.brand_prompts?.banner_flow, '16:9')}
-      </div>
-    </div>
-    <div class="grid2">
-      <div class="card">
-        <h3 style="margin:0 0 10px;color:var(--acc)">▶️ YouTube Shorts Kanal Kurulumu</h3>
-        ${copyBlock('kit_yt_about', 'Hakkında (About) Açıklaması', kit.youtube.about)}
-        ${copyBlock('kit_yt_kw', 'Kanal Anahtar Kelimeleri (Studio → Ayarlar → Kanal)', kit.youtube.keywords)}
-        <b style="font-size:13px;color:var(--ok)">Kritik YouTube Ayarları:</b>
-        <ul class="chk">${kit.youtube.settings.map(s => `<li>${esc(s)}</li>`).join('')}</ul>
-      </div>
-      <div class="card">
-        <h3 style="margin:0 0 10px;color:var(--acc)">📸 Instagram Reels Hesap Kurulumu</h3>
-        ${copyBlock('kit_ig_1', 'Biyografi Alternatif 1 (Önerilen — Net Niş)', kit.instagram.bio_1)}
-        ${copyBlock('kit_ig_2', 'Biyografi Alternatif 2 (YouTube Köprülü)', kit.instagram.bio_2)}
-        ${copyBlock('kit_ig_3', 'Biyografi Alternatif 3 (Hikâye Kancalı)', kit.instagram.bio_3)}
-        <b style="font-size:13px;color:var(--ok)">Kritik Instagram Ayarları:</b>
-        <ul class="chk">${kit.instagram.settings.map(s => `<li>${esc(s)}</li>`).join('')}</ul>
-      </div>
-    </div>
-    <div class="card">
-      <h3 style="margin:0 0 10px;color:var(--acc)">📅 İlk 5 Gün Yayın & Algoritma Planı</h3>
-      <table class="sch">
-        <thead><tr><th>Gün</th><th>Video</th><th>Saat</th><th>Algoritma İpucu</th></tr></thead>
-        <tbody>${kit.schedule.map(r => `<tr><td><b>${esc(r.day)}</b></td><td>${esc(r.video)}</td><td>${esc(r.time)}</td><td>${esc(r.tip)}</td></tr>`).join('')}</tbody>
-      </table>
-    </div>`;
-}
-
 if (location.hash.startsWith('#settings')) view = 'settings';
+else if (location.hash.startsWith('#covers')) view = 'covers';
 load(true);
 setInterval(() => {
   const activePoll = Object.values(pubByVideo).flat().some(l => l.status === 'Bekliyor' || l.status === 'Yükleniyor');

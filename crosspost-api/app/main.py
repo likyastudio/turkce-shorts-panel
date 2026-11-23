@@ -8,13 +8,15 @@ Supports:
 from __future__ import annotations
 import asyncio
 import os
+import time
 from typing import Optional
-from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from app import db
 from app.oauth import router as oauth_router
+from app.services import covers as covers_svc
 from app.services.instagram import publish_to_instagram
 from app.services.storage import download_video_to_tmp, upload_to_gcs_and_get_signed_url
 from app.services.youtube import publish_to_youtube
@@ -259,3 +261,67 @@ def get_publish_status(video_id: Optional[str] = None):
         seen.add(key)
         latest.setdefault(row["video_id"], []).append(row)
     return {"by_video": latest, "logs": logs}
+
+
+class GenerateCoverRequest(BaseModel):
+    key: str
+    prompt: str
+    aspect_ratio: str = "9:16"  # "9:16", "1:1", "16:9"
+
+
+@app.post("/api/covers/generate", dependencies=[Depends(verify_api_key)])
+async def generate_cover_endpoint(req: GenerateCoverRequest):
+    """Generates an image via Vertex AI and saves it to GCS covers/{key}.png."""
+    if not req.prompt or not req.prompt.strip():
+        raise HTTPException(status_code=400, detail="Prompt gereklidir.")
+    valid_ratios = {"9:16", "1:1", "16:9", "4:3", "3:4"}
+    if req.aspect_ratio not in valid_ratios:
+        raise HTTPException(status_code=400, detail=f"Desteklenmeyen en-boy oranı: {req.aspect_ratio}")
+
+    try:
+        png_bytes = await asyncio.to_thread(
+            covers_svc.generate_cover_image,
+            prompt=req.prompt.strip(),
+            aspect_ratio=req.aspect_ratio,
+        )
+        safe_key = covers_svc.save_cover(req.key, png_bytes)
+        public_base = os.getenv("PUBLIC_API_BASE", "").rstrip("/")
+        ts = int(time.time())
+        img_url = f"{public_base}/api/covers/{safe_key}.png?v={ts}" if public_base else f"/api/covers/{safe_key}.png?v={ts}"
+        return {
+            "ok": True,
+            "key": safe_key,
+            "aspect_ratio": req.aspect_ratio,
+            "image_url": img_url,
+            "size_bytes": len(png_bytes),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Kapak üretimi başarısız: {e}")
+
+
+@app.get("/api/covers", dependencies=[Depends(verify_api_key)])
+def list_covers_endpoint():
+    """Returns map of available covers {key: url}."""
+    keys = covers_svc.list_covers()
+    public_base = os.getenv("PUBLIC_API_BASE", "").rstrip("/")
+    covers_map = {}
+    for k in keys:
+        covers_map[k] = f"{public_base}/api/covers/{k}.png" if public_base else f"/api/covers/{k}.png"
+    return {"ok": True, "covers": covers_map}
+
+
+@app.get("/api/covers/{key}.png")
+def get_cover_image_endpoint(key: str):
+    """Public PNG stream for browsers, downloads, and social media platforms."""
+    png_bytes = covers_svc.get_cover(key)
+    if not png_bytes:
+        raise HTTPException(status_code=404, detail="Kapak görseli bulunamadı.")
+    return Response(
+        content=png_bytes,
+        media_type="image/png",
+        headers={
+            "Cache-Control": "public, max-age=3600",
+            "Access-Control-Allow-Origin": "*",
+        },
+    )
+

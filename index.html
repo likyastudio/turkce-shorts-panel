@@ -67,6 +67,13 @@
   .fld { margin-bottom:12px; } .fld label { display:block; font-size:12px; color:var(--mut); margin-bottom:4px; }
   .modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.72); display:flex; align-items:center; justify-content:center; padding:16px; z-index:20; }
   .modal { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px 20px; width:min(580px, 100%); max-height:90vh; overflow:auto; }
+  .cover-box { background:#12141a; border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:14px; }
+  .cover-preview { display:flex; gap:16px; align-items:start; flex-wrap:wrap; margin-top:12px; }
+  .cover-img-916 { width:140px; aspect-ratio:9/16; object-fit:cover; border-radius:8px; border:1px solid var(--line); box-shadow:0 4px 14px rgba(0,0,0,.4); background:#0a0b0e; }
+  .cover-img-11 { width:120px; aspect-ratio:1/1; object-fit:cover; border-radius:12px; border:1px solid var(--line); box-shadow:0 4px 14px rgba(0,0,0,.4); background:#0a0b0e; }
+  .cover-img-169 { width:100%; max-width:340px; aspect-ratio:16/9; object-fit:cover; border-radius:8px; border:1px solid var(--line); box-shadow:0 4px 14px rgba(0,0,0,.4); background:#0a0b0e; }
+  .spinner { display:inline-block; width:12px; height:12px; border:2px solid var(--acc); border-top-color:transparent; border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; }
+  @keyframes spin { to { transform:rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -88,6 +95,7 @@
 <script>
 let videos = [], kit = null, sel = null, tab = 'social', view = 'videos', sig = '';
 let accounts = [], pubByVideo = {}, apiHealth = null;
+let savedCovers = {}, generatingCovers = {};
 const badge = s => ({'Hazır':'b-ok','Yayında':'b-ok','Render Ediliyor':'b-warn','Yükleniyor':'b-warn','Ses Hazır':'b-info','Bekliyor':'b-mut','Hata':'b-err'}[s] || 'b-mut');
 const fmt = s => s ? `${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}` : '—';
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -118,12 +126,14 @@ async function syncBackend() {
   if (!apiUrl) { apiHealth = null; accounts = []; pubByVideo = {}; return; }
   try {
     apiHealth = await fetch(apiUrl + '/api/health', { cache: 'no-store' }).then(r => r.json());
-    const [accRes, stRes] = await Promise.all([
+    const [accRes, stRes, covRes] = await Promise.all([
       apiFetch('/api/accounts').catch(() => ({ accounts: [] })),
       apiFetch('/api/publish/status').catch(() => ({ by_video: {} })),
+      apiFetch('/api/covers').catch(() => ({ covers: {} })),
     ]);
     accounts = accRes.accounts || [];
     pubByVideo = stRes.by_video || {};
+    savedCovers = { ...savedCovers, ...(covRes.covers || {}) };
   } catch (e) {
     apiHealth = { ok: false, error: String(e.message || e) };
   }
@@ -147,6 +157,67 @@ function copyBlock(id, label, text, mono = false) {
     <div class="copy-head"><b>${label}</b><button class="copy-btn" onclick="copyText('${id}', this)">📋 Kopyala</button></div>
     <div class="copy-body ${mono ? 'mono' : ''}">${esc(text)}</div>
   </div>`;
+}
+
+function coverBoxHtml(key, title, defaultPrompt, aspectRatio = '9:16') {
+  const isGen = !!generatingCovers[key];
+  const url = savedCovers[key];
+  const promptId = 'prompt_' + key;
+  copyStore[promptId] = defaultPrompt || '';
+  const imgClass = aspectRatio === '9:16' ? 'cover-img-916' : aspectRatio === '1:1' ? 'cover-img-11' : 'cover-img-169';
+
+  return `
+  <div class="cover-box">
+    <div class="copy-head">
+      <b>🎨 ${esc(title)} <span class="badge b-info">${aspectRatio}</span></b>
+      <button class="copy-btn" onclick="copyText('${promptId}', this)">📋 Prompt Kopyala</button>
+    </div>
+    <div class="fld" style="margin-bottom:8px">
+      <textarea id="${promptId}" rows="2" style="font-size:12px;color:#d7deee">${esc(defaultPrompt || '')}</textarea>
+    </div>
+    <div class="row" style="margin-top:6px;margin-bottom:8px">
+      <button class="btn primary" ${isGen ? 'disabled' : ''} onclick="generateCover('${key}', '${aspectRatio}')">
+        ${isGen ? '<span class="spinner"></span> Üretiliyor (Vertex AI)…' : (url ? '🔄 Farklı Kapak Üret' : '✨ Kapağı Otomatik Üret (Vertex AI)')}
+      </button>
+      ${url ? `
+        <a class="btn" href="${esc(url)}" download="${key}_cover.png" target="_blank">⬇️ PNG İndir</a>
+        <button class="btn" onclick="navigator.clipboard.writeText('${esc(url)}');alert('Kapak görseli URL kopyalandı!')">🔗 URL Kopyala</button>
+        <span class="badge b-ok">✅ Hazır (Paylaşımda eklenir)</span>
+      ` : `<span class="sub">Google Vertex AI (Gemini 2.5 Flash Image) ile stüdyo kapağı üretir.</span>`}
+    </div>
+    ${url ? `
+      <div class="cover-preview">
+        <a href="${esc(url)}" target="_blank" title="Büyük boyutta gör">
+          <img class="${imgClass}" src="${esc(url)}" alt="${esc(title)}">
+        </a>
+        <div class="sub" style="max-width:340px;line-height:1.6">
+          <b style="color:var(--fg)">Kayıtlı Kapak:</b> <code>covers/${esc(key)}.png</code><br>
+          Google Cloud Storage ve Cloud Run üzerinde barındırılmaktadır. YouTube Shorts veya Instagram Reels paylaşımında otomatik olarak kapak görseli olarak bağlanır.
+        </div>
+      </div>
+    ` : ''}
+  </div>`;
+}
+
+async function generateCover(key, aspectRatio) {
+  const ta = document.getElementById('prompt_' + key);
+  const prompt = ta ? ta.value.trim() : (copyStore['prompt_' + key] || '');
+  if (!prompt) { alert('Lütfen bir görsel promptu girin.'); return; }
+  generatingCovers[key] = true;
+  renderAll(false);
+  try {
+    const res = await apiFetch('/api/covers/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, prompt, aspect_ratio: aspectRatio }),
+    });
+    savedCovers[key] = res.image_url;
+  } catch (e) {
+    alert('Kapak üretimi hatası: ' + (e.message || e));
+  } finally {
+    generatingCovers[key] = false;
+    renderAll(false);
+  }
 }
 
 function setView(v) {
@@ -177,7 +248,7 @@ async function load(force) {
     const data = await rv.json();
     if (rk && rk.ok) kit = await rk.json();
     await syncBackend();
-    const ns = JSON.stringify([data.map(v => [v.slug, v.status, v.updated, v.frames, !!v.meta]), pubByVideo, accounts.length]);
+    const ns = JSON.stringify([data.map(v => [v.slug, v.status, v.updated, v.frames, !!v.meta]), pubByVideo, accounts.length, Object.keys(savedCovers).length]);
     if (!force && ns === sig) return;
     sig = ns; videos = data;
     if (!sel || !videos.find(v => v.slug === sel)) sel = (videos.find(v => v.video) || videos[0] || {}).slug;
@@ -218,6 +289,19 @@ function openPublishModal(slug) {
   if (!v) return;
   const { apiUrl } = getCfg();
   const absUrl = new URL(v.video, location.href).href;
+  const coverUrl = savedCovers[v.slug] || '';
+  const coverBannerHtml = coverUrl ? `
+    <div class="name-row" style="margin-bottom:12px;background:#13151e;border-color:var(--ok)">
+      <div style="display:flex;align-items:center;gap:12px">
+        <img src="${esc(coverUrl)}" style="width:38px;height:68px;object-fit:cover;border-radius:4px;border:1px solid var(--line);background:#000">
+        <div>
+          <b style="color:var(--ok);font-size:13px">✅ Özel Shorts Kapağı Bağlandı</b>
+          <div class="sub">Paylaşım sırasında Instagram Reels ve video kapağı olarak sunucu tarafından aktarılacaktır.</div>
+        </div>
+      </div>
+      <span class="badge b-ok">Aktif</span>
+    </div>` : `<div class="sub" style="margin-bottom:12px">💡 İpucu: <b>📣 Paylaşım & Kapak</b> sekmesinden kapağı üretirseniz burada otomatik olarak eklenir.</div>`;
+
   const chHtml = !apiUrl
     ? `<div class="copy-card" style="border-color:var(--warn)"><b>⚠️ Cloud Run API URL henüz tanımlı değil</b><div class="sub" style="margin-top:4px">Paylaşımı aktifleştirmek için üstteki <b>⚙️ Ayarlar (OAuth & API)</b> sekmesinden Cloud Run URL'nizi girip YouTube/Instagram hesaplarınızı bağlayın.</div><div class="row"><button class="btn primary" onclick="closeModal();setView('settings')">⚙️ Ayarlara Git</button></div></div>`
     : accounts.length === 0
@@ -230,6 +314,7 @@ function openPublishModal(slug) {
       <div class="modal">
         <div class="copy-head"><h3 style="margin:0">🚀 YT & IG Ortak Paylaşım — ${esc(v.title)}</h3><button onclick="closeModal()">✕</button></div>
         ${chHtml}
+        ${coverBannerHtml}
         <div class="fld"><label>YouTube Shorts Başlık</label><input id="p_title" type="text" value="${esc(v.meta?.youtube?.title || v.title)}"></div>
         <div class="fld"><label>YouTube Shorts Açıklama</label><textarea id="p_desc" rows="4">${esc(v.meta?.youtube?.description || '')}</textarea></div>
         <div class="fld"><label>Instagram Reels Açıklama</label><textarea id="p_ig" rows="4">${esc(v.meta?.instagram?.caption || '')}</textarea></div>
@@ -260,6 +345,7 @@ async function submitPublish(slug, videoUrl) {
         description: document.getElementById('p_desc').value,
         ig_caption: document.getElementById('p_ig').value,
         thumb_offset_ms: Number(document.getElementById('p_thumb').value || 0),
+        cover_url: savedCovers[slug] || undefined,
         account_ids: checked,
       }),
     });
@@ -275,6 +361,7 @@ function renderSocial(v) {
   const m = v.meta;
   if (!m) return '<div class="ph">Bu video için henüz paylaşım metni eklenmedi.</div>';
   return [
+    coverBoxHtml(v.slug, `${v.title} — Shorts Kapak Görseli`, m.flow_prompt || '', '9:16'),
     copyBlock(v.slug + '_yt_t', '▶️ YouTube Shorts — Başlık', m.youtube?.title),
     copyBlock(v.slug + '_yt_d', '▶️ YouTube Shorts — Açıklama & Etiketler', m.youtube?.description),
     copyBlock(v.slug + '_ig',   '📸 Instagram Reels — Açıklama & Etiketler', m.instagram?.caption),
@@ -393,9 +480,9 @@ function renderChannel(el) {
     <div class="grid2">
       <div class="card"><h3 style="margin:0 0 10px;color:var(--acc)">🏷️ Kanal Adı & Kullanıcı Adı Önerileri</h3>${namesHtml}</div>
       <div class="card">
-        <h3 style="margin:0 0 10px;color:var(--acc)">🎨 Marka Görselleri (Google Flow Promptları)</h3>
-        ${copyBlock('kit_logo', 'Profil Logosu (1:1 — YT & IG Ortak)', kit.brand_prompts.logo_flow, true)}
-        ${copyBlock('kit_banner', 'YouTube Kanal Bannerı (16:9 / 2560×1440)', kit.brand_prompts.banner_flow, true)}
+        <h3 style="margin:0 0 10px;color:var(--acc)">🎨 Marka Görselleri (Vertex AI ile Otomatik Üret)</h3>
+        ${coverBoxHtml('brand_logo', 'AKILALMAZ Profil Logosu (1:1 Avatar)', kit.brand_prompts?.logo_flow, '1:1')}
+        ${coverBoxHtml('brand_banner', 'AKILALMAZ YouTube Kanal Bannerı (16:9)', kit.brand_prompts?.banner_flow, '16:9')}
       </div>
     </div>
     <div class="grid2">

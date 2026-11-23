@@ -89,3 +89,38 @@ def test_accounts_crud_and_cross_publish(tmp_path):
 
     # 5. Delete account works
     assert client.delete(f"/api/accounts/{yt['id']}", headers=HDR).status_code == 200
+
+
+def test_covers_endpoints():
+    fake_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4"
+
+    # Missing API key check
+    assert client.post("/api/covers/generate", json={"key": "test_k", "prompt": "test"}).status_code == 401
+
+    with patch("app.services.covers.generate_cover_image", return_value=fake_png) as m_gen, \
+         patch("app.services.covers.save_cover", return_value="v1_test_cover"):
+        r = client.post("/api/covers/generate", headers=HDR, json={
+            "key": "v1_test_cover",
+            "prompt": "Test cover cartoon prompt",
+            "aspect_ratio": "9:16",
+        })
+        assert r.status_code == 200
+        data = r.json()
+        assert data["ok"] is True
+        assert data["key"] == "v1_test_cover"
+        assert "/api/covers/v1_test_cover.png" in data["image_url"]
+
+    # Public stream test
+    with patch("app.services.covers.get_cover", return_value=fake_png):
+        r_img = client.get("/api/covers/v1_test_cover.png")
+        assert r_img.status_code == 200
+        assert r_img.headers["content-type"] == "image/png"
+        assert r_img.content == fake_png
+
+    # List covers test
+    with patch("app.services.covers.list_covers", return_value=["v1_test_cover", "brand_logo"]):
+        r_list = client.get("/api/covers", headers=HDR)
+        assert r_list.status_code == 200
+        assert "v1_test_cover" in r_list.json()["covers"]
+        assert "brand_logo" in r_list.json()["covers"]
+

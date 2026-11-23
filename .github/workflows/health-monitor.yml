@@ -1,0 +1,21 @@
+name: 7/24 Studio Health & Keep-Alive
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Cloud Run API & Neon PostgreSQL
+        run: |
+          RESP=$(curl -fsS --max-time 30 "https://likya-crosspost-api-64i7umkgnq-ew.a.run.app/api/health")
+          echo "API Health: $RESP"
+          echo "$RESP" | grep -q '"ok":true'
+          echo "$RESP" | grep -q '"db":"postgres"'
+
+      - name: Check studio.likyastudios.live
+        run: |
+          curl -fsSI --max-time 20 "https://studio.likyastudios.live" || curl -fsSI --max-time 20 "http://studio.likyastudios.live"

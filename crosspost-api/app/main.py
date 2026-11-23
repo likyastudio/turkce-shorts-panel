@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 from app import db
 from app.oauth import router as oauth_router
 from app.services import covers as covers_svc
+from app.services import scheduler as sched_svc
 from app.services.instagram import publish_to_instagram
 from app.services.storage import download_video_to_tmp, upload_to_gcs_and_get_signed_url
 from app.services.youtube import publish_to_youtube
@@ -324,4 +325,203 @@ def get_cover_image_endpoint(key: str):
             "Access-Control-Allow-Origin": "*",
         },
     )
+
+
+class SchedulePostRequest(BaseModel):
+    video_id: str
+    video_url: str
+    title: str
+    description: str = ""
+    ig_caption: Optional[str] = None
+    cover_url: Optional[str] = None
+    thumb_offset_ms: int = 1500
+    account_ids: Optional[list[int]] = None
+    scheduled_at: Optional[str] = None  # ISO 8601 (UTC or +03:00); if omitted, auto_next_slot is used
+    auto_next_slot: bool = False
+
+
+class BulkDailyItem(BaseModel):
+    video_id: str
+    video_url: str
+    title: str
+    description: str = ""
+    ig_caption: Optional[str] = None
+    cover_url: Optional[str] = None
+    thumb_offset_ms: int = 1500
+
+
+class BulkDailyRequest(BaseModel):
+    items: list[BulkDailyItem]
+    account_ids: Optional[list[int]] = None
+
+
+class GenerateStoryRequest(BaseModel):
+    existing_titles: list[str] = []
+    topic_hint: str = ""
+
+
+def _enrich_sched(row: dict) -> dict:
+    row["label_tr"] = sched_svc.format_tr_label(row["scheduled_at"])
+    return row
+
+
+async def _execute_scheduled_post(post: dict):
+    """Runs a due scheduled post through the standard cross-post pipeline."""
+    post_id = post["id"]
+    db.update_scheduled_post(post_id, "Yayınlanıyor")
+    try:
+        acc_ids = post.get("account_ids") or []
+        accounts = db.get_accounts_by_ids(acc_ids) if acc_ids else db.list_accounts(include_tokens=True)
+        if not accounts:
+            db.update_scheduled_post(post_id, "Hata", "Bağlı YouTube veya Instagram kanalı bulunamadı.")
+            return
+
+        req = PublishRequest(
+            video_id=post["video_id"],
+            video_url=post["video_url"],
+            title=post["title"],
+            description=post["description"],
+            ig_caption=post.get("ig_caption"),
+            cover_url=post.get("cover_url"),
+            thumb_offset_ms=post.get("thumb_offset_ms") or 1500,
+            account_ids=[a["id"] for a in accounts if a.get("id")],
+        )
+        targets: list[tuple[int, dict]] = []
+        for acc in accounts:
+            log_id = db.create_publish_log(
+                video_id=req.video_id,
+                platform=acc["platform"],
+                account_id=acc.get("id"),
+                account_name=acc.get("account_name"),
+                status="Bekliyor",
+            )
+            targets.append((log_id, acc))
+
+        await process_cross_post(req, targets)
+
+        # Check results in publish_logs
+        logs = db.list_publish_logs(video_id=req.video_id)[: len(targets)]
+        errs = [l["error_message"] for l in logs if l.get("status") == "Hata" and l.get("error_message")]
+        if errs and len(errs) == len(targets):
+            db.update_scheduled_post(post_id, "Hata", " | ".join(errs)[:400])
+        else:
+            db.update_scheduled_post(post_id, "Yayında", ("Kısmi hata: " + " | ".join(errs))[:400] if errs else None)
+    except Exception as e:
+        db.update_scheduled_post(post_id, "Hata", str(e)[:400])
+
+
+@app.get("/api/schedule", dependencies=[Depends(verify_api_key)])
+def get_schedule():
+    posts = [_enrich_sched(r) for r in db.list_scheduled_posts()]
+    occupied = [p["scheduled_at"] for p in posts if p["status"] in ("Planlandı", "Yayınlanıyor")]
+    nxt = sched_svc.next_weekly_slot(occupied_iso_list=occupied)
+    return {
+        "ok": True,
+        "posts": posts,
+        "next_slot": nxt,
+        "rule": "Pzt 06:01 · Sal 06:02 · Çar 06:03 · Per 06:04 · Cum 06:05 · Cmt 06:06 · Paz 06:07 (TR, haftalık döngü)",
+    }
+
+
+@app.post("/api/schedule", dependencies=[Depends(verify_api_key)])
+def create_schedule(req: SchedulePostRequest):
+    if not req.video_url:
+        raise HTTPException(status_code=400, detail="video_url gereklidir.")
+
+    existing = db.list_scheduled_posts()
+    occupied = [p["scheduled_at"] for p in existing if p["status"] in ("Planlandı", "Yayınlanıyor")]
+
+    if req.auto_next_slot or not req.scheduled_at:
+        slot = sched_svc.next_weekly_slot(occupied_iso_list=occupied)
+        sched_iso = slot["scheduled_at_utc"]
+    else:
+        sched_iso = req.scheduled_at
+
+    row = db.create_scheduled_post(
+        video_id=req.video_id,
+        video_url=req.video_url,
+        title=req.title,
+        description=req.description,
+        scheduled_at_iso=sched_iso,
+        ig_caption=req.ig_caption,
+        cover_url=req.cover_url,
+        thumb_offset_ms=req.thumb_offset_ms,
+        account_ids=req.account_ids or [],
+    )
+    return {"ok": True, "post": _enrich_sched(row)}
+
+
+@app.post("/api/schedule/bulk-daily", dependencies=[Depends(verify_api_key)])
+def bulk_schedule_daily(req: BulkDailyRequest):
+    existing = db.list_scheduled_posts()
+    already_videos = {p["video_id"] for p in existing if p["status"] in ("Planlandı", "Yayınlanıyor", "Yayında")}
+    occupied = [p["scheduled_at"] for p in existing if p["status"] in ("Planlandı", "Yayınlanıyor")]
+
+    created = []
+    skipped = []
+    for item in req.items:
+        if item.video_id in already_videos:
+            skipped.append(item.video_id)
+            continue
+        slot = sched_svc.next_weekly_slot(occupied_iso_list=occupied)
+        occupied.append(slot["scheduled_at_utc"])
+        row = db.create_scheduled_post(
+            video_id=item.video_id,
+            video_url=item.video_url,
+            title=item.title,
+            description=item.description,
+            scheduled_at_iso=slot["scheduled_at_utc"],
+            ig_caption=item.ig_caption,
+            cover_url=item.cover_url,
+            thumb_offset_ms=item.thumb_offset_ms,
+            account_ids=req.account_ids or [],
+        )
+        created.append(_enrich_sched(row))
+        already_videos.add(item.video_id)
+
+    return {"ok": True, "created_count": len(created), "skipped_count": len(skipped), "created": created}
+
+
+@app.delete("/api/schedule/{post_id}", dependencies=[Depends(verify_api_key)])
+def remove_schedule(post_id: int):
+    if not db.delete_scheduled_post(post_id):
+        raise HTTPException(status_code=404, detail="Planlanmış gönderi bulunamadı.")
+    return {"ok": True, "deleted": post_id}
+
+
+@app.post("/api/schedule/{post_id}/run-now", dependencies=[Depends(verify_api_key)])
+async def run_schedule_now(post_id: int, background_tasks: BackgroundTasks):
+    post = db.get_scheduled_post(post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Planlanmış gönderi bulunamadı.")
+    background_tasks.add_task(_execute_scheduled_post, post)
+    return {"ok": True, "message": "Hemen yayınlanmak üzere başlatıldı.", "id": post_id}
+
+
+@app.post("/api/scheduler/tick", dependencies=[Depends(verify_api_key)])
+async def scheduler_tick(background_tasks: BackgroundTasks):
+    """Checks for due scheduled posts and triggers cross-posting."""
+    due = db.get_due_scheduled_posts()
+    for post in due:
+        background_tasks.add_task(_execute_scheduled_post, post)
+    return {
+        "ok": True,
+        "due_count": len(due),
+        "triggered_ids": [p["id"] for p in due],
+    }
+
+
+@app.post("/api/ai/generate-story", dependencies=[Depends(verify_api_key)])
+async def ai_generate_story(req: GenerateStoryRequest):
+    """Generates a fresh Turkish absurd-history Short script & metadata via Vertex AI Gemini."""
+    try:
+        story = await asyncio.to_thread(
+            sched_svc.generate_daily_story,
+            existing_titles=req.existing_titles,
+            topic_hint=req.topic_hint,
+        )
+        return {"ok": True, "story": story}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Senaryo üretimi başarısız: {e}")
+
 

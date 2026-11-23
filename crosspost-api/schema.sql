@@ -26,3 +26,23 @@ CREATE TABLE IF NOT EXISTS publish_logs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_publish_logs_video ON publish_logs (video_id, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS scheduled_posts (
+    id              SERIAL PRIMARY KEY,
+    video_id        TEXT NOT NULL,
+    video_url       TEXT NOT NULL,
+    title           TEXT NOT NULL,
+    description     TEXT NOT NULL,
+    ig_caption      TEXT,
+    cover_url       TEXT,
+    thumb_offset_ms INTEGER DEFAULT 1500,
+    account_ids     TEXT NOT NULL DEFAULT '[]',
+    scheduled_at    TIMESTAMPTZ NOT NULL,
+    status          VARCHAR(24) NOT NULL DEFAULT 'Planlandı',
+    error_message   TEXT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_scheduled_posts_due ON scheduled_posts (status, scheduled_at ASC);
+

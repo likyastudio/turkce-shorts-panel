@@ -124,3 +124,52 @@ def test_covers_endpoints():
         assert "v1_test_cover" in r_list.json()["covers"]
         assert "brand_logo" in r_list.json()["covers"]
 
+
+def test_weekly_slots_and_scheduler():
+    from datetime import date
+    from app.services.scheduler import weekly_slot_for_date
+
+    # Monday -> 06:01, Tuesday -> 06:02 ... Sunday -> 06:07, next Monday -> 06:01
+    mon = date(2026, 11, 23)  # Monday
+    assert weekly_slot_for_date(mon).strftime("%H:%M") == "06:01"
+    assert weekly_slot_for_date(date(2026, 11, 24)).strftime("%H:%M") == "06:02"
+    assert weekly_slot_for_date(date(2026, 11, 29)).strftime("%H:%M") == "06:07"
+    assert weekly_slot_for_date(date(2026, 11, 30)).strftime("%H:%M") == "06:01"
+
+    # Bulk daily schedule 2 videos
+    r_bulk = client.post("/api/schedule/bulk-daily", headers=HDR, json={
+        "items": [
+            {"video_id": "v1_demo", "video_url": "https://example.com/v1.mp4", "title": "Video 1"},
+            {"video_id": "v2_demo", "video_url": "https://example.com/v2.mp4", "title": "Video 2"},
+        ]
+    })
+    assert r_bulk.status_code == 200
+    assert r_bulk.json()["created_count"] == 2
+    p1, p2 = r_bulk.json()["created"]
+    assert p1["scheduled_at"] != p2["scheduled_at"]
+
+    # List schedule
+    r_get = client.get("/api/schedule", headers=HDR)
+    assert r_get.status_code == 200
+    assert len(r_get.json()["posts"]) >= 2
+
+    # Schedule past due item and trigger tick
+    r_due = client.post("/api/schedule", headers=HDR, json={
+        "video_id": "v_due",
+        "video_url": "https://example.com/due.mp4",
+        "title": "Due Video",
+        "scheduled_at": "2020-01-01T00:00:00+00:00",
+    })
+    assert r_due.status_code == 200
+    due_id = r_due.json()["post"]["id"]
+
+    with patch("app.main._execute_scheduled_post") as m_exec:
+        r_tick = client.post("/api/scheduler/tick", headers=HDR)
+        assert r_tick.status_code == 200
+        assert due_id in r_tick.json()["triggered_ids"]
+        assert m_exec.called
+
+    # Delete scheduled item
+    assert client.delete(f"/api/schedule/{p1['id']}", headers=HDR).status_code == 200
+
+

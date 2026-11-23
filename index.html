@@ -893,6 +893,7 @@
   <nav class="seg-nav" aria-label="Ana Menü">
     <button id="btn-videos" class="nav-on" onclick="setView('videos')"><span class="nav-dot"></span> Videolar</button>
     <button id="btn-covers" onclick="setView('covers')"><span class="nav-dot"></span> Kapak Stüdyosu</button>
+    <button id="btn-schedule" onclick="setView('schedule')"><span class="nav-dot"></span> Yayın Planı</button>
     <button id="btn-channel" onclick="setView('channel')"><span class="nav-dot"></span> Kanal Kurulumu</button>
     <button id="btn-settings" onclick="setView('settings')"><span class="nav-dot"></span> Ayarlar</button>
   </nav>
@@ -913,6 +914,7 @@
 let videos = [], kit = null, sel = null, tab = 'social', view = 'videos', sig = '';
 let accounts = [], pubByVideo = {}, apiHealth = null;
 let savedCovers = {}, generatingCovers = {};
+let scheduledPosts = [], nextSlot = null, schedRule = '';
 let searchQuery = '', studioKey = 'brand_logo';
 const copyStore = {};
 const styleChoice = {};
@@ -927,6 +929,7 @@ const COVER_STYLES = [
 
 const badge = s => ({
   'Hazır': 'b-ok', 'Yayında': 'b-ok',
+  'Planlandı': 'b-gold', 'Yayınlanıyor': 'b-warn',
   'Render Ediliyor': 'b-warn', 'Yükleniyor': 'b-warn',
   'Ses Hazır': 'b-info', 'Bekliyor': 'b-mut', 'Hata': 'b-err'
 }[s] || 'b-mut');
@@ -968,17 +971,21 @@ async function apiFetch(path, opts = {}) {
 
 async function syncBackend() {
   const { apiUrl } = getCfg();
-  if (!apiUrl) { apiHealth = null; accounts = []; pubByVideo = {}; return; }
+  if (!apiUrl) { apiHealth = null; accounts = []; pubByVideo = {}; scheduledPosts = []; nextSlot = null; return; }
   try {
     apiHealth = await fetch(apiUrl + '/api/health', { cache: 'no-store' }).then(r => r.json());
-    const [accRes, stRes, covRes] = await Promise.all([
+    const [accRes, stRes, covRes, schRes] = await Promise.all([
       apiFetch('/api/accounts').catch(() => ({ accounts: [] })),
       apiFetch('/api/publish/status').catch(() => ({ by_video: {} })),
       apiFetch('/api/covers').catch(() => ({ covers: {} })),
+      apiFetch('/api/schedule').catch(() => ({ posts: [], next_slot: null, rule: '' })),
     ]);
     accounts = accRes.accounts || [];
     pubByVideo = stRes.by_video || {};
     savedCovers = { ...savedCovers, ...(covRes.covers || {}) };
+    scheduledPosts = schRes.posts || [];
+    nextSlot = schRes.next_slot || null;
+    schedRule = schRes.rule || 'Pzt 06:01 · Sal 06:02 · Çar 06:03 · Per 06:04 · Cum 06:05 · Cmt 06:06 · Paz 06:07 (TR)';
   } catch (e) {
     apiHealth = { ok: false, error: String(e.message || e) };
   }
@@ -1134,7 +1141,7 @@ async function generateCover(key, aspectRatio) {
 
 function setView(v) {
   view = v;
-  ['videos', 'covers', 'channel', 'settings'].forEach(k => {
+  ['videos', 'covers', 'schedule', 'channel', 'settings'].forEach(k => {
     const el = document.getElementById('btn-' + k);
     if (el) el.classList.toggle('nav-on', v === k);
   });
@@ -1167,14 +1174,16 @@ async function load(force) {
       pubByVideo,
       accounts.length,
       Object.keys(savedCovers).length,
+      scheduledPosts.map(p => [p.id, p.status, p.scheduled_at]),
     ]);
     if (!force && ns === sig) return;
     sig = ns; videos = data;
     if (!sel || !videos.find(v => v.slug === sel)) sel = (videos.find(v => v.video) || videos[0] || {}).slug;
     const ready = videos.filter(v => v.video).length;
     const covCount = Object.keys(savedCovers).length;
+    const planCount = scheduledPosts.filter(p => p.status === 'Planlandı').length;
     const apiTxt = apiHealth?.ok ? ` · API bağlı (${accounts.length} kanal)` : '';
-    document.getElementById('sum').textContent = `${ready}/${videos.length} video hazır · ${covCount} kapak${apiTxt}`;
+    document.getElementById('sum').textContent = `${ready}/${videos.length} video · ${covCount} kapak · ${planCount} planlı${apiTxt}`;
     renderAll(force);
   } catch (e) {
     document.getElementById('sum').textContent = 'Bağlantı hatası: ' + e;
@@ -1184,6 +1193,7 @@ async function load(force) {
 function renderAll(force) {
   const app = document.getElementById('app');
   if (view === 'covers') { renderCoverStudio(app); return; }
+  if (view === 'schedule') { renderSchedule(app); return; }
   if (view === 'channel') { renderChannel(app); return; }
   if (view === 'settings') { renderSettings(app); return; }
   if (!document.getElementById('list')) {
@@ -1426,13 +1436,28 @@ function renderCoverStudio(el) {
     </div>`;
 }
 
-/* Publish Modal */
+/* Publish & Schedule Modal */
+function togglePubMode(mode) {
+  const box = document.getElementById('p_sched_box');
+  const btnNow = document.getElementById('pm_now');
+  const btnSch = document.getElementById('pm_sch');
+  const subBtn = document.getElementById('p_submit_btn');
+  if (box) box.style.display = mode === 'schedule' ? 'block' : 'none';
+  if (btnNow) btnNow.classList.toggle('on', mode === 'now');
+  if (btnSch) btnSch.classList.toggle('on', mode === 'schedule');
+  if (subBtn) {
+    subBtn.dataset.mode = mode;
+    subBtn.textContent = mode === 'schedule' ? '📅 Yayın Planına Ekle' : '🚀 Şimdi Yayınla';
+  }
+}
+
 function openPublishModal(slug) {
   const v = videos.find(x => x.slug === slug);
   if (!v) return;
   const { apiUrl } = getCfg();
   const absUrl = new URL(v.video, location.href).href;
   const coverUrl = savedCovers[v.slug] || '';
+  const defaultTrLocal = nextSlot?.scheduled_at_tr ? nextSlot.scheduled_at_tr.slice(0, 16) : '';
 
   const coverBannerHtml = coverUrl ? `
     <div class="name-row" style="margin-bottom:14px;border-color:rgba(48,164,108,0.4)">
@@ -1449,7 +1474,7 @@ function openPublishModal(slug) {
   const chHtml = !apiUrl
     ? `<div class="block" style="border-color:rgba(229,153,52,0.4)"><b>Cloud Run API URL tanımlı değil</b><div class="panel-sub" style="margin-top:4px">Önce Ayarlar sekmesinden Cloud Run URL ve API anahtarınızı girin.</div><div class="row" style="margin-top:10px"><button class="btn primary sm" onclick="closeModal();setView('settings')">Ayarlara Git</button></div></div>`
     : accounts.length === 0
-      ? `<div class="block" style="border-color:rgba(229,153,52,0.4)"><b>Bağlı kanal bulunamadı</b><div class="panel-sub" style="margin-top:4px">Ayarlar sekmesinden YouTube veya Instagram hesabı bağlayın.</div><div class="row" style="margin-top:10px"><button class="btn primary sm" onclick="closeModal();setView('settings')">Kanal Bağla</button></div></div>`
+      ? `<div class="block" style="border-color:rgba(229,153,52,0.4)"><b>Bağlı kanal bulunamadı</b><div class="panel-sub" style="margin-top:4px">Planlama yapabilirsiniz; yayın saati gelmeden Ayarlar'dan YouTube/IG bağlamanız yeterlidir.</div><div class="row" style="margin-top:10px"><button class="btn primary sm" onclick="closeModal();setView('settings')">Kanal Bağla</button></div></div>`
       : `<div class="fld"><label>Hedef Kanallar</label>${accounts.map(a =>
           `<label class="name-row" style="cursor:pointer"><span><input type="checkbox" name="acc_id" value="${a.id}" checked> <b>${a.platform==='YT'?'YouTube':'Instagram'}</b> · ${esc(a.account_name)}</span><span class="badge b-ok">Bağlı</span></label>`
         ).join('')}</div>`;
@@ -1459,10 +1484,24 @@ function openPublishModal(slug) {
       <div class="modal">
         <div class="panel-head" style="margin-bottom:14px">
           <div>
-            <h3 style="margin:0;font-size:17px">YT & IG Ortak Yayın</h3>
+            <h3 style="margin:0;font-size:17px">YT & IG Yayın & Planlama</h3>
             <div class="panel-sub">${esc(v.title)}</div>
           </div>
           <button class="btn ghost icon-btn" onclick="closeModal()" aria-label="Kapat">✕</button>
+        </div>
+        <div class="style-pills" style="margin-bottom:14px">
+          <button type="button" id="pm_now" class="style-pill" onclick="togglePubMode('now')">🚀 Şimdi Yayınla</button>
+          <button type="button" id="pm_sch" class="style-pill on" onclick="togglePubMode('schedule')">📅 Planla (06:01–06:07 TR)</button>
+        </div>
+        <div id="p_sched_box" class="block" style="margin-bottom:14px;border-color:rgba(242,184,48,0.35)">
+          <div class="fld" style="margin-bottom:6px">
+            <label for="p_dt">
+              <span>Yayın Tarihi & Saati (Türkiye Saati · UTC+3)</span>
+              <span class="hint">${esc(nextSlot?.label_tr || 'Sıradaki haftalık slot')}</span>
+            </label>
+            <input id="p_dt" type="datetime-local" value="${esc(defaultTrLocal)}">
+          </div>
+          <label class="tg" style="margin-top:6px"><input type="checkbox" id="p_auto_slot" checked onchange="document.getElementById('p_dt').disabled=this.checked"> Otomatik haftalık kuralı kullan (Pzt 06:01 → Paz 06:07)</label>
         </div>
         ${chHtml}
         ${coverBannerHtml}
@@ -1472,40 +1511,187 @@ function openPublishModal(slug) {
         <div class="fld"><label for="p_thumb">Instagram Kapak Karesi (ms)</label><input id="p_thumb" type="number" value="1500" min="0" step="500"></div>
         <div id="p_msg" class="panel-sub" style="margin-bottom:10px"></div>
         <div class="row">
-          <button class="btn primary" ${(!apiUrl || !accounts.length)?'disabled':''} onclick="submitPublish('${v.slug}', '${esc(absUrl)}')">🚀 Şimdi Yayınla</button>
+          <button id="p_submit_btn" data-mode="schedule" class="btn primary" ${!apiUrl?'disabled':''} onclick="submitPublish('${v.slug}', '${esc(absUrl)}')">📅 Yayın Planına Ekle</button>
           <button class="btn" onclick="closeModal()">İptal</button>
         </div>
       </div>
     </div>`;
+  const dtInput = document.getElementById('p_dt');
+  if (dtInput) dtInput.disabled = true;
 }
 
 async function submitPublish(slug, videoUrl) {
   const msg = document.getElementById('p_msg');
+  const subBtn = document.getElementById('p_submit_btn');
+  const mode = subBtn?.dataset.mode || 'now';
   const checked = [...document.querySelectorAll('input[name="acc_id"]:checked')].map(el => Number(el.value));
-  if (!checked.length) { msg.textContent = 'En az bir hedef kanal seçin.'; return; }
-  msg.textContent = 'Kuyruğa gönderiliyor…';
+
+  if (mode === 'now' && !checked.length) { msg.textContent = 'Şimdi yayınlamak için en az bir bağlı kanal seçin.'; return; }
+
+  const payload = {
+    video_id: slug,
+    video_url: videoUrl,
+    title: document.getElementById('p_title').value,
+    description: document.getElementById('p_desc').value,
+    ig_caption: document.getElementById('p_ig').value,
+    thumb_offset_ms: Number(document.getElementById('p_thumb').value || 0),
+    cover_url: savedCovers[slug] || undefined,
+    account_ids: checked,
+  };
+
+  msg.textContent = mode === 'schedule' ? 'Yayın planına kaydediliyor…' : 'Kuyruğa gönderiliyor…';
   try {
-    await apiFetch('/api/publish', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        video_id: slug,
-        video_url: videoUrl,
-        title: document.getElementById('p_title').value,
-        description: document.getElementById('p_desc').value,
-        ig_caption: document.getElementById('p_ig').value,
-        thumb_offset_ms: Number(document.getElementById('p_thumb').value || 0),
-        cover_url: savedCovers[slug] || undefined,
-        account_ids: checked,
-      }),
-    });
-    closeModal();
-    toast('Paylaşım kuyruğa alındı!', 'ok');
-    await load(true);
+    if (mode === 'schedule') {
+      const autoSlot = document.getElementById('p_auto_slot')?.checked;
+      const dtVal = document.getElementById('p_dt')?.value;
+      payload.auto_next_slot = !!autoSlot;
+      if (!autoSlot && dtVal) payload.scheduled_at = dtVal + ':00+03:00';
+      const res = await apiFetch('/api/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      closeModal();
+      toast(`Planlandı: ${res.post?.label_tr || ''}`, 'ok');
+      await load(true);
+    } else {
+      await apiFetch('/api/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      closeModal();
+      toast('Paylaşım kuyruğa alındı!', 'ok');
+      await load(true);
+    }
   } catch (e) {
     msg.style.color = 'var(--err)';
     msg.textContent = 'Hata: ' + e.message;
   }
+}
+
+/* Schedule & Autonomous Production Workspace */
+async function bulkScheduleAll() {
+  const readyVideos = videos.filter(v => v.video);
+  if (!readyVideos.length) { toast('Planlanacak hazır video yok.', 'err'); return; }
+  const items = readyVideos.map(v => ({
+    video_id: v.slug,
+    video_url: new URL(v.video, location.href).href,
+    title: v.meta?.youtube?.title || v.title,
+    description: v.meta?.youtube?.description || '',
+    ig_caption: v.meta?.instagram?.caption || '',
+    cover_url: savedCovers[v.slug] || undefined,
+    thumb_offset_ms: 1500,
+  }));
+  try {
+    const res = await apiFetch('/api/schedule/bulk-daily', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items }),
+    });
+    toast(`${res.created_count} video haftalık 06:01–06:07 TR kuyruğuna eklendi!`, 'ok');
+    await load(true);
+  } catch (e) {
+    toast('Toplu planlama hatası: ' + e.message, 'err');
+  }
+}
+
+async function runSchedulerTick() {
+  try {
+    const res = await apiFetch('/api/scheduler/tick', { method: 'POST' });
+    toast(res.due_count ? `${res.due_count} video yayına alındı!` : 'Saati gelen bekleyen video yok.', 'info');
+    await load(true);
+  } catch (e) {
+    toast('Kontrol hatası: ' + e.message, 'err');
+  }
+}
+
+async function cancelSchedule(id) {
+  try {
+    await apiFetch('/api/schedule/' + id, { method: 'DELETE' });
+    toast('Planlanan yayın iptal edildi.', 'info');
+    await load(true);
+  } catch (e) {
+    toast('İptal hatası: ' + e.message, 'err');
+  }
+}
+
+async function runScheduleNow(id) {
+  try {
+    await apiFetch(`/api/schedule/${id}/run-now`, { method: 'POST' });
+    toast('Yayın hemen başlatıldı!', 'ok');
+    await load(true);
+  } catch (e) {
+    toast('Başlatma hatası: ' + e.message, 'err');
+  }
+}
+
+function renderSchedule(el) {
+  const { apiUrl } = getCfg();
+  const planned = scheduledPosts.filter(p => p.status === 'Planlandı').length;
+  el.innerHTML = `
+    <div class="workspace-full">
+      <div class="studio-hero">
+        <div>
+          <h2>📅 Otomatik Yayın Planı & Tam Otonom Hat</h2>
+          <p>Haftalık kural: <b style="color:var(--gold)">Pzt 06:01 → Sal 06:02 → Çar 06:03 → Per 06:04 → Cum 06:05 → Cmt 06:06 → Paz 06:07 (TR)</b>, her hafta başa döner. Her gece <b>02:00 TR</b>'de yeni Shorts otomatik üretilip sıradaki güne eklenir.</p>
+        </div>
+        <div class="row">
+          <button class="btn primary" ${!apiUrl?'disabled':''} onclick="bulkScheduleAll()">⚡ Hazır Videoları Günlük Sıraya Diz</button>
+          <button class="btn" ${!apiUrl?'disabled':''} onclick="runSchedulerTick()">▶ Şimdi Kontrol Et</button>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <div class="panel-sub">SIRADAKİ BOŞ HAFTALIK SLOT</div>
+          <div style="font-size:20px;font-weight:800;margin-top:4px;color:var(--gold)" class="mono">${esc(nextSlot?.label_tr || 'API bağlantısı gerekli')}</div>
+          <div class="panel-sub" style="margin-top:6px">GitHub Actions her gün 06:01–06:10 TR arasında ve gün içi her 15 dk'da otomatik tetikler.</div>
+        </div>
+        <div class="panel">
+          <div class="panel-sub">TAM OTONOM GÜNLÜK ÜRETİM</div>
+          <div style="font-size:20px;font-weight:800;margin-top:4px">Her Gece <span style="color:var(--ok)" class="mono">02:00 TR</span></div>
+          <div class="panel-sub" style="margin-top:6px">Gemini senaryo → ERKAN seslendirme → Vertex AI 9:16 kapak → 1080×1920 MP4 → Otomatik planlama.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h3 style="margin:0;font-size:16px">Yayın Kuyruğu (${scheduledPosts.length} kayıt · ${planned} bekliyor)</h3>
+            <div class="panel-sub">Neon PostgreSQL üzerinde 7/24 kalıcı olarak saklanır.</div>
+          </div>
+        </div>
+        ${scheduledPosts.length ? `
+          <table class="sch">
+            <thead><tr><th>Yayın Zamanı (TR)</th><th>Video</th><th>Durum</th><th>İşlem</th></tr></thead>
+            <tbody>
+              ${scheduledPosts.map(p => `
+                <tr>
+                  <td class="mono" style="white-space:nowrap;color:var(--gold);font-weight:600">${esc(p.label_tr || p.scheduled_at)}</td>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:10px">
+                      ${p.cover_url ? `<img src="${esc(p.cover_url)}" alt="" style="width:28px;height:48px;object-fit:cover;border-radius:4px;border:1px solid var(--line)">` : ''}
+                      <div>
+                        <b>${esc(p.title)}</b>
+                        <div class="panel-sub mono">${esc(p.video_id)}</div>
+                        ${p.error_message ? `<div style="color:var(--err);font-size:11.5px;margin-top:2px">${esc(p.error_message)}</div>` : ''}
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="badge ${badge(p.status)}"><span class="dot"></span>${esc(p.status)}</span></td>
+                  <td style="white-space:nowrap">
+                    <div class="row">
+                      ${p.status === 'Planlandı' || p.status === 'Hata' ? `<button class="btn sm" onclick="runScheduleNow(${p.id})">Şimdi Yayınla</button>` : ''}
+                      <button class="btn sm danger" onclick="cancelSchedule(${p.id})">Sil</button>
+                    </div>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        ` : `<div class="ph">Henüz planlanmış yayın yok. Yukarıdaki <b>⚡ Hazır Videoları Günlük Sıraya Diz</b> butonuna basarak 8 hazır videoyu tek tıkla 06:01–06:07 TR kuyruğuna alabilirsiniz.</div>`}
+      </div>
+    </div>`;
 }
 
 /* Channel Kit Workspace */

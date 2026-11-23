@@ -83,6 +83,23 @@ def init_db() -> None:
                     updated_at        TEXT NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS idx_publish_logs_video ON publish_logs (video_id, updated_at);
+                CREATE TABLE IF NOT EXISTS scheduled_posts (
+                    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                    video_id        TEXT NOT NULL,
+                    video_url       TEXT NOT NULL,
+                    title           TEXT NOT NULL,
+                    description     TEXT NOT NULL,
+                    ig_caption      TEXT,
+                    cover_url       TEXT,
+                    thumb_offset_ms INTEGER DEFAULT 1500,
+                    account_ids     TEXT NOT NULL DEFAULT '[]',
+                    scheduled_at    TEXT NOT NULL,
+                    status          TEXT NOT NULL DEFAULT 'Planlandı',
+                    error_message   TEXT,
+                    created_at      TEXT NOT NULL,
+                    updated_at      TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_scheduled_posts_due ON scheduled_posts (status, scheduled_at);
                 """
             )
 
@@ -233,3 +250,106 @@ def list_publish_logs(video_id: Optional[str] = None) -> list[dict[str, Any]]:
                 "FROM publish_logs ORDER BY id DESC LIMIT 200"
             )
         return _rows(cur, is_pg)
+
+
+def _norm_sched_row(r: dict[str, Any]) -> dict[str, Any]:
+    import json as _json
+    for k in ("scheduled_at", "created_at", "updated_at"):
+        if isinstance(r.get(k), datetime):
+            r[k] = r[k].astimezone(timezone.utc).isoformat()
+    if isinstance(r.get("account_ids"), str):
+        try:
+            r["account_ids"] = _json.loads(r["account_ids"])
+        except Exception:
+            r["account_ids"] = []
+    return r
+
+
+def create_scheduled_post(
+    video_id: str,
+    video_url: str,
+    title: str,
+    description: str,
+    scheduled_at_iso: str,
+    ig_caption: Optional[str] = None,
+    cover_url: Optional[str] = None,
+    thumb_offset_ms: int = 1500,
+    account_ids: Optional[list[int]] = None,
+) -> dict[str, Any]:
+    import json as _json
+    now = _now()
+    acc_json = _json.dumps(account_ids or [])
+    with get_conn() as (conn, p, is_pg):
+        cur = conn.cursor()
+        if is_pg:
+            cur.execute(
+                "INSERT INTO scheduled_posts "
+                "(video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, account_ids, scheduled_at, status, created_at, updated_at) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,'Planlandı',%s,%s) "
+                "RETURNING id, video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, account_ids, scheduled_at, status, error_message, created_at, updated_at",
+                (video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, acc_json, scheduled_at_iso, now, now),
+            )
+            return _norm_sched_row(_rows(cur, True)[0])
+        cur.execute(
+            "INSERT INTO scheduled_posts "
+            "(video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, account_ids, scheduled_at, status, created_at, updated_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?,'Planlandı',?,?)",
+            (video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, acc_json, scheduled_at_iso, now, now),
+        )
+        rid = int(cur.lastrowid)
+        cur.execute(
+            "SELECT id, video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, account_ids, scheduled_at, status, error_message, created_at, updated_at "
+            "FROM scheduled_posts WHERE id=?",
+            (rid,),
+        )
+        return _norm_sched_row(_rows(cur, False)[0])
+
+
+def list_scheduled_posts(status: Optional[str] = None) -> list[dict[str, Any]]:
+    with get_conn() as (conn, p, is_pg):
+        cur = conn.cursor()
+        cols = "id, video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, account_ids, scheduled_at, status, error_message, created_at, updated_at"
+        if status:
+            cur.execute(f"SELECT {cols} FROM scheduled_posts WHERE status={p} ORDER BY scheduled_at ASC LIMIT 200", (status,))
+        else:
+            cur.execute(f"SELECT {cols} FROM scheduled_posts ORDER BY scheduled_at ASC LIMIT 200")
+        return [_norm_sched_row(r) for r in _rows(cur, is_pg)]
+
+
+def get_scheduled_post(post_id: int) -> Optional[dict[str, Any]]:
+    with get_conn() as (conn, p, is_pg):
+        cur = conn.cursor()
+        cols = "id, video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, account_ids, scheduled_at, status, error_message, created_at, updated_at"
+        cur.execute(f"SELECT {cols} FROM scheduled_posts WHERE id={p}", (post_id,))
+        rows = _rows(cur, is_pg)
+        return _norm_sched_row(rows[0]) if rows else None
+
+
+def get_due_scheduled_posts(now_iso: Optional[str] = None) -> list[dict[str, Any]]:
+    cutoff = now_iso or _now()
+    with get_conn() as (conn, p, is_pg):
+        cur = conn.cursor()
+        cols = "id, video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, account_ids, scheduled_at, status, error_message, created_at, updated_at"
+        cur.execute(
+            f"SELECT {cols} FROM scheduled_posts WHERE status='Planlandı' AND scheduled_at <= {p} ORDER BY scheduled_at ASC LIMIT 20",
+            (cutoff,),
+        )
+        return [_norm_sched_row(r) for r in _rows(cur, is_pg)]
+
+
+def update_scheduled_post(post_id: int, status: str, error_message: Optional[str] = None) -> None:
+    now = _now()
+    with get_conn() as (conn, p, _is_pg):
+        cur = conn.cursor()
+        cur.execute(
+            f"UPDATE scheduled_posts SET status={p}, error_message={p}, updated_at={p} WHERE id={p}",
+            (status, error_message, now, post_id),
+        )
+
+
+def delete_scheduled_post(post_id: int) -> bool:
+    with get_conn() as (conn, p, _is_pg):
+        cur = conn.cursor()
+        cur.execute(f"DELETE FROM scheduled_posts WHERE id={p}", (post_id,))
+        return cur.rowcount > 0
+

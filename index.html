@@ -3,41 +3,72 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AKILALMAZ — Likya Shorts Stüdyo & Kapak Üretim Paneli</title>
-<meta name="description" content="AKILALMAZ YouTube Shorts ve Instagram Reels üretim, yapay zekâ kapak tasarımı ve ortak yayın kontrol merkezi.">
+<title>AKILALMAZ — Likya Editorial Studio (OpenDesign Atelier Zero)</title>
+<meta name="description" content="AKILALMAZ YouTube Shorts ve Instagram Reels üretim, Vertex AI kapak stüdyosu ve 7/24 otonom yayın kontrol merkezi.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;1,500;1,600&display=swap" rel="stylesheet">
 <style>
+  /* OpenDesign — Atelier Zero Editorial Studio Tokens */
   :root {
-    --bg: #0b0c0e;
-    --surface: #121418;
-    --surface-2: #181b21;
-    --surface-3: #1e222a;
-    --inset: #0e1014;
-    --line: rgba(255, 255, 255, 0.08);
-    --line-strong: rgba(255, 255, 255, 0.16);
-    --ink: #f3f4f6;
-    --ink-2: #a3aab8;
-    --ink-3: #6c7382;
-    --gold: #f2b830;
-    --gold-hover: #ffc847;
-    --gold-ink: #14110a;
-    --gold-soft: rgba(242, 184, 48, 0.12);
-    --ok: #30a46c;
-    --ok-soft: rgba(48, 164, 108, 0.14);
-    --warn: #e59934;
-    --warn-soft: rgba(229, 153, 52, 0.14);
-    --info: #4b9ce2;
-    --info-soft: rgba(75, 156, 226, 0.14);
-    --err: #e5484d;
-    --err-soft: rgba(229, 72, 77, 0.15);
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 32px rgba(0, 0, 0, 0.35);
-    --shadow-float: 0 24px 64px rgba(0, 0, 0, 0.6);
+    --paper: #efe7d2;
+    --paper-warm: #ece4cf;
+    --paper-dark: #ddd2b6;
+    --bone: #f7f1de;
+    --ink: #15140f;
+    --ink-soft: #2a2620;
+    --ink-mute: #5a5448;
+    --ink-faint: #8b8676;
+    --coral: #ed6f5c;
+    --coral-soft: #f08e7c;
+    --mustard: #e9b94a;
+    --olive: #6e7448;
+    --ok: #3c6e47;
+    --ok-bg: rgba(60, 110, 71, 0.12);
+    --warn: #a66a14;
+    --warn-bg: rgba(233, 185, 74, 0.22);
+    --info: #2d5d8c;
+    --info-bg: rgba(45, 93, 140, 0.11);
+    --err: #b8332a;
+    --err-bg: rgba(184, 51, 42, 0.12);
+    --line: rgba(21, 20, 15, 0.13);
+    --line-strong: rgba(21, 20, 15, 0.28);
+    --topbar-bg: rgba(239, 231, 210, 0.88);
+    --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.65) inset, 0 10px 28px rgba(21, 20, 15, 0.06);
+    --shadow-float: 0 24px 60px rgba(21, 20, 15, 0.22);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
     --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  /* Optional Cinema Darkroom Mode */
+  [data-theme="dark"] {
+    --paper: #0d0e11;
+    --paper-warm: #13151a;
+    --paper-dark: #1a1d24;
+    --bone: #15181e;
+    --ink: #f3f1ea;
+    --ink-soft: #d2cec2;
+    --ink-mute: #9a968b;
+    --ink-faint: #6d6a62;
+    --coral: #ed6f5c;
+    --coral-soft: #f08e7c;
+    --mustard: #e9b94a;
+    --olive: #8e9662;
+    --ok: #46b576;
+    --ok-bg: rgba(70, 181, 118, 0.14);
+    --warn: #e9b94a;
+    --warn-bg: rgba(233, 185, 74, 0.15);
+    --info: #62a8e5;
+    --info-bg: rgba(98, 168, 229, 0.14);
+    --err: #f0655b;
+    --err-bg: rgba(240, 101, 91, 0.15);
+    --line: rgba(243, 241, 234, 0.10);
+    --line-strong: rgba(243, 241, 234, 0.22);
+    --topbar-bg: rgba(13, 14, 17, 0.88);
+    --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 14px 36px rgba(0, 0, 0, 0.4);
+    --shadow-float: 0 28px 72px rgba(0, 0, 0, 0.65);
   }
 
   * { box-sizing: border-box; }
@@ -45,22 +76,38 @@
   body {
     margin: 0;
     background:
-      radial-gradient(900px 420px at 12% -8%, rgba(242, 184, 48, 0.055), transparent 70%),
-      radial-gradient(700px 380px at 88% -10%, rgba(255, 255, 255, 0.025), transparent 70%),
-      var(--bg);
+      radial-gradient(900px 460px at 14% -6%, rgba(106, 92, 56, 0.07), transparent 68%),
+      radial-gradient(760px 420px at 88% 4%, rgba(237, 111, 92, 0.045), transparent 66%),
+      var(--paper);
     background-attachment: fixed;
     color: var(--ink);
-    font: 14px/1.55 "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+    font: 14.5px/1.55 "Inter Tight", system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
 
+  /* Hand-pressed Atelier paper grain */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 90;
+    opacity: 0.045;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  [data-theme="dark"] body::before { opacity: 0.025; mix-blend-mode: overlay; }
+
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 99px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+  ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 99px; }
 
-  /* Topbar */
+  .serif { font-family: "Playfair Display", Georgia, serif; font-style: italic; font-weight: 500; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .roman { font-family: "Playfair Display", Georgia, serif; font-style: italic; color: var(--coral); font-size: 13px; margin-right: 5px; }
+
+  /* Editorial Topbar */
   header.topbar {
     position: sticky;
     top: 0;
@@ -69,107 +116,81 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding: 12px 24px;
-    background: rgba(11, 12, 14, 0.86);
+    padding: 12px 26px;
+    background: var(--topbar-bg);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--line);
     flex-wrap: wrap;
   }
 
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    min-width: 0;
-  }
-  .brand-mark {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    background: linear-gradient(145deg, #21252e, #14171d);
-    border: 1px solid var(--line-strong);
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .brand-star {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--mustard);
     display: grid;
     place-items: center;
+    font-size: 15px;
     flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--line-strong);
   }
   .brand-text h1 {
     margin: 0;
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 800;
-    letter-spacing: -0.02em;
-    line-height: 1.2;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
     display: flex;
-    align-items: center;
-    gap: 7px;
+    align-items: baseline;
+    gap: 6px;
   }
-  .brand-text h1 .accent { color: var(--gold); }
   .brand-text .sub {
-    font-size: 11.5px;
-    color: var(--ink-3);
-    font-variant-numeric: tabular-nums;
-    margin-top: 1px;
+    font-size: 11px;
+    color: var(--ink-faint);
+    font-family: "JetBrains Mono", monospace;
+    margin-top: 2px;
   }
 
-  /* Segmented Navigation */
   nav.seg-nav {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px;
-    background: var(--surface);
+    gap: 2px;
+    padding: 3px;
+    background: var(--paper-warm);
     border: 1px solid var(--line);
-    border-radius: 11px;
+    border-radius: 999px;
     flex-wrap: wrap;
   }
   nav.seg-nav button {
     background: transparent;
     border: 1px solid transparent;
-    color: var(--ink-2);
+    color: var(--ink-mute);
     font-weight: 600;
     font-size: 13px;
-    padding: 6px 13px;
-    border-radius: 8px;
+    padding: 6px 14px;
+    border-radius: 999px;
     transition: all 150ms var(--ease);
   }
-  nav.seg-nav button:hover {
-    color: var(--ink);
-    background: rgba(255, 255, 255, 0.04);
-    border-color: transparent;
-  }
+  nav.seg-nav button:hover { color: var(--ink); background: rgba(21, 20, 15, 0.05); }
   nav.seg-nav button.nav-on {
-    background: var(--surface-3);
-    color: var(--ink);
-    border-color: var(--line-strong);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 2px 8px rgba(0, 0, 0, 0.25);
+    background: var(--ink);
+    color: var(--bone);
+    border-color: var(--ink);
   }
-  nav.seg-nav button.nav-on .nav-dot {
-    background: var(--gold);
-  }
-  .nav-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--ink-3);
-    display: inline-block;
-    transition: background 150ms var(--ease);
-  }
+  nav.seg-nav button.nav-on .roman { color: var(--mustard); }
 
-  .top-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+  .top-actions { display: flex; align-items: center; gap: 8px; }
 
   /* Buttons */
   button, .btn {
     font-family: inherit;
-    background: var(--surface-2);
+    background: var(--bone);
     color: var(--ink);
-    border: 1px solid var(--line);
+    border: 1px solid var(--line-strong);
     border-radius: var(--radius-sm);
-    padding: 8px 13px;
+    padding: 8px 14px;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -178,731 +199,326 @@
     align-items: center;
     justify-content: center;
     gap: 7px;
-    transition: background 150ms var(--ease), border-color 150ms var(--ease), transform 120ms var(--ease), color 150ms var(--ease);
+    transition: background 150ms var(--ease), border-color 150ms var(--ease), transform 110ms var(--ease), color 150ms var(--ease);
   }
-  button:hover, .btn:hover {
-    background: var(--surface-3);
-    border-color: var(--line-strong);
-  }
+  button:hover, .btn:hover { background: var(--paper-dark); border-color: var(--ink); }
   button:active, .btn:active { transform: translateY(1px); }
-  button:disabled, .btn.disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+  button:disabled, .btn.disabled { opacity: 0.48; cursor: not-allowed; pointer-events: none; }
 
   .btn.primary {
-    background: var(--gold);
-    color: var(--gold-ink);
-    border-color: var(--gold);
+    background: var(--coral);
+    color: #fffaf5;
+    border-color: var(--coral);
     font-weight: 700;
   }
-  .btn.primary:hover {
-    background: var(--gold-hover);
-    border-color: var(--gold-hover);
-  }
-  .btn.publish {
+  .btn.primary:hover { background: var(--coral-soft); border-color: var(--coral-soft); }
+
+  .btn.ink-btn {
     background: var(--ink);
-    color: #0b0c0e;
+    color: var(--bone);
     border-color: var(--ink);
     font-weight: 700;
   }
-  .btn.publish:hover {
-    background: #ffffff;
-    border-color: #ffffff;
-  }
-  .btn.ghost {
-    background: transparent;
-    border-color: transparent;
-    color: var(--ink-2);
-    padding: 6px 10px;
-  }
-  .btn.ghost:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--ink);
-  }
-  .btn.danger {
-    background: transparent;
-    border-color: rgba(229, 72, 77, 0.3);
-    color: var(--err);
-  }
-  .btn.danger:hover {
-    background: var(--err-soft);
-    border-color: rgba(229, 72, 77, 0.55);
-  }
-  .btn.sm { padding: 5px 10px; font-size: 12px; border-radius: 7px; }
-  .icon-btn { width: 32px; height: 32px; padding: 0; border-radius: 8px; }
+  .btn.ink-btn:hover { opacity: 0.9; background: var(--ink); }
 
-  /* Layout Shells */
-  main {
-    max-width: 1520px;
-    margin: 0 auto;
-    padding: 22px 24px 48px;
-  }
-  .workspace-videos {
-    display: grid;
-    grid-template-columns: 320px 1fr;
-    gap: 24px;
-    align-items: start;
-  }
-  .workspace-full {
-    max-width: 1220px;
-    margin: 0 auto;
-  }
-  @media (max-width: 960px) {
-    .workspace-videos { grid-template-columns: 1fr; }
-  }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--ink-mute); padding: 6px 10px; }
+  .btn.ghost:hover { background: var(--paper-dark); color: var(--ink); border-color: transparent; }
+
+  .btn.danger { background: transparent; border-color: rgba(184, 51, 42, 0.35); color: var(--err); }
+  .btn.danger:hover { background: var(--err-bg); border-color: var(--err); }
+
+  .btn.sm { padding: 5px 10px; font-size: 12px; }
+  .icon-btn { width: 32px; height: 32px; padding: 0; border-radius: 999px; }
+
+  /* Layout */
+  main { max-width: 1480px; margin: 0 auto; padding: 24px 26px 56px; }
+  .workspace-videos { display: grid; grid-template-columns: 320px 1fr; gap: 26px; align-items: start; }
+  .workspace-full { max-width: 1200px; margin: 0 auto; }
+  @media (max-width: 960px) { .workspace-videos { grid-template-columns: 1fr; } }
 
   /* Sidebar Queue */
-  .sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    position: sticky;
-    top: 76px;
-    max-height: calc(100vh - 96px);
-  }
+  .sidebar { display: flex; flex-direction: column; gap: 10px; position: sticky; top: 76px; max-height: calc(100vh - 96px); }
   .sidebar-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 0 2px;
-  }
-  .sidebar-head span {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--ink-3);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 2px 6px;
+    border-bottom: 1px solid var(--line);
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-mute);
   }
   .search-wrap { position: relative; }
-  .search-wrap input {
-    padding-left: 32px;
-    height: 36px;
-    font-size: 13px;
-    background: var(--surface);
-  }
-  .search-wrap svg {
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--ink-3);
-    pointer-events: none;
-  }
-  .queue-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    overflow-y: auto;
-    padding-right: 4px;
-  }
+  .search-wrap input { padding-left: 32px; height: 36px; background: var(--bone); }
+  .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--ink-faint); pointer-events: none; }
+
+  .queue-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; padding-right: 4px; }
   .q-item {
-    display: grid;
-    grid-template-columns: 42px 1fr;
-    gap: 12px;
-    align-items: center;
+    display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: center;
     padding: 10px 12px;
-    background: var(--surface);
+    background: var(--bone);
     border: 1px solid var(--line);
     border-radius: var(--radius-md);
     cursor: pointer;
-    transition: background 150ms var(--ease), border-color 150ms var(--ease), transform 150ms var(--ease);
+    transition: all 150ms var(--ease);
   }
-  .q-item:hover {
-    background: var(--surface-2);
-    border-color: var(--line-strong);
-  }
+  .q-item:hover { border-color: var(--line-strong); transform: translateY(-1px); }
   .q-item.active {
-    background: var(--surface-2);
-    border-color: rgba(242, 184, 48, 0.55);
-    box-shadow: 0 0 0 1px rgba(242, 184, 48, 0.25) inset, 0 8px 24px rgba(0, 0, 0, 0.28);
+    border-color: var(--ink);
+    box-shadow: 3px 3px 0 var(--ink);
   }
   .q-thumb {
-    width: 42px;
-    height: 60px;
-    border-radius: 7px;
-    background: var(--inset);
+    width: 44px; height: 62px;
+    border-radius: 6px;
+    background: var(--paper-dark);
     border: 1px solid var(--line);
     overflow: hidden;
-    display: grid;
-    place-items: center;
-    font-family: "JetBrains Mono", monospace;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--ink-3);
+    display: grid; place-items: center;
+    font-family: "Playfair Display", Georgia, serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--ink-mute);
     flex-shrink: 0;
   }
   .q-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .q-item.active .q-thumb { border-color: rgba(242, 184, 48, 0.45); color: var(--gold); }
   .q-meta { min-width: 0; }
-  .q-title {
-    font-size: 13.5px;
-    font-weight: 600;
-    color: var(--ink);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .q-sub {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 3px;
-    font-size: 11.5px;
-    color: var(--ink-3);
-    font-family: "JetBrains Mono", monospace;
-    font-variant-numeric: tabular-nums;
-  }
+  .q-title { font-size: 13.5px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.01em; }
+  .q-sub { display: flex; align-items: center; gap: 6px; margin-top: 3px; font-size: 11px; color: var(--ink-faint); font-family: "JetBrains Mono", monospace; }
 
   /* Badges */
   .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 999px;
-    line-height: 1.4;
-    text-decoration: none;
-    white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+    line-height: 1.45; text-decoration: none; white-space: nowrap;
   }
-  .b-ok { background: var(--ok-soft); color: var(--ok); }
-  .b-warn { background: var(--warn-soft); color: var(--warn); }
-  .b-info { background: var(--info-soft); color: var(--info); }
-  .b-err { background: var(--err-soft); color: var(--err); }
-  .b-gold { background: var(--gold-soft); color: var(--gold); }
-  .b-mut { background: rgba(255, 255, 255, 0.06); color: var(--ink-2); }
+  .b-ok { background: var(--ok-bg); color: var(--ok); }
+  .b-warn { background: var(--warn-bg); color: var(--warn); }
+  .b-info { background: var(--info-bg); color: var(--info); }
+  .b-err { background: var(--err-bg); color: var(--err); }
+  .b-coral { background: rgba(237, 111, 92, 0.14); color: var(--coral); }
+  .b-mut { background: var(--paper-dark); color: var(--ink-mute); }
   .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
   .plat-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
 
-  /* Video Stage */
-  .stage {
-    display: grid;
-    grid-template-columns: minmax(270px, 340px) 1fr;
-    gap: 24px;
-    align-items: start;
-  }
+  /* Stage */
+  .stage { display: grid; grid-template-columns: minmax(270px, 340px) 1fr; gap: 26px; align-items: start; }
   @media (max-width: 1180px) { .stage { grid-template-columns: 1fr; } }
 
-  .monitor-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
+  .monitor-wrap { display: flex; flex-direction: column; gap: 12px; }
   .player {
-    background: #050506;
+    background: #15140f;
     border-radius: var(--radius-lg);
     overflow: hidden;
     aspect-ratio: 9 / 16;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--line-strong);
-    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55);
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--ink);
+    box-shadow: 6px 6px 0 rgba(21, 20, 15, 0.12);
   }
   .player video { width: 100%; height: 100%; object-fit: contain; background: #000; }
-  .monitor-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-  .monitor-foot {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 0 2px;
-  }
+  .monitor-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .monitor-foot { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; }
 
-  /* Surfaces */
+  /* Editorial Panel */
   .panel {
-    background: var(--surface);
+    background: var(--bone);
     border: 1px solid var(--line);
     border-radius: var(--radius-lg);
-    padding: 22px 24px;
+    padding: 24px 26px;
     box-shadow: var(--shadow-card);
   }
-  .panel-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-bottom: 14px;
-  }
-  .panel-title {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 700;
-    letter-spacing: -0.025em;
-    line-height: 1.25;
-  }
-  .panel-sub {
-    color: var(--ink-3);
-    font-size: 12.5px;
-    margin-top: 3px;
-  }
-  .mono { font-family: "JetBrains Mono", monospace; }
+  .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .panel-title { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.18; }
+  .panel-sub { color: var(--ink-mute); font-size: 12.5px; margin-top: 3px; }
 
-  /* Spec Strip */
   .spec-strip {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 18px;
-    padding: 12px 0;
-    margin-bottom: 16px;
-    border-top: 1px solid var(--line);
-    border-bottom: 1px solid var(--line);
+    display: flex; flex-wrap: wrap; gap: 22px;
+    padding: 12px 0; margin-bottom: 18px;
+    border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
   }
   .spec-item { display: flex; flex-direction: column; gap: 1px; }
-  .spec-item small {
-    font-size: 10.5px;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    color: var(--ink-3);
-    font-weight: 600;
-  }
-  .spec-item b {
-    font-family: "JetBrains Mono", monospace;
-    font-size: 13.5px;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    color: var(--ink);
-  }
+  .spec-item small { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-faint); font-weight: 700; }
+  .spec-item b { font-family: "JetBrains Mono", monospace; font-size: 13.5px; font-weight: 600; color: var(--ink); }
 
-  /* Underline Tabs */
-  .utabs {
-    display: flex;
-    gap: 4px;
-    border-bottom: 1px solid var(--line);
-    margin-bottom: 18px;
-    overflow-x: auto;
-  }
+  /* Editorial Underline Tabs */
+  .utabs { display: flex; gap: 6px; border-bottom: 1px solid var(--line); margin-bottom: 18px; overflow-x: auto; }
   .utabs button {
-    background: transparent;
-    border: none;
-    border-bottom: 2px solid transparent;
-    border-radius: 0;
-    color: var(--ink-2);
-    padding: 9px 14px 11px;
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: -1px;
-    white-space: nowrap;
+    background: transparent; border: none; border-bottom: 2px solid transparent; border-radius: 0;
+    color: var(--ink-mute); padding: 9px 14px 11px; font-size: 13.5px; font-weight: 700;
+    margin-bottom: -1px; white-space: nowrap;
   }
-  .utabs button:hover {
-    background: transparent;
-    color: var(--ink);
-  }
-  .utabs button.on {
-    color: var(--gold);
-    border-bottom-color: var(--gold);
-  }
+  .utabs button:hover { background: transparent; color: var(--ink); }
+  .utabs button.on { color: var(--coral); border-bottom-color: var(--coral); }
 
-  /* Copy & Content Blocks */
+  /* Blocks */
   .block {
     padding: 14px 16px;
-    background: var(--inset);
+    background: var(--paper-warm);
     border: 1px solid var(--line);
     border-radius: var(--radius-md);
     margin-bottom: 12px;
   }
   .block:last-child { margin-bottom: 0; }
-  .block-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 8px;
-  }
-  .block-label {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--ink-2);
-    letter-spacing: 0.01em;
-  }
-  .block-body {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    font-size: 13.5px;
-    line-height: 1.65;
-    color: var(--ink);
-    user-select: all;
-  }
-  .block-body.mono {
-    font-family: "JetBrains Mono", monospace;
-    font-size: 12px;
-    color: #cfd6e4;
-  }
+  .block-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .block-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-mute); }
+  .block-body { white-space: pre-wrap; word-wrap: break-word; font-size: 14px; line-height: 1.65; color: var(--ink-soft); user-select: all; }
+  .block-body.mono { font-family: "JetBrains Mono", monospace; font-size: 12px; }
   .copy-btn.ok { border-color: var(--ok); color: var(--ok); }
 
-  /* Cover Studio Components */
+  /* Studio Hero */
   .studio-hero {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-bottom: 22px;
-    padding-bottom: 18px;
-    border-bottom: 1px solid var(--line);
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; flex-wrap: wrap;
+    margin-bottom: 24px; padding-bottom: 18px; border-bottom: 1px solid var(--line-strong);
   }
-  .studio-hero h2 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 800;
-    letter-spacing: -0.03em;
+  .studio-hero .eyebrow {
+    font-family: "JetBrains Mono", monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--ink-faint); margin-bottom: 6px;
   }
-  .studio-hero p {
-    margin: 5px 0 0;
-    color: var(--ink-2);
-    font-size: 13.5px;
-    max-width: 660px;
-  }
+  .studio-hero h2 { margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.035em; line-height: 1.08; }
+  .studio-hero p { margin: 8px 0 0; color: var(--ink-mute); font-size: 14px; max-width: 660px; }
 
-  .studio-grid {
-    display: grid;
-    grid-template-columns: 1fr 380px;
-    gap: 24px;
-    align-items: start;
-  }
+  .studio-grid { display: grid; grid-template-columns: 1fr 400px; gap: 24px; align-items: start; }
   @media (max-width: 1060px) { .studio-grid { grid-template-columns: 1fr; } }
 
-  .gallery-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
-    gap: 14px;
-  }
+  .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 14px; }
   .gal-card {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    cursor: pointer;
-    transition: border-color 160ms var(--ease), transform 160ms var(--ease);
-    display: flex;
-    flex-direction: column;
+    background: var(--bone); border: 1px solid var(--line); border-radius: var(--radius-md);
+    overflow: hidden; cursor: pointer; transition: all 160ms var(--ease); display: flex; flex-direction: column;
   }
-  .gal-card:hover {
-    border-color: var(--line-strong);
-    transform: translateY(-2px);
-  }
-  .gal-card.selected {
-    border-color: var(--gold);
-    box-shadow: 0 0 0 1px rgba(242, 184, 48, 0.3) inset;
-  }
-  .gal-media {
-    aspect-ratio: 4 / 5;
-    background: var(--inset);
-    position: relative;
-    overflow: hidden;
-    display: grid;
-    place-items: center;
-  }
+  .gal-card:hover { border-color: var(--ink); transform: translateY(-2px); }
+  .gal-card.selected { border-color: var(--ink); box-shadow: 4px 4px 0 var(--coral); }
+  .gal-media { aspect-ratio: 4 / 5; background: var(--paper-dark); position: relative; overflow: hidden; display: grid; place-items: center; }
   .gal-media.wide { aspect-ratio: 16 / 10; }
   .gal-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .gal-empty {
-    text-align: center;
-    padding: 16px;
-    color: var(--ink-3);
-    font-size: 12px;
-  }
+  .gal-empty { text-align: center; padding: 16px; color: var(--ink-faint); font-size: 12px; }
   .gal-ratio {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: rgba(11, 12, 14, 0.78);
-    backdrop-filter: blur(6px);
-    color: var(--ink);
-    font-family: "JetBrains Mono", monospace;
-    font-size: 10.5px;
-    font-weight: 600;
-    padding: 2px 7px;
-    border-radius: 6px;
-    border: 1px solid var(--line);
+    position: absolute; top: 8px; right: 8px;
+    background: rgba(21, 20, 15, 0.82); color: #f7f1de;
+    font-family: "JetBrains Mono", monospace; font-size: 10.5px; font-weight: 600;
+    padding: 2px 7px; border-radius: 5px;
   }
-  .gal-info {
-    padding: 10px 12px;
-    border-top: 1px solid var(--line);
-  }
-  .gal-name {
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--ink);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .gal-status {
-    margin-top: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 11px;
-    color: var(--ink-3);
-  }
+  .gal-info { padding: 10px 12px; border-top: 1px solid var(--line); }
+  .gal-name { font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gal-status { margin-top: 4px; display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--ink-faint); }
 
-  /* Cover Generator Workbench */
-  .cover-bench {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
+  /* Cover Workbench */
+  .cover-bench { display: flex; flex-direction: column; gap: 14px; }
   .cover-preview-stage {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 18px;
-    align-items: start;
-    padding: 16px;
-    background: var(--inset);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-md);
+    display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: start;
+    padding: 16px; background: var(--paper-warm); border: 1px solid var(--line); border-radius: var(--radius-md);
   }
   @media (max-width: 640px) { .cover-preview-stage { grid-template-columns: 1fr; } }
   .cover-frame {
-    border-radius: 10px;
-    overflow: hidden;
-    border: 1px solid var(--line-strong);
-    background: #07080a;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-    cursor: zoom-in;
+    border-radius: 8px; overflow: hidden; border: 1px solid var(--ink); background: #15140f;
+    box-shadow: 4px 4px 0 rgba(21, 20, 15, 0.14); cursor: zoom-in;
   }
   .cover-frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
-  .cf-916 { width: 152px; aspect-ratio: 9 / 16; }
-  .cf-11 { width: 152px; aspect-ratio: 1 / 1; }
+  .cf-916 { width: 148px; aspect-ratio: 9 / 16; }
+  .cf-11 { width: 148px; aspect-ratio: 1 / 1; }
   .cf-169 { width: 280px; max-width: 100%; aspect-ratio: 16 / 9; }
 
-  .style-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
+  .style-pills { display: flex; flex-wrap: wrap; gap: 6px; }
   .style-pill {
-    padding: 4px 10px;
-    font-size: 11.5px;
-    font-weight: 600;
-    border-radius: 999px;
-    background: var(--surface-2);
-    border: 1px solid var(--line);
-    color: var(--ink-2);
+    padding: 5px 11px; font-size: 12px; font-weight: 600; border-radius: 999px;
+    background: var(--paper-warm); border: 1px solid var(--line); color: var(--ink-mute);
   }
-  .style-pill.on {
-    background: var(--gold-soft);
-    border-color: rgba(242, 184, 48, 0.5);
-    color: var(--gold);
-  }
+  .style-pill.on { background: var(--ink); border-color: var(--ink); color: var(--bone); }
 
   /* Forms */
   .fld { margin-bottom: 12px; }
   .fld:last-child { margin-bottom: 0; }
-  .fld label {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--ink-2);
-    margin-bottom: 6px;
-  }
-  .fld label span.hint {
-    font-weight: 400;
-    color: var(--ink-3);
-    font-size: 11px;
-  }
-  input[type=text], input[type=password], input[type=number], textarea, select {
+  .fld label { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--ink-soft); margin-bottom: 6px; }
+  .fld label span.hint { font-weight: 500; color: var(--ink-faint); font-size: 11px; }
+  input[type=text], input[type=password], input[type=number], input[type=datetime-local], textarea, select {
     width: 100%;
-    background: var(--inset);
+    background: var(--paper);
     color: var(--ink);
-    border: 1px solid var(--line);
+    border: 1px solid var(--line-strong);
     border-radius: var(--radius-sm);
     padding: 9px 12px;
-    font: 13px/1.5 "Plus Jakarta Sans", system-ui, sans-serif;
+    font: 13.5px/1.5 "Inter Tight", system-ui, sans-serif;
     transition: border-color 150ms var(--ease), box-shadow 150ms var(--ease);
   }
-  textarea.mono-input {
-    font-family: "JetBrains Mono", monospace;
-    font-size: 12px;
-    line-height: 1.55;
-  }
+  textarea.mono-input { font-family: "JetBrains Mono", monospace; font-size: 12px; line-height: 1.55; }
   input:focus, textarea:focus, select:focus {
     outline: none;
-    border-color: rgba(242, 184, 48, 0.6);
-    box-shadow: 0 0 0 3px rgba(242, 184, 48, 0.1);
+    border-color: var(--coral);
+    box-shadow: 0 0 0 3px rgba(237, 111, 92, 0.16);
   }
 
   /* Grids & Tables */
-  .grid2 {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-    gap: 18px;
-    margin-bottom: 18px;
-  }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; margin-bottom: 20px; }
+  .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 20px; }
   .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   .name-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 12px;
-    background: var(--inset);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-sm);
-    margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 12px; background: var(--paper-warm); border: 1px solid var(--line); border-radius: var(--radius-sm); margin-bottom: 8px;
   }
   .name-row:last-child { margin-bottom: 0; }
-  ul.chk { margin: 8px 0 0; padding-left: 18px; color: var(--ink-2); }
-  ul.chk li { margin-bottom: 6px; font-size: 13px; }
-  table.sch { width: 100%; border-collapse: collapse; font-size: 13px; }
-  table.sch th, table.sch td {
-    text-align: left;
-    padding: 11px 12px;
-    border-bottom: 1px solid var(--line);
-  }
-  table.sch th {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--ink-3);
-    font-weight: 700;
-  }
+  ul.chk { margin: 8px 0 0; padding-left: 18px; color: var(--ink-soft); }
+  ul.chk li { margin-bottom: 6px; font-size: 13.5px; }
+
+  table.sch { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.sch th, table.sch td { text-align: left; padding: 12px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  table.sch th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-faint); font-weight: 700; }
   table.sch tr:last-child td { border-bottom: none; }
+
   pre.script-pre {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    margin: 0;
-    font: 14px/1.75 "Plus Jakarta Sans", system-ui, sans-serif;
-    color: #e4e7ee;
-    padding: 16px;
-    background: var(--inset);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-md);
+    white-space: pre-wrap; word-wrap: break-word; margin: 0;
+    font: 14.5px/1.75 "Inter Tight", system-ui, sans-serif; color: var(--ink-soft);
+    padding: 18px; background: var(--paper-warm); border: 1px solid var(--line); border-radius: var(--radius-md);
   }
-  img.qa {
-    width: 100%;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--line);
-    display: block;
-  }
-  .ph {
-    color: var(--ink-3);
-    text-align: center;
-    padding: 36px 20px;
-    font-size: 13.5px;
-  }
-  label.tg {
-    color: var(--ink-2);
-    font-size: 12.5px;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    user-select: none;
-  }
-  input[type=checkbox] { accent-color: var(--gold); cursor: pointer; }
+  img.qa { width: 100%; border-radius: var(--radius-md); border: 1px solid var(--line); display: block; }
+  .ph { color: var(--ink-faint); text-align: center; padding: 36px 20px; font-size: 14px; }
+  label.tg { color: var(--ink-mute); font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+  input[type=checkbox] { accent-color: var(--coral); cursor: pointer; }
 
   /* Modal & Lightbox */
   .modal-bg {
-    position: fixed;
-    inset: 0;
-    background: rgba(5, 6, 8, 0.78);
-    backdrop-filter: blur(8px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    z-index: 50;
+    position: fixed; inset: 0; background: rgba(21, 20, 15, 0.68); backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50;
   }
   .modal {
-    background: var(--surface);
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius-lg);
-    padding: 22px 24px;
-    width: min(580px, 100%);
-    max-height: 90vh;
-    overflow: auto;
+    background: var(--bone); border: 1px solid var(--ink); border-radius: var(--radius-lg);
+    padding: 24px 26px; width: min(600px, 100%); max-height: 90vh; overflow: auto;
     box-shadow: var(--shadow-float);
   }
-  .lightbox img {
-    max-width: min(92vw, 960px);
-    max-height: 86vh;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--line-strong);
-    box-shadow: var(--shadow-float);
-  }
+  .lightbox img { max-width: min(92vw, 960px); max-height: 86vh; border-radius: var(--radius-md); border: 1px solid var(--bone); box-shadow: var(--shadow-float); }
 
-  /* Spinner & Toast */
-  .spinner {
-    display: inline-block;
-    width: 13px;
-    height: 13px;
-    border: 2px solid currentColor;
-    border-top-color: transparent;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-  }
+  .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  #toast-root {
-    position: fixed;
-    right: 20px;
-    bottom: 20px;
-    z-index: 80;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    pointer-events: none;
-  }
+  #toast-root { position: fixed; right: 22px; bottom: 22px; z-index: 80; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
   .toast {
-    pointer-events: auto;
-    background: var(--surface-3);
-    color: var(--ink);
-    border: 1px solid var(--line-strong);
-    border-radius: 10px;
-    padding: 10px 14px;
-    font-size: 13px;
-    font-weight: 500;
-    box-shadow: var(--shadow-float);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    animation: toastIn 200ms var(--ease);
+    pointer-events: auto; background: var(--ink); color: var(--bone);
+    border-radius: 9px; padding: 10px 15px; font-size: 13px; font-weight: 600;
+    box-shadow: var(--shadow-float); display: flex; align-items: center; gap: 8px;
+    animation: toastIn 180ms var(--ease);
   }
-  .toast.ok { border-left: 3px solid var(--ok); }
-  .toast.err { border-left: 3px solid var(--err); }
-  .toast.info { border-left: 3px solid var(--gold); }
-  @keyframes toastIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+  .toast.ok { border-left: 4px solid var(--olive); }
+  .toast.err { border-left: 4px solid var(--coral); }
+  .toast.info { border-left: 4px solid var(--mustard); }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
 <body>
 
 <header class="topbar">
   <div class="brand">
-    <div class="brand-mark" aria-hidden="true">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <path d="M13.5 2L4.5 13.5H11.5L10.5 22L19.5 10.5H12.5L13.5 2Z" fill="#f2b830"/>
-      </svg>
-    </div>
+    <div class="brand-star" aria-hidden="true">★</div>
     <div class="brand-text">
-      <h1>AKILALMAZ <span class="accent">Studio</span></h1>
+      <h1>AKILALMAZ <span class="serif" style="font-size:18px;color:var(--coral)">Atelier</span></h1>
       <div class="sub" id="sum">Yükleniyor…</div>
     </div>
   </div>
 
   <nav class="seg-nav" aria-label="Ana Menü">
-    <button id="btn-videos" class="nav-on" onclick="setView('videos')"><span class="nav-dot"></span> Videolar</button>
-    <button id="btn-covers" onclick="setView('covers')"><span class="nav-dot"></span> Kapak Stüdyosu</button>
-    <button id="btn-schedule" onclick="setView('schedule')"><span class="nav-dot"></span> Yayın Planı</button>
-    <button id="btn-channel" onclick="setView('channel')"><span class="nav-dot"></span> Kanal Kurulumu</button>
-    <button id="btn-settings" onclick="setView('settings')"><span class="nav-dot"></span> Ayarlar</button>
+    <button id="btn-videos" class="nav-on" onclick="setView('videos')"><span class="roman">I.</span>Videolar</button>
+    <button id="btn-covers" onclick="setView('covers')"><span class="roman">II.</span>Kapak Stüdyosu</button>
+    <button id="btn-schedule" onclick="setView('schedule')"><span class="roman">III.</span>Yayın Planı</button>
+    <button id="btn-channel" onclick="setView('channel')"><span class="roman">IV.</span>Kanal Kurulumu</button>
+    <button id="btn-settings" onclick="setView('settings')"><span class="roman">V.</span>Ayarlar</button>
   </nav>
 
   <div class="top-actions">
-    <label class="tg"><input type="checkbox" id="auto" checked> Oto yenile</label>
-    <button class="icon-btn" onclick="load(true)" title="Şimdi Yenile" aria-label="Yenile">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
-    </button>
+    <button id="btn-theme" class="btn sm ghost" onclick="toggleTheme()" title="Tema değiştir">🌙 Koyu</button>
+    <label class="tg"><input type="checkbox" id="auto" checked> Oto</label>
+    <button class="icon-btn" onclick="load(true)" title="Şimdi Yenile" aria-label="Yenile">⟳</button>
   </div>
 </header>
 
@@ -914,7 +530,7 @@
 let videos = [], kit = null, sel = null, tab = 'social', view = 'videos', sig = '';
 let accounts = [], pubByVideo = {}, apiHealth = null;
 let savedCovers = {}, generatingCovers = {};
-let scheduledPosts = [], nextSlot = null, schedRule = '';
+let scheduledPosts = [], nextSlot = null, schedRule = '', ytQuotaToday = { used: 0, limit: 5 };
 let searchQuery = '', studioKey = 'brand_logo';
 const copyStore = {};
 const styleChoice = {};
@@ -928,14 +544,25 @@ const COVER_STYLES = [
 ];
 
 const badge = s => ({
-  'Hazır': 'b-ok', 'Yayında': 'b-ok',
-  'Planlandı': 'b-gold', 'Yayınlanıyor': 'b-warn',
+  'Hazır': 'b-ok', 'Yayında': 'b-ok', 'YT Planlandı': 'b-ok',
+  'Planlandı': 'b-coral', 'Yayınlanıyor': 'b-warn',
   'Render Ediliyor': 'b-warn', 'Yükleniyor': 'b-warn',
   'Ses Hazır': 'b-info', 'Bekliyor': 'b-mut', 'Hata': 'b-err'
 }[s] || 'b-mut');
 
 const fmt = s => s ? `${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}` : '—';
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  localStorage.setItem('likya_theme', t);
+  const b = document.getElementById('btn-theme');
+  if (b) b.textContent = t === 'dark' ? '☀️ Atelier' : '🌙 Koyu';
+}
+function toggleTheme() {
+  applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+}
+applyTheme(localStorage.getItem('likya_theme') || 'light');
 
 const getCfg = () => ({
   apiUrl: (localStorage.getItem('likya_api_url') || '').replace(/\/$/, ''),
@@ -955,7 +582,7 @@ function toast(msg, type = 'info') {
   el.className = `toast ${type}`;
   el.textContent = msg;
   root.appendChild(el);
-  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 200ms'; setTimeout(() => el.remove(), 220); }, 3200);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 200ms'; setTimeout(() => el.remove(), 220); }, 3400);
 }
 
 async function apiFetch(path, opts = {}) {
@@ -978,13 +605,14 @@ async function syncBackend() {
       apiFetch('/api/accounts').catch(() => ({ accounts: [] })),
       apiFetch('/api/publish/status').catch(() => ({ by_video: {} })),
       apiFetch('/api/covers').catch(() => ({ covers: {} })),
-      apiFetch('/api/schedule').catch(() => ({ posts: [], next_slot: null, rule: '' })),
+      apiFetch('/api/schedule').catch(() => ({ posts: [], next_slot: null, rule: '', yt_quota_today: { used: 0, limit: 5 } })),
     ]);
     accounts = accRes.accounts || [];
     pubByVideo = stRes.by_video || {};
     savedCovers = { ...savedCovers, ...(covRes.covers || {}) };
     scheduledPosts = schRes.posts || [];
     nextSlot = schRes.next_slot || null;
+    ytQuotaToday = schRes.yt_quota_today || { used: 0, limit: 5 };
     schedRule = schRes.rule || 'Pzt 06:01 · Sal 06:02 · Çar 06:03 · Per 06:04 · Cum 06:05 · Cmt 06:06 · Paz 06:07 (TR)';
   } catch (e) {
     apiHealth = { ok: false, error: String(e.message || e) };
@@ -1029,10 +657,7 @@ function openLightbox(url, title) {
 }
 function closeModal() { document.getElementById('modal-root').innerHTML = ''; }
 
-function setCoverStyle(key, styleId) {
-  styleChoice[key] = styleId;
-  renderAll(false);
-}
+function setCoverStyle(key, styleId) { styleChoice[key] = styleId; renderAll(false); }
 
 function coverWorkbenchHtml(key, heading, defaultPrompt, aspectRatio = '9:16', helperNote = '') {
   const isGen = !!generatingCovers[key];
@@ -1048,25 +673,25 @@ function coverWorkbenchHtml(key, heading, defaultPrompt, aspectRatio = '9:16', h
   <div class="cover-bench">
     <div class="panel-head" style="margin-bottom:4px">
       <div>
-        <h3 style="margin:0;font-size:16px;font-weight:700;letter-spacing:-0.015em">${esc(heading)}</h3>
+        <h3 style="margin:0;font-size:17px;font-weight:800;letter-spacing:-0.02em">${esc(heading)}</h3>
         ${helperNote ? `<div class="panel-sub">${esc(helperNote)}</div>` : ''}
       </div>
       <div class="row">
-        <span class="badge b-gold mono">${aspectRatio}</span>
-        ${url ? `<span class="badge b-ok"><span class="dot"></span> Kayıtlı</span>` : `<span class="badge b-mut">Henüz üretilmedi</span>`}
+        <span class="badge b-coral mono">${aspectRatio}</span>
+        ${url ? `<span class="badge b-ok"><span class="dot"></span> Kayıtlı</span>` : `<span class="badge b-mut">Boş</span>`}
       </div>
     </div>
 
     <div class="fld">
       <label for="${hlId}">
         <span>Kapak Üzeri / Görsel Başlığı</span>
-        <span class="hint">Video başlığından bağımsızdır · Boş bırakılırsa yazısız üretilir</span>
+        <span class="hint">Video başlığından bağımsızdır · Boşsa yazısız üretilir</span>
       </label>
-      <input id="${hlId}" type="text" placeholder="Örn: GÖRÜNMEZ SOYGUNCU? veya 2 KEZ SATTI! (opsiyonel)" value="${esc(savedHl)}" oninput="setCoverHeadline('${key}', this.value)">
+      <input id="${hlId}" type="text" placeholder="Örn: GÖRÜNMEZ SOYGUNCU? veya 2 KEZ SATTI!" value="${esc(savedHl)}" oninput="setCoverHeadline('${key}', this.value)">
     </div>
 
     <div class="fld">
-      <label><span>Görsel Sanat Yönetimi</span><span class="hint">Tek tıkla stil tonu</span></label>
+      <label><span>Sanat Yönetimi Stili</span><span class="hint">Tek tıkla estetik ton</span></label>
       <div class="style-pills">
         ${COVER_STYLES.map(s => `<button type="button" class="style-pill ${activeStyle === s.id ? 'on' : ''}" onclick="setCoverStyle('${key}', '${s.id}')">${esc(s.label)}</button>`).join('')}
       </div>
@@ -1097,11 +722,11 @@ function coverWorkbenchHtml(key, heading, defaultPrompt, aspectRatio = '9:16', h
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
           <div class="badge b-ok" style="align-self:flex-start"><span class="dot"></span> Paylaşıma Hazır</div>
-          <div style="font-size:13px;color:var(--ink-2);line-height:1.6">
-            Görsel Google Cloud Storage üzerinde <code class="mono" style="color:var(--ink)">covers/${esc(key)}.png</code> olarak saklanıyor.
+          <div style="font-size:13px;color:var(--ink-mute);line-height:1.6">
+            Görsel Cloud Storage üzerinde <code class="mono" style="color:var(--ink)">covers/${esc(key)}.png</code> olarak saklanıyor.
             ${aspectRatio === '9:16' ? 'Instagram Reels ve video paylaşımında otomatik kapak görseli olarak eklenir.' : 'Kanal profil veya banner alanına doğrudan yükleyebilirsiniz.'}
           </div>
-          <div class="panel-sub">Önizlemeye tıklayarak tam çözünürlükte inceleyebilirsiniz.</div>
+          <div class="panel-sub">Önizlemeye tıklayarak tam boyutta inceleyin.</div>
         </div>
       </div>
     ` : ''}
@@ -1174,7 +799,7 @@ async function load(force) {
       pubByVideo,
       accounts.length,
       Object.keys(savedCovers).length,
-      scheduledPosts.map(p => [p.id, p.status, p.scheduled_at]),
+      scheduledPosts.map(p => [p.id, p.status, p.scheduled_at, p.yt_uploaded]),
     ]);
     if (!force && ns === sig) return;
     sig = ns; videos = data;
@@ -1182,7 +807,7 @@ async function load(force) {
     const ready = videos.filter(v => v.video).length;
     const covCount = Object.keys(savedCovers).length;
     const planCount = scheduledPosts.filter(p => p.status === 'Planlandı').length;
-    const apiTxt = apiHealth?.ok ? ` · API bağlı (${accounts.length} kanal)` : '';
+    const apiTxt = apiHealth?.ok ? ` · ${apiHealth.db.toUpperCase()} (${accounts.length} kanal)` : '';
     document.getElementById('sum').textContent = `${ready}/${videos.length} video · ${covCount} kapak · ${planCount} planlı${apiTxt}`;
     renderAll(force);
   } catch (e) {
@@ -1201,7 +826,7 @@ function renderAll(force) {
       <div class="workspace-videos">
         <aside class="sidebar">
           <div class="sidebar-head">
-            <span>Video Kuyruğu</span>
+            <span>Arşiv · Video Kuyruğu</span>
             <span id="q-count" class="mono"></span>
           </div>
           <div class="search-wrap">
@@ -1225,17 +850,18 @@ function renderList() {
   const filtered = q ? videos.filter(v => (v.title + ' ' + v.slug + ' ' + v.status).toLowerCase().includes(q)) : videos;
   const cnt = document.getElementById('q-count');
   if (cnt) cnt.textContent = `${filtered.length}/${videos.length}`;
-  listEl.innerHTML = filtered.map((v, i) => {
+  listEl.innerHTML = filtered.map(v => {
     const cov = savedCovers[v.slug];
+    const sch = scheduledPosts.find(p => p.video_id === v.slug && p.status === 'Planlandı');
     return `
       <div class="q-item ${v.slug === sel ? 'active' : ''}" onclick="pick('${v.slug}')">
-        <div class="q-thumb">${cov ? `<img src="${esc(cov)}" alt="">` : `#${videos.indexOf(v) + 1}`}</div>
+        <div class="q-thumb">${cov ? `<img src="${esc(cov)}" alt="">` : `${videos.indexOf(v) + 1}`}</div>
         <div class="q-meta">
           <div class="q-title">${esc(v.title)}</div>
           <div class="q-sub">
             <span>${v.video ? fmt(v.duration) : v.status}</span>
             ${v.sizeMB ? `<span>· ${v.sizeMB} MB</span>` : ''}
-            ${cov ? `<span style="color:var(--gold)">· Kapak</span>` : ''}
+            ${sch ? `<span style="color:var(--coral)">· ${sch.yt_uploaded ? 'YT Planlı' : 'Planlı'}</span>` : ''}
           </div>
           ${platformBadgesHtml(v.slug)}
         </div>
@@ -1314,7 +940,7 @@ function renderDetail(full, tabOnly) {
         </div>
         ${v.video ? `
           <div class="monitor-actions">
-            <button class="btn publish" onclick="openPublishModal('${v.slug}')">🚀 YT & IG Yayınla</button>
+            <button class="btn primary" onclick="openPublishModal('${v.slug}')">📅 Yayınla / Planla</button>
             <a class="btn" href="${v.video}" download="${v.fileName}">⬇ MP4 İndir</a>
           </div>
           <div class="monitor-foot">
@@ -1339,7 +965,7 @@ function renderDetail(full, tabOnly) {
           <div class="spec-item"><small>Çözünürlük</small><b>${v.width ? v.width + '×' + v.height : '—'}</b></div>
           <div class="spec-item"><small>Boyut</small><b>${v.sizeMB ? v.sizeMB + ' MB' : '—'}</b></div>
           <div class="spec-item"><small>Senaryo</small><b>${v.words} kelime</b></div>
-          <div class="spec-item"><small>Kapak</small><b style="color:${savedCovers[v.slug] ? 'var(--ok)' : 'var(--ink-3)'}">${savedCovers[v.slug] ? 'Hazır' : 'Yok'}</b></div>
+          <div class="spec-item"><small>Kapak</small><b style="color:${savedCovers[v.slug] ? 'var(--ok)' : 'var(--ink-faint)'}">${savedCovers[v.slug] ? 'Hazır' : 'Yok'}</b></div>
         </div>
 
         <div id="tabbox">${tabsHtml}</div>
@@ -1347,44 +973,19 @@ function renderDetail(full, tabOnly) {
     </div>`;
 }
 
-/* Dedicated Cover & Thumbnail Studio Workspace */
+/* II. Cover Studio Workspace */
 function getStudioItems() {
   const items = [];
   if (kit?.brand_prompts) {
-    items.push({
-      key: 'brand_logo',
-      title: 'AKILALMAZ Profil Logosu',
-      subtitle: 'YouTube & Instagram Avatar',
-      aspect: '1:1',
-      prompt: kit.brand_prompts.logo_flow || '',
-      kind: 'Marka',
-    });
-    items.push({
-      key: 'brand_banner',
-      title: 'AKILALMAZ Kanal Bannerı',
-      subtitle: 'YouTube Kapak Görseli (2560×1440)',
-      aspect: '16:9',
-      prompt: kit.brand_prompts.banner_flow || '',
-      kind: 'Marka',
-    });
+    items.push({ key: 'brand_logo', title: 'AKILALMAZ Profil Logosu', subtitle: 'YouTube & Instagram Avatar', aspect: '1:1', prompt: kit.brand_prompts.logo_flow || '', kind: 'Marka' });
+    items.push({ key: 'brand_banner', title: 'AKILALMAZ Kanal Bannerı', subtitle: 'YouTube Kapak Görseli (2560×1440)', aspect: '16:9', prompt: kit.brand_prompts.banner_flow || '', kind: 'Marka' });
   }
   for (const v of videos) {
-    items.push({
-      key: v.slug,
-      title: v.title,
-      subtitle: 'Shorts & Reels Dikey Kapağı',
-      aspect: '9:16',
-      prompt: v.meta?.flow_prompt || '',
-      kind: 'Shorts',
-    });
+    items.push({ key: v.slug, title: v.title, subtitle: 'Shorts & Reels Dikey Kapağı', aspect: '9:16', prompt: v.meta?.flow_prompt || '', kind: 'Shorts' });
   }
   return items;
 }
-
-function selectStudioItem(key) {
-  studioKey = key;
-  renderCoverStudio(document.getElementById('app'));
-}
+function selectStudioItem(key) { studioKey = key; renderCoverStudio(document.getElementById('app')); }
 
 function renderCoverStudio(el) {
   const items = getStudioItems();
@@ -1397,12 +998,11 @@ function renderCoverStudio(el) {
     <div class="workspace-full">
       <div class="studio-hero">
         <div>
-          <h2>🎨 Kapak & Thumbnail Stüdyosu</h2>
+          <div class="eyebrow">BÖLÜM II · GÖRSEL ATÖLYE</div>
+          <h2>Kapak & <span class="serif">Thumbnail</span> Stüdyosu</h2>
           <p>Tüm Shorts kapaklarını, kanal logosunu ve banner görsellerini Vertex AI ile tek ekrandan üretin. Her görsel için video başlığından bağımsız özel kapak başlığı belirleyebilirsiniz.</p>
         </div>
-        <div class="row">
-          <span class="badge b-gold mono">${readyCount} / ${items.length} Görsel Hazır</span>
-        </div>
+        <span class="badge b-coral mono">${readyCount} / ${items.length} Görsel Hazır</span>
       </div>
 
       <div class="studio-grid">
@@ -1422,7 +1022,7 @@ function renderCoverStudio(el) {
                   <div class="gal-name">${esc(it.title)}</div>
                   <div class="gal-status">
                     <span>${esc(it.kind)}</span>
-                    <span style="color:${url ? 'var(--ok)' : 'var(--ink-3)'}">${url ? '● Hazır' : '○ Boş'}</span>
+                    <span style="color:${url ? 'var(--ok)' : 'var(--ink-faint)'}">${url ? '● Hazır' : '○ Boş'}</span>
                   </div>
                 </div>
               </div>`;
@@ -1460,7 +1060,7 @@ function openPublishModal(slug) {
   const defaultTrLocal = nextSlot?.scheduled_at_tr ? nextSlot.scheduled_at_tr.slice(0, 16) : '';
 
   const coverBannerHtml = coverUrl ? `
-    <div class="name-row" style="margin-bottom:14px;border-color:rgba(48,164,108,0.4)">
+    <div class="name-row" style="margin-bottom:14px;border-color:var(--ok)">
       <div style="display:flex;align-items:center;gap:12px">
         <img src="${esc(coverUrl)}" alt="" style="width:36px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--line)">
         <div>
@@ -1472,9 +1072,9 @@ function openPublishModal(slug) {
     </div>` : `<div class="panel-sub" style="margin-bottom:12px">İpucu: <b>Kapak & Thumbnail Üret</b> sekmesinden görsel üretirseniz burada otomatik eklenir.</div>`;
 
   const chHtml = !apiUrl
-    ? `<div class="block" style="border-color:rgba(229,153,52,0.4)"><b>Cloud Run API URL tanımlı değil</b><div class="panel-sub" style="margin-top:4px">Önce Ayarlar sekmesinden Cloud Run URL ve API anahtarınızı girin.</div><div class="row" style="margin-top:10px"><button class="btn primary sm" onclick="closeModal();setView('settings')">Ayarlara Git</button></div></div>`
+    ? `<div class="block" style="border-color:var(--warn)"><b>Cloud Run API URL tanımlı değil</b><div class="panel-sub" style="margin-top:4px">Önce Ayarlar sekmesinden Cloud Run URL ve API anahtarınızı girin.</div><div class="row" style="margin-top:10px"><button class="btn primary sm" onclick="closeModal();setView('settings')">Ayarlara Git</button></div></div>`
     : accounts.length === 0
-      ? `<div class="block" style="border-color:rgba(229,153,52,0.4)"><b>Bağlı kanal bulunamadı</b><div class="panel-sub" style="margin-top:4px">Planlama yapabilirsiniz; yayın saati gelmeden Ayarlar'dan YouTube/IG bağlamanız yeterlidir.</div><div class="row" style="margin-top:10px"><button class="btn primary sm" onclick="closeModal();setView('settings')">Kanal Bağla</button></div></div>`
+      ? `<div class="block" style="border-color:var(--warn)"><b>Bağlı kanal bulunamadı</b><div class="panel-sub" style="margin-top:4px">Planlama yapabilirsiniz; yayın saati gelmeden Ayarlar'dan YouTube/IG bağlamanız yeterlidir.</div><div class="row" style="margin-top:10px"><button class="btn primary sm" onclick="closeModal();setView('settings')">Kanal Bağla</button></div></div>`
       : `<div class="fld"><label>Hedef Kanallar</label>${accounts.map(a =>
           `<label class="name-row" style="cursor:pointer"><span><input type="checkbox" name="acc_id" value="${a.id}" checked> <b>${a.platform==='YT'?'YouTube':'Instagram'}</b> · ${esc(a.account_name)}</span><span class="badge b-ok">Bağlı</span></label>`
         ).join('')}</div>`;
@@ -1484,7 +1084,7 @@ function openPublishModal(slug) {
       <div class="modal">
         <div class="panel-head" style="margin-bottom:14px">
           <div>
-            <h3 style="margin:0;font-size:17px">YT & IG Yayın & Planlama</h3>
+            <h3 style="margin:0;font-size:18px;font-weight:800">YT & IG <span class="serif">Yayın & Planlama</span></h3>
             <div class="panel-sub">${esc(v.title)}</div>
           </div>
           <button class="btn ghost icon-btn" onclick="closeModal()" aria-label="Kapat">✕</button>
@@ -1493,15 +1093,16 @@ function openPublishModal(slug) {
           <button type="button" id="pm_now" class="style-pill" onclick="togglePubMode('now')">🚀 Şimdi Yayınla</button>
           <button type="button" id="pm_sch" class="style-pill on" onclick="togglePubMode('schedule')">📅 Planla (06:01–06:07 TR)</button>
         </div>
-        <div id="p_sched_box" class="block" style="margin-bottom:14px;border-color:rgba(242,184,48,0.35)">
-          <div class="fld" style="margin-bottom:6px">
+        <div id="p_sched_box" class="block" style="margin-bottom:14px;border-color:var(--coral)">
+          <div class="fld" style="margin-bottom:8px">
             <label for="p_dt">
               <span>Yayın Tarihi & Saati (Türkiye Saati · UTC+3)</span>
               <span class="hint">${esc(nextSlot?.label_tr || 'Sıradaki haftalık slot')}</span>
             </label>
             <input id="p_dt" type="datetime-local" value="${esc(defaultTrLocal)}">
           </div>
-          <label class="tg" style="margin-top:6px"><input type="checkbox" id="p_auto_slot" checked onchange="document.getElementById('p_dt').disabled=this.checked"> Otomatik haftalık kuralı kullan (Pzt 06:01 → Paz 06:07)</label>
+          <label class="tg" style="margin-top:4px"><input type="checkbox" id="p_auto_slot" checked onchange="document.getElementById('p_dt').disabled=this.checked"> Otomatik haftalık kuralı kullan (Pzt 06:01 → Paz 06:07)</label>
+          <label class="tg" style="margin-top:6px"><input type="checkbox" id="p_yt_sync" checked> YouTube Studio'ya hemen <b>"Planlandı"</b> olarak yükle (<code class="mono">publishAt</code>)</label>
         </div>
         ${chHtml}
         ${coverBannerHtml}
@@ -1543,8 +1144,10 @@ async function submitPublish(slug, videoUrl) {
   try {
     if (mode === 'schedule') {
       const autoSlot = document.getElementById('p_auto_slot')?.checked;
+      const syncYt = document.getElementById('p_yt_sync')?.checked ?? true;
       const dtVal = document.getElementById('p_dt')?.value;
       payload.auto_next_slot = !!autoSlot;
+      payload.sync_youtube_now = !!syncYt;
       if (!autoSlot && dtVal) payload.scheduled_at = dtVal + ':00+03:00';
       const res = await apiFetch('/api/schedule', {
         method: 'POST',
@@ -1552,7 +1155,7 @@ async function submitPublish(slug, videoUrl) {
         body: JSON.stringify(payload),
       });
       closeModal();
-      toast(`Planlandı: ${res.post?.label_tr || ''}`, 'ok');
+      toast(`Planlandı (${res.post?.label_tr || ''}) · YouTube Studio aktarımı başlatıldı`, 'ok');
       await load(true);
     } else {
       await apiFetch('/api/publish', {
@@ -1570,7 +1173,7 @@ async function submitPublish(slug, videoUrl) {
   }
 }
 
-/* Schedule & Autonomous Production Workspace */
+/* III. Schedule & YouTube Native PublishAt Workspace */
 async function bulkScheduleAll() {
   const readyVideos = videos.filter(v => v.video);
   if (!readyVideos.length) { toast('Planlanacak hazır video yok.', 'err'); return; }
@@ -1587,19 +1190,32 @@ async function bulkScheduleAll() {
     const res = await apiFetch('/api/schedule/bulk-daily', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({ items, sync_youtube_now: true }),
     });
-    toast(`${res.created_count} video haftalık 06:01–06:07 TR kuyruğuna eklendi!`, 'ok');
+    toast(`${res.created_count} video planlandı · ${res.yt_sync_queued || 0} video YouTube Studio'ya aktarılıyor!`, 'ok');
     await load(true);
   } catch (e) {
     toast('Toplu planlama hatası: ' + e.message, 'err');
   }
 }
 
+async function syncPostToYouTube(id) {
+  try {
+    const res = await apiFetch(`/api/schedule/${id}/sync-youtube`, { method: 'POST' });
+    toast(res.already_uploaded ? 'Bu video zaten YouTube Studio\'da planlı.' : 'YouTube Studio\'ya "Planlandı" olarak yükleniyor…', 'ok');
+    await load(true);
+  } catch (e) {
+    toast('YouTube aktarım hatası: ' + e.message, 'err');
+  }
+}
+
 async function runSchedulerTick() {
   try {
     const res = await apiFetch('/api/scheduler/tick', { method: 'POST' });
-    toast(res.due_count ? `${res.due_count} video yayına alındı!` : 'Saati gelen bekleyen video yok.', 'info');
+    const parts = [];
+    if (res.due_count) parts.push(`${res.due_count} yayın başlatıldı`);
+    if (res.yt_presync_ids?.length) parts.push(`${res.yt_presync_ids.length} video YouTube Studio'ya planlandı`);
+    toast(parts.length ? parts.join(' · ') : 'Tüm planlar güncel, bekleyen işlem yok.', 'info');
     await load(true);
   } catch (e) {
     toast('Kontrol hatası: ' + e.message, 'err');
@@ -1609,10 +1225,10 @@ async function runSchedulerTick() {
 async function cancelSchedule(id) {
   try {
     await apiFetch('/api/schedule/' + id, { method: 'DELETE' });
-    toast('Planlanan yayın iptal edildi.', 'info');
+    toast('Planlanan yayın silindi.', 'info');
     await load(true);
   } catch (e) {
-    toast('İptal hatası: ' + e.message, 'err');
+    toast('Silme hatası: ' + e.message, 'err');
   }
 }
 
@@ -1629,46 +1245,54 @@ async function runScheduleNow(id) {
 function renderSchedule(el) {
   const { apiUrl } = getCfg();
   const planned = scheduledPosts.filter(p => p.status === 'Planlandı').length;
+  const ytSynced = scheduledPosts.filter(p => p.yt_uploaded).length;
+
   el.innerHTML = `
     <div class="workspace-full">
       <div class="studio-hero">
         <div>
-          <h2>📅 Otomatik Yayın Planı & Tam Otonom Hat</h2>
-          <p>Haftalık kural: <b style="color:var(--gold)">Pzt 06:01 → Sal 06:02 → Çar 06:03 → Per 06:04 → Cum 06:05 → Cmt 06:06 → Paz 06:07 (TR)</b>, her hafta başa döner. Her gece <b>02:00 TR</b>'de yeni Shorts otomatik üretilip sıradaki güne eklenir.</p>
+          <div class="eyebrow">BÖLÜM III · OTONOM YAYIN TAKVİMİ</div>
+          <h2>Yayın Planı & <span class="serif">YouTube Studio</span> Senkronu</h2>
+          <p>Haftalık kural: <b>Pzt 06:01 → Sal 06:02 → Çar 06:03 → Per 06:04 → Cum 06:05 → Cmt 06:06 → Paz 06:07 (TR)</b>. Planlanan videolar güvenli günlük kota dahilinde hemen <b>YouTube Studio'ya "Planlandı"</b> olarak yüklenir.</p>
         </div>
         <div class="row">
           <button class="btn primary" ${!apiUrl?'disabled':''} onclick="bulkScheduleAll()">⚡ Hazır Videoları Günlük Sıraya Diz</button>
-          <button class="btn" ${!apiUrl?'disabled':''} onclick="runSchedulerTick()">▶ Şimdi Kontrol Et</button>
+          <button class="btn" ${!apiUrl?'disabled':''} onclick="runSchedulerTick()">▶ Şimdi Senkronize Et</button>
         </div>
       </div>
 
-      <div class="grid2">
+      <div class="grid3">
         <div class="panel">
-          <div class="panel-sub">SIRADAKİ BOŞ HAFTALIK SLOT</div>
-          <div style="font-size:20px;font-weight:800;margin-top:4px;color:var(--gold)" class="mono">${esc(nextSlot?.label_tr || 'API bağlantısı gerekli')}</div>
-          <div class="panel-sub" style="margin-top:6px">GitHub Actions her gün 06:01–06:10 TR arasında ve gün içi her 15 dk'da otomatik tetikler.</div>
+          <div class="block-label">Sıradaki Boş Haftalık Slot</div>
+          <div style="font-size:19px;font-weight:800;margin-top:6px;color:var(--coral)" class="mono">${esc(nextSlot?.label_tr || 'API bağlantısı gerekli')}</div>
+          <div class="panel-sub" style="margin-top:6px">Her Pazartesi 06:01 TR'ye otomatik sıfırlanır.</div>
         </div>
         <div class="panel">
-          <div class="panel-sub">TAM OTONOM GÜNLÜK ÜRETİM</div>
-          <div style="font-size:20px;font-weight:800;margin-top:4px">Her Gece <span style="color:var(--ok)" class="mono">02:00 TR</span></div>
-          <div class="panel-sub" style="margin-top:6px">Gemini senaryo → ERKAN seslendirme → Vertex AI 9:16 kapak → 1080×1920 MP4 → Otomatik planlama.</div>
+          <div class="block-label">YouTube Studio Ön-Yükleme Kotası</div>
+          <div style="font-size:19px;font-weight:800;margin-top:6px" class="mono">${ytQuotaToday.used} / ${ytQuotaToday.limit} <span style="font-size:12px;color:var(--ink-mute);font-weight:500">bugün</span></div>
+          <div class="panel-sub" style="margin-top:6px">${ytSynced} video YouTube Studio'da "Planlandı" olarak hazır; kalanlar ertesi gün otomatik aktarılır.</div>
+        </div>
+        <div class="panel">
+          <div class="block-label">Tam Otonom Günlük Üretim</div>
+          <div style="font-size:19px;font-weight:800;margin-top:6px">Her Gece <span style="color:var(--ok)" class="mono">02:00 TR</span></div>
+          <div class="panel-sub" style="margin-top:6px">Gemini senaryo → ERKAN ses → Vertex kapak → 1080×1920 MP4 → YouTube Planla.</div>
         </div>
       </div>
 
       <div class="panel">
         <div class="panel-head">
           <div>
-            <h3 style="margin:0;font-size:16px">Yayın Kuyruğu (${scheduledPosts.length} kayıt · ${planned} bekliyor)</h3>
-            <div class="panel-sub">Neon PostgreSQL üzerinde 7/24 kalıcı olarak saklanır.</div>
+            <h3 style="margin:0;font-size:17px;font-weight:800">Yayın Kuyruğu (${scheduledPosts.length} kayıt · ${planned} bekliyor)</h3>
+            <div class="panel-sub">Neon PostgreSQL üzerinde 7/24 kalıcıdır · YouTube'a planlanan videolar saatinde çift yüklenmez.</div>
           </div>
         </div>
         ${scheduledPosts.length ? `
           <table class="sch">
-            <thead><tr><th>Yayın Zamanı (TR)</th><th>Video</th><th>Durum</th><th>İşlem</th></tr></thead>
+            <thead><tr><th>Yayın Zamanı (TR)</th><th>Video</th><th>YouTube Studio</th><th>Durum</th><th>İşlem</th></tr></thead>
             <tbody>
               ${scheduledPosts.map(p => `
                 <tr>
-                  <td class="mono" style="white-space:nowrap;color:var(--gold);font-weight:600">${esc(p.label_tr || p.scheduled_at)}</td>
+                  <td class="mono" style="white-space:nowrap;color:var(--coral);font-weight:600">${esc(p.label_tr || p.scheduled_at)}</td>
                   <td>
                     <div style="display:flex;align-items:center;gap:10px">
                       ${p.cover_url ? `<img src="${esc(p.cover_url)}" alt="" style="width:28px;height:48px;object-fit:cover;border-radius:4px;border:1px solid var(--line)">` : ''}
@@ -1679,9 +1303,15 @@ function renderSchedule(el) {
                       </div>
                     </div>
                   </td>
+                  <td>
+                    ${p.yt_uploaded
+                      ? `<a class="badge b-ok" href="${esc(p.yt_video_url || '#')}" target="_blank" rel="noreferrer"><span class="dot"></span>YT Planlandı ↗</a>`
+                      : `<span class="badge b-mut">YT Kuyrukta</span>`}
+                  </td>
                   <td><span class="badge ${badge(p.status)}"><span class="dot"></span>${esc(p.status)}</span></td>
                   <td style="white-space:nowrap">
                     <div class="row">
+                      ${!p.yt_uploaded && p.status === 'Planlandı' ? `<button class="btn sm ink-btn" onclick="syncPostToYouTube(${p.id})">YT'ye Planla</button>` : ''}
                       ${p.status === 'Planlandı' || p.status === 'Hata' ? `<button class="btn sm" onclick="runScheduleNow(${p.id})">Şimdi Yayınla</button>` : ''}
                       <button class="btn sm danger" onclick="cancelSchedule(${p.id})">Sil</button>
                     </div>
@@ -1689,36 +1319,37 @@ function renderSchedule(el) {
                 </tr>`).join('')}
             </tbody>
           </table>
-        ` : `<div class="ph">Henüz planlanmış yayın yok. Yukarıdaki <b>⚡ Hazır Videoları Günlük Sıraya Diz</b> butonuna basarak 8 hazır videoyu tek tıkla 06:01–06:07 TR kuyruğuna alabilirsiniz.</div>`}
+        ` : `<div class="ph">Henüz planlanmış yayın yok. Yukarıdaki <b>⚡ Hazır Videoları Günlük Sıraya Diz</b> butonuna basarak 8 hazır videoyu tek tıkla 06:01–06:07 TR kuyruğuna ve YouTube Studio'ya aktarabilirsiniz.</div>`}
       </div>
     </div>`;
 }
 
-/* Channel Kit Workspace */
+/* IV. Channel Kit Workspace */
 function renderChannel(el) {
   if (!kit) { el.innerHTML = '<div class="workspace-full panel ph">Kanal kurulum kiti yükleniyor…</div>'; return; }
   const namesHtml = kit.names.map((n, i) => {
     const id = 'nm_' + i; copyStore[id] = `${n.name} (${n.handle})`;
-    return `<div class="name-row"><div><b>${esc(n.name)}</b> <span style="color:var(--gold)" class="mono">${esc(n.handle)}</span><div class="panel-sub">${esc(n.note)}</div></div><button class="btn sm copy-btn" onclick="copyText('${id}', this)">Kopyala</button></div>`;
+    return `<div class="name-row"><div><b>${esc(n.name)}</b> <span style="color:var(--coral)" class="mono">${esc(n.handle)}</span><div class="panel-sub">${esc(n.note)}</div></div><button class="btn sm copy-btn" onclick="copyText('${id}', this)">Kopyala</button></div>`;
   }).join('');
 
   el.innerHTML = `
     <div class="workspace-full">
       <div class="studio-hero">
         <div>
-          <h2>🚀 Kanal Kurulum Kiti</h2>
-          <p>AKILALMAZ YouTube Shorts ve Instagram Reels hesapları için marka kimliği, açıklama metinleri ve yayın takvimi.</p>
+          <div class="eyebrow">BÖLÜM IV · MARKA KİMLİĞİ</div>
+          <h2>Kanal <span class="serif">Kurulum</span> Kiti</h2>
+          <p>AKILALMAZ YouTube Shorts ve Instagram Reels hesapları için marka kimliği, açıklama metinleri ve ilk hafta yayın stratejisi.</p>
         </div>
         <button class="btn primary" onclick="setView('covers')">🎨 Kapak Stüdyosuna Git</button>
       </div>
 
       <div class="grid2">
         <div class="panel">
-          <h3 style="margin:0 0 12px;font-size:15px">Kanal Adı & Handle Önerileri</h3>
+          <h3 style="margin:0 0 12px;font-size:16px">Kanal Adı & Handle Önerileri</h3>
           ${namesHtml}
         </div>
         <div class="panel">
-          <h3 style="margin:0 0 12px;font-size:15px">Marka Görselleri (Hızlı Üretim)</h3>
+          <h3 style="margin:0 0 12px;font-size:16px">Marka Görselleri (Hızlı Üretim)</h3>
           <div style="display:flex;flex-direction:column;gap:18px">
             ${coverWorkbenchHtml('brand_logo', 'Profil Logosu (Avatar)', kit.brand_prompts?.logo_flow, '1:1')}
             <hr style="border:none;border-top:1px solid var(--line);margin:0">
@@ -1729,14 +1360,14 @@ function renderChannel(el) {
 
       <div class="grid2">
         <div class="panel">
-          <h3 style="margin:0 0 12px;font-size:15px">YouTube Shorts Kurulumu</h3>
+          <h3 style="margin:0 0 12px;font-size:16px">YouTube Shorts Kurulumu</h3>
           ${copyBlock('kit_yt_about', 'Hakkında (About) Açıklaması', kit.youtube.about)}
           ${copyBlock('kit_yt_kw', 'Kanal Anahtar Kelimeleri', kit.youtube.keywords)}
           <div style="margin-top:14px;font-size:12px;font-weight:700;color:var(--ok)">Kritik YouTube Ayarları</div>
           <ul class="chk">${kit.youtube.settings.map(s => `<li>${esc(s)}</li>`).join('')}</ul>
         </div>
         <div class="panel">
-          <h3 style="margin:0 0 12px;font-size:15px">Instagram Reels Kurulumu</h3>
+          <h3 style="margin:0 0 12px;font-size:16px">Instagram Reels Kurulumu</h3>
           ${copyBlock('kit_ig_1', 'Biyografi Alternatif 1 (Net Niş)', kit.instagram.bio_1)}
           ${copyBlock('kit_ig_2', 'Biyografi Alternatif 2 (YouTube Köprülü)', kit.instagram.bio_2)}
           ${copyBlock('kit_ig_3', 'Biyografi Alternatif 3 (Hikâye Kancalı)', kit.instagram.bio_3)}
@@ -1746,20 +1377,20 @@ function renderChannel(el) {
       </div>
 
       <div class="panel">
-        <h3 style="margin:0 0 12px;font-size:15px">Yayın & Algoritma Takvimi</h3>
+        <h3 style="margin:0 0 12px;font-size:16px">Yayın & Algoritma Takvimi</h3>
         <table class="sch">
           <thead><tr><th>Gün</th><th>Video</th><th>Saat</th><th>Algoritma İpucu</th></tr></thead>
-          <tbody>${kit.schedule.map(r => `<tr><td><b>${esc(r.day)}</b></td><td>${esc(r.video)}</td><td class="mono">${esc(r.time)}</td><td style="color:var(--ink-2)">${esc(r.tip)}</td></tr>`).join('')}</tbody>
+          <tbody>${kit.schedule.map(r => `<tr><td><b>${esc(r.day)}</b></td><td>${esc(r.video)}</td><td class="mono">${esc(r.time)}</td><td style="color:var(--ink-mute)">${esc(r.tip)}</td></tr>`).join('')}</tbody>
         </table>
       </div>
     </div>`;
 }
 
-/* Settings Workspace */
+/* V. Settings Workspace */
 function renderSettings(el) {
   const { apiUrl, apiKey } = getCfg();
   const stBadge = apiHealth?.ok
-    ? `<span class="badge b-ok"><span class="dot"></span> Bağlı · ${esc(apiHealth.gcs_bucket)}</span>`
+    ? `<span class="badge b-ok"><span class="dot"></span> Bağlı · ${esc(apiHealth.db).toUpperCase()} · ${esc(apiHealth.gcs_bucket)}</span>`
     : apiUrl
       ? `<span class="badge b-err"><span class="dot"></span> Bağlantı Hatası: ${esc(apiHealth?.error || 'Ulaşılamadı')}</span>`
       : `<span class="badge b-mut">Yapılandırılmadı</span>`;
@@ -1769,15 +1400,16 @@ function renderSettings(el) {
     <div class="workspace-full">
       <div class="studio-hero">
         <div>
-          <h2>⚙️ Stüdyo Ayarları</h2>
-          <p>Cloud Run API bağlantısını, Vertex AI görsel servisini ve çoklu YouTube / Instagram OAuth 2.0 hesaplarınızı yönetin.</p>
+          <div class="eyebrow">BÖLÜM V · SİSTEM & OAUTH</div>
+          <h2>Stüdyo <span class="serif">Ayarları</span></h2>
+          <p>Cloud Run API bağlantısını, Neon PostgreSQL durumunu ve çoklu YouTube / Instagram OAuth 2.0 hesaplarınızı yönetin.</p>
         </div>
         ${stBadge}
       </div>
 
       <div class="grid2">
         <div class="panel">
-          <h3 style="margin:0 0 14px;font-size:15px">Cloud Run Backend Bağlantısı</h3>
+          <h3 style="margin:0 0 14px;font-size:16px">Cloud Run Backend Bağlantısı</h3>
           <div class="fld"><label for="cfg_url">Cloud Run API URL</label><input id="cfg_url" type="text" placeholder="https://likya-crosspost-api-xxxx-ew.a.run.app" value="${esc(apiUrl)}"></div>
           <div class="fld"><label for="cfg_key">X-API-Key (API_SECRET_KEY)</label><input id="cfg_key" type="password" placeholder="••••••••" value="${esc(apiKey)}"></div>
           <div class="row" style="margin-top:14px">
@@ -1787,9 +1419,9 @@ function renderSettings(el) {
         </div>
 
         <div class="panel">
-          <h3 style="margin:0 0 14px;font-size:15px">OAuth 2.0 Bağlı Kanallar (${accounts.length})</h3>
+          <h3 style="margin:0 0 14px;font-size:16px">OAuth 2.0 Bağlı Kanallar (${accounts.length})</h3>
           <div class="row" style="margin-bottom:16px">
-            <a class="btn publish ${!apiUrl?'disabled':''}" href="${apiUrl ? `${apiUrl}/api/oauth/youtube/start?redirect_to=${retUrl}` : '#'}">YouTube Kanalı Bağla</a>
+            <a class="btn ink-btn ${!apiUrl?'disabled':''}" href="${apiUrl ? `${apiUrl}/api/oauth/youtube/start?redirect_to=${retUrl}` : '#'}">YouTube Kanalı Bağla</a>
             <a class="btn ${!apiUrl?'disabled':''}" href="${apiUrl ? `${apiUrl}/api/oauth/instagram/start?redirect_to=${retUrl}` : '#'}">Instagram Hesabı Bağla</a>
           </div>
           ${accounts.length ? accounts.map(a => `
@@ -1818,10 +1450,11 @@ async function delAccount(id) {
 
 if (location.hash.startsWith('#settings')) view = 'settings';
 else if (location.hash.startsWith('#covers')) view = 'covers';
+else if (location.hash.startsWith('#schedule')) view = 'schedule';
 load(true);
 setInterval(() => {
   const activePoll = Object.values(pubByVideo).flat().some(l => l.status === 'Bekliyor' || l.status === 'Yükleniyor');
-  if (activePoll || (document.getElementById('auto').checked && view === 'videos')) load(false);
+  if (activePoll || (document.getElementById('auto').checked && (view === 'videos' || view === 'schedule'))) load(false);
 }, 4000);
 </script>
 </body>

@@ -39,10 +39,15 @@ CREATE TABLE IF NOT EXISTS scheduled_posts (
     account_ids     TEXT NOT NULL DEFAULT '[]',
     scheduled_at    TIMESTAMPTZ NOT NULL,
     status          VARCHAR(24) NOT NULL DEFAULT 'Planlandı',
+    yt_uploaded     BOOLEAN NOT NULL DEFAULT FALSE,
+    yt_video_url    TEXT,
     error_message   TEXT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS yt_uploaded BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS yt_video_url TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_scheduled_posts_due ON scheduled_posts (status, scheduled_at ASC);
 

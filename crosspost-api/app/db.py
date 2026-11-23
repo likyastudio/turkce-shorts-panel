@@ -95,6 +95,8 @@ def init_db() -> None:
                     account_ids     TEXT NOT NULL DEFAULT '[]',
                     scheduled_at    TEXT NOT NULL,
                     status          TEXT NOT NULL DEFAULT 'Planlandı',
+                    yt_uploaded     INTEGER NOT NULL DEFAULT 0,
+                    yt_video_url    TEXT,
                     error_message   TEXT,
                     created_at      TEXT NOT NULL,
                     updated_at      TEXT NOT NULL
@@ -252,6 +254,12 @@ def list_publish_logs(video_id: Optional[str] = None) -> list[dict[str, Any]]:
         return _rows(cur, is_pg)
 
 
+_SCHED_COLS = (
+    "id, video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, "
+    "account_ids, scheduled_at, status, yt_uploaded, yt_video_url, error_message, created_at, updated_at"
+)
+
+
 def _norm_sched_row(r: dict[str, Any]) -> dict[str, Any]:
     import json as _json
     for k in ("scheduled_at", "created_at", "updated_at"):
@@ -262,6 +270,7 @@ def _norm_sched_row(r: dict[str, Any]) -> dict[str, Any]:
             r["account_ids"] = _json.loads(r["account_ids"])
         except Exception:
             r["account_ids"] = []
+    r["yt_uploaded"] = bool(r.get("yt_uploaded"))
     return r
 
 
@@ -284,43 +293,36 @@ def create_scheduled_post(
         if is_pg:
             cur.execute(
                 "INSERT INTO scheduled_posts "
-                "(video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, account_ids, scheduled_at, status, created_at, updated_at) "
-                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,'Planlandı',%s,%s) "
-                "RETURNING id, video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, account_ids, scheduled_at, status, error_message, created_at, updated_at",
+                "(video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, account_ids, scheduled_at, status, yt_uploaded, created_at, updated_at) "
+                f"VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,'Planlandı',FALSE,%s,%s) RETURNING {_SCHED_COLS}",
                 (video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, acc_json, scheduled_at_iso, now, now),
             )
             return _norm_sched_row(_rows(cur, True)[0])
         cur.execute(
             "INSERT INTO scheduled_posts "
-            "(video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, account_ids, scheduled_at, status, created_at, updated_at) "
-            "VALUES (?,?,?,?,?,?,?,?,?,'Planlandı',?,?)",
+            "(video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, account_ids, scheduled_at, status, yt_uploaded, created_at, updated_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?,'Planlandı',0,?,?)",
             (video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, acc_json, scheduled_at_iso, now, now),
         )
         rid = int(cur.lastrowid)
-        cur.execute(
-            "SELECT id, video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, account_ids, scheduled_at, status, error_message, created_at, updated_at "
-            "FROM scheduled_posts WHERE id=?",
-            (rid,),
-        )
+        cur.execute(f"SELECT {_SCHED_COLS} FROM scheduled_posts WHERE id=?", (rid,))
         return _norm_sched_row(_rows(cur, False)[0])
 
 
 def list_scheduled_posts(status: Optional[str] = None) -> list[dict[str, Any]]:
     with get_conn() as (conn, p, is_pg):
         cur = conn.cursor()
-        cols = "id, video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, account_ids, scheduled_at, status, error_message, created_at, updated_at"
         if status:
-            cur.execute(f"SELECT {cols} FROM scheduled_posts WHERE status={p} ORDER BY scheduled_at ASC LIMIT 200", (status,))
+            cur.execute(f"SELECT {_SCHED_COLS} FROM scheduled_posts WHERE status={p} ORDER BY scheduled_at ASC LIMIT 200", (status,))
         else:
-            cur.execute(f"SELECT {cols} FROM scheduled_posts ORDER BY scheduled_at ASC LIMIT 200")
+            cur.execute(f"SELECT {_SCHED_COLS} FROM scheduled_posts ORDER BY scheduled_at ASC LIMIT 200")
         return [_norm_sched_row(r) for r in _rows(cur, is_pg)]
 
 
 def get_scheduled_post(post_id: int) -> Optional[dict[str, Any]]:
     with get_conn() as (conn, p, is_pg):
         cur = conn.cursor()
-        cols = "id, video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, account_ids, scheduled_at, status, error_message, created_at, updated_at"
-        cur.execute(f"SELECT {cols} FROM scheduled_posts WHERE id={p}", (post_id,))
+        cur.execute(f"SELECT {_SCHED_COLS} FROM scheduled_posts WHERE id={p}", (post_id,))
         rows = _rows(cur, is_pg)
         return _norm_sched_row(rows[0]) if rows else None
 
@@ -329,12 +331,51 @@ def get_due_scheduled_posts(now_iso: Optional[str] = None) -> list[dict[str, Any
     cutoff = now_iso or _now()
     with get_conn() as (conn, p, is_pg):
         cur = conn.cursor()
-        cols = "id, video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, account_ids, scheduled_at, status, error_message, created_at, updated_at"
         cur.execute(
-            f"SELECT {cols} FROM scheduled_posts WHERE status='Planlandı' AND scheduled_at <= {p} ORDER BY scheduled_at ASC LIMIT 20",
+            f"SELECT {_SCHED_COLS} FROM scheduled_posts WHERE status='Planlandı' AND scheduled_at <= {p} ORDER BY scheduled_at ASC LIMIT 20",
             (cutoff,),
         )
         return [_norm_sched_row(r) for r in _rows(cur, is_pg)]
+
+
+def get_pending_yt_presync_posts(limit: int = 5) -> list[dict[str, Any]]:
+    """Returns upcoming scheduled posts not yet pre-uploaded to YouTube Studio."""
+    now = _now()
+    with get_conn() as (conn, p, is_pg):
+        cur = conn.cursor()
+        flag = "FALSE" if is_pg else "0"
+        cur.execute(
+            f"SELECT {_SCHED_COLS} FROM scheduled_posts "
+            f"WHERE status='Planlandı' AND yt_uploaded={flag} AND scheduled_at > {p} "
+            f"ORDER BY scheduled_at ASC LIMIT {int(limit)}",
+            (now,),
+        )
+        return [_norm_sched_row(r) for r in _rows(cur, is_pg)]
+
+
+def count_yt_uploads_today() -> int:
+    """Counts YouTube uploads/pre-uploads in the last 24 hours to stay safely within YT Data API free quota."""
+    from datetime import timedelta
+    since = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+    with get_conn() as (conn, p, _is_pg):
+        cur = conn.cursor()
+        cur.execute(
+            f"SELECT COUNT(*) FROM publish_logs WHERE platform='YT' AND status IN ('Yayında','YT Planlandı') AND created_at >= {p}",
+            (since,),
+        )
+        row = cur.fetchone()
+        return int(row[0]) if row else 0
+
+
+def mark_scheduled_yt_uploaded(post_id: int, yt_video_url: str, error_message: Optional[str] = None) -> None:
+    now = _now()
+    with get_conn() as (conn, p, is_pg):
+        cur = conn.cursor()
+        flag = True if is_pg else 1
+        cur.execute(
+            f"UPDATE scheduled_posts SET yt_uploaded={p}, yt_video_url={p}, error_message={p}, updated_at={p} WHERE id={p}",
+            (flag, yt_video_url, error_message, now, post_id),
+        )
 
 
 def update_scheduled_post(post_id: int, status: str, error_message: Optional[str] = None) -> None:

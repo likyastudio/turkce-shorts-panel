@@ -1,16 +1,5 @@
 [
  {
-  "slug": "crosspost-api",
-  "title": "crosspost-api",
-  "status": "Senaryo Hazır",
-  "script": "",
-  "meta": null,
-  "words": 0,
-  "frames": 0,
-  "voice": null,
-  "qa": null
- },
- {
   "slug": "v1_limon_soyguncusu",
   "title": "Limon Suyu Banka Soyguncusu",
   "status": "Hazır",

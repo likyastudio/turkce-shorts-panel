@@ -392,9 +392,49 @@
     font-family: "JetBrains Mono", monospace; font-size: 10.5px; font-weight: 600;
     padding: 2px 7px; border-radius: 5px;
   }
+  .gal-brand {
+    position: absolute; top: 8px; left: 8px;
+    background: rgba(21, 20, 15, 0.82); color: #f7f1de;
+    font-size: 10.5px; font-weight: 600;
+    padding: 2px 7px; border-radius: 5px;
+    max-width: calc(100% - 62px);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   .gal-info { padding: 10px 12px; border-top: 1px solid var(--line); }
   .gal-name { font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .gal-status { margin-top: 4px; display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--ink-faint); }
+  .gal-status { margin-top: 4px; display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 11px; color: var(--ink-faint); }
+
+  .brand-hint-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    padding: 10px 14px; margin-bottom: 16px;
+    background: var(--paper-warm); border: 1px solid var(--line); border-radius: var(--radius-md);
+    font-size: 12.5px; color: var(--ink-soft);
+  }
+
+  /* Schedule Queue Cards */
+  .sched-list { display: flex; flex-direction: column; gap: 12px; }
+  .sched-card {
+    display: grid; grid-template-columns: 56px 1fr auto; gap: 16px; align-items: center;
+    padding: 14px 16px;
+    background: var(--paper-warm); border: 1px solid var(--line); border-radius: var(--radius-md);
+    transition: border-color 150ms var(--ease);
+  }
+  .sched-card:hover { border-color: var(--line-strong); }
+  .sched-thumb {
+    width: 56px; height: 98px; border-radius: 7px; overflow: hidden;
+    background: var(--paper-dark); border: 1px solid var(--line-strong);
+    display: grid; place-items: center; cursor: pointer; flex-shrink: 0;
+  }
+  .sched-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .sched-thumb.empty { border-style: dashed; color: var(--ink-faint); font-size: 10px; font-weight: 600; text-align: center; padding: 4px; line-height: 1.3; }
+  .sched-body { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+  .sched-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+  .sched-title { font-size: 15px; font-weight: 700; color: var(--ink); line-height: 1.3; letter-spacing: -0.01em; }
+  .sched-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 7px; }
+  @media (max-width: 860px) {
+    .sched-card { grid-template-columns: 52px 1fr; }
+    .sched-actions { grid-column: 1 / -1; justify-content: flex-start; }
+  }
 
   /* Cover Workbench */
   .cover-bench { display: flex; flex-direction: column; gap: 14px; }
@@ -530,13 +570,15 @@
 <script>
 let videos = [], kit = null, sel = null, tab = 'social', view = 'videos', sig = '';
 let accounts = [], pubByVideo = {}, apiHealth = null;
-let savedCovers = {}, generatingCovers = {};
+let savedCovers = {}, generatingCovers = {}, coverSyncing = false;
 let scheduledPosts = [], nextSlot = null, nextByBrand = {}, schedRule = '', ytQuotaToday = { used: 0, limit: 5 };
-let activeBrandFilter = 'all';
+let activeBrandFilter = 'all', coverBrandFilter = 'all';
 let analyticsData = null, analyticsLoading = false, analyticsError = null, analyticsBrandFilter = 'all';
 let searchQuery = '', studioKey = 'brand_logo';
 const copyStore = {};
 const styleChoice = {};
+const customPrompts = {};
+const coverVersions = {};
 
 const BRANDS_LIST = [
   { id: 'akilalmaz',    label: 'AKILALMAZ',     icon: '⚡', handles: '@akilalmaz' },
@@ -548,6 +590,10 @@ const brandLabel = id => {
   const b = BRANDS_LIST.find(x => x.id === id);
   return b ? `${b.icon} ${b.label}` : (id || 'AKILALMAZ');
 };
+const brandShort = id => {
+  const b = BRANDS_LIST.find(x => x.id === id);
+  return b ? `${b.icon} ${b.label}` : '⚡ AKILALMAZ';
+};
 
 const COVER_STYLES = [
   { id: 'default', label: 'Varsayılan Prompt', suffix: '' },
@@ -556,6 +602,99 @@ const COVER_STYLES = [
   { id: 'poster',  label: 'Belgesel Poster',   suffix: ', dramatic documentary movie poster art direction, rich film grain, moody spotlight' },
   { id: 'minimal', label: 'Minimalist Vektör', suffix: ', ultra-clean flat geometric vector artwork, bold high-contrast silhouette, modern editorial design' },
 ];
+
+const _cleanTopicText = (s, maxLen = 140) =>
+  String(s || '').replace(/#[^\s#]+/g, '').replace(/\s+/g, ' ').trim().slice(0, maxLen);
+
+const BRAND_COVER_CONFIG = {
+  akilalmaz: {
+    tagline: 'Absürt tarih & gerçek hikâyeler · Yüksek kontrastlı 2D/3D çizgi kapak',
+    defaultStyle: 'akilalmaz_toon',
+    styles: [
+      { id: 'akilalmaz_toon', label: '⚡ AKILALMAZ Çizgi', suffix: ', stylized painted 3D toon world with bold 2D inked cartoon character, thick dark purple-black outlines, expressive shocked eyes, vivid teal-coral-gold viral Shorts contrast' },
+      { id: 'comic',          label: 'Çizgi Roman',        suffix: ', vibrant editorial comic-book illustration, crisp ink outlines, halftone shadows, dramatic studio contrast' },
+      { id: '3d',             label: 'Sinematik 3D',       suffix: ', stylized Pixar-grade 3D render, volumetric rim lighting, ultra-sharp focal subject' },
+      { id: 'poster',         label: 'Absürt Belgesel',    suffix: ', dramatic historical mystery movie poster art direction, rich film grain, moody spotlight' },
+      { id: 'default',        label: 'Ham Prompt',         suffix: '' },
+    ],
+    buildPrompt: (title, desc) => {
+      const topic = _cleanTopicText(title, 110) || 'absurd real historical event';
+      const ctx = _cleanTopicText(desc, 160);
+      return `Vertical 9:16 viral YouTube Shorts cover illustration depicting the unbelievable real story: "${topic}".${ctx ? ' Scene context: ' + ctx + '.' : ''} Expressive cartoon focal character in dynamic foreground action, punchy high-contrast lighting, vivid colors, clean vertical composition with breathing room at top and bottom, no text baked into image.`;
+    },
+  },
+  kadimanadolu: {
+    tagline: 'Anadolu tarihi, arkeoloji & mitoloji · Altın saat epik belgesel estetiği',
+    defaultStyle: 'kadim_epic',
+    styles: [
+      { id: 'kadim_epic',   label: '🏛️ Kadim Epik',     suffix: ', epic ancient Anatolian historical cinema illustration, golden-hour sunbeams over carved limestone ruins, antique gold and terracotta palette, museum-grade documentary atmosphere, volumetric dust motes' },
+      { id: 'kadim_fresco', label: 'Fresk & Mozaik',      suffix: ', richly textured ancient Anatolian fresco and stone relief artwork, weathered gold-leaf accents, dramatic warm torchlight chiaroscuro' },
+      { id: 'kadim_mystic', label: 'Mistik Gece',         suffix: ', atmospheric nocturnal archaeological mystery scene, glowing ancient symbols carved in stone, deep indigo night sky with warm amber lantern light, ultra-detailed realism' },
+      { id: 'poster',       label: 'Belgesel Poster',     suffix: ', dramatic National Geographic documentary movie poster art direction, rich 35mm film grain, moody spotlight' },
+      { id: 'default',      label: 'Ham Prompt',          suffix: '' },
+    ],
+    buildPrompt: (title, desc) => {
+      const topic = _cleanTopicText(title, 110) || 'ancient Anatolian mystery';
+      const ctx = _cleanTopicText(desc, 160);
+      return `Vertical 9:16 epic historical editorial illustration for Kadim Anadolu about: "${topic}".${ctx ? ' Historical context: ' + ctx + '.' : ''} Monumental ancient Anatolian ruins, carved stone reliefs, dramatic sunset light rays, warm terracotta, obsidian and antique gold color grading, cinematic depth, clean vertical framing, no text baked into image.`;
+    },
+  },
+  likyastudios: {
+    tagline: 'Stüdyo & sinematik yapım · Anamorfik prestige film afişi & editoryal ton',
+    defaultStyle: 'likya_cinema',
+    styles: [
+      { id: 'likya_cinema',    label: '🎬 Likya Sinematik', suffix: ', high-craft anamorphic cinema still, dramatic rim lighting, luxury studio art direction, rich filmic shadows with warm coral and amber key light, shallow depth of field' },
+      { id: 'likya_noir',      label: 'Stüdyo Noir',        suffix: ', moody neo-noir architectural studio lighting, high-contrast obsidian shadows, sharp silver and gold specular highlights, prestige movie poster aesthetic' },
+      { id: 'likya_editorial', label: 'Atelier Editoryal',  suffix: ', modern tactile editorial cinema artwork, warm archival ivory and deep ink tones, bold Swiss composition, crisp focal silhouette' },
+      { id: '3d',              label: 'Sinematik 3D',       suffix: ', photorealistic stylized 3D studio render, volumetric rim lighting, ultra-sharp focal subject' },
+      { id: 'default',         label: 'Ham Prompt',         suffix: '' },
+    ],
+    buildPrompt: (title, desc) => {
+      const topic = _cleanTopicText(title, 110) || 'cinematic studio story';
+      const ctx = _cleanTopicText(desc, 160);
+      return `Vertical 9:16 prestige cinema poster visual for Likya Studios illustrating: "${topic}".${ctx ? ' Creative direction: ' + ctx + '.' : ''} Iconic dramatic focal subject, anamorphic studio lighting, rich atmospheric depth, warm ivory, obsidian and coral-gold accents, clean vertical framing, no text baked into image.`;
+    },
+  },
+  foodballstv: {
+    tagline: 'Gastronomi & eğlenceli maskotlar · İştah açıcı parlak 3D Pop stüdyo',
+    defaultStyle: 'foodballs_3d',
+    styles: [
+      { id: 'foodballs_3d',     label: '🍔 FoodBalls 3D Pop', suffix: ', ultra-appetizing Pixar-grade 3D glossy food mascot and gourmet close-up, playful dynamic sauce splash, crispy golden highlights, vibrant pop-art studio backdrop, juicy rim light' },
+      { id: 'foodballs_street', label: 'Sokak Lezzeti',       suffix: ', mouth-watering commercial food photography with dynamic sizzling steam, melted cheese pull, dramatic warm neon street-food bokeh, ultra-sharp macro texture' },
+      { id: 'foodballs_toon',   label: 'Maskot Karikatür',    suffix: ', energetic bold 2D/3D hybrid cartoon food character illustration, thick glossy outlines, explosive comic action lines, bright sunny saturated colors' },
+      { id: 'minimal',          label: 'Pop Vektör',          suffix: ', vibrant bold pop-art vector food poster, punchy complementary colors, clean high-contrast silhouette' },
+      { id: 'default',          label: 'Ham Prompt',          suffix: '' },
+    ],
+    buildPrompt: (title, desc) => {
+      const topic = _cleanTopicText(title, 110) || 'playful gourmet food character';
+      const ctx = _cleanTopicText(desc, 160);
+      return `Vertical 9:16 ultra-appetizing playful 3D food entertainment Shorts cover for FoodBallsTV featuring: "${topic}".${ctx ? ' Scene details: ' + ctx + '.' : ''} Glossy crispy textures, rising steam, expressive fun character energy, vibrant warm orange-gold-red studio pop lighting, clean vertical composition, no text baked into image.`;
+    },
+  },
+};
+
+const getBrandConfig = brand => BRAND_COVER_CONFIG[brand] || BRAND_COVER_CONFIG.akilalmaz;
+const getCoverStylesForBrand = brand => getBrandConfig(brand).styles || COVER_STYLES;
+const buildDefaultCoverPrompt = (brand, title, desc) => getBrandConfig(brand).buildPrompt(title, desc);
+
+const safeCoverKey = key =>
+  String(key || '').trim().toLowerCase().replace(/[^a-z0-9_\-]/g, '_').replace(/^_+|_+$/g, '') || 'cover';
+
+const withCoverBust = (key, url) => {
+  if (!url) return '';
+  const v = coverVersions[safeCoverKey(key)] || coverVersions[key];
+  if (!v) return url;
+  if (/[?&]v=/.test(url)) return url.replace(/([?&]v=)[^&]*/, '$1' + v);
+  return url + (url.includes('?') ? '&' : '?') + 'v=' + v;
+};
+
+const getCoverUrl = (key, fallbackUrl = '') => {
+  const sk = safeCoverKey(key);
+  const raw = savedCovers[key] || savedCovers[sk] || fallbackUrl || '';
+  return raw ? withCoverBust(key, raw) : '';
+};
+
+const isCoverGenerating = key => !!(generatingCovers[key] || generatingCovers[safeCoverKey(key)]);
 
 const badge = s => ({
   'Hazır': 'b-ok', 'Yayında': 'b-ok', 'YT Planlandı': 'b-ok',
@@ -566,6 +705,7 @@ const badge = s => ({
 
 const fmt = s => s ? `${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}` : '—';
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const escJsAttr = s => String(s ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 function applyTheme(t) {
   document.documentElement.dataset.theme = t;
@@ -596,7 +736,7 @@ function toast(msg, type = 'info') {
   el.className = `toast ${type}`;
   el.textContent = msg;
   root.appendChild(el);
-  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 200ms'; setTimeout(() => el.remove(), 220); }, 3400);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 200ms'; setTimeout(() => el.remove(), 220); }, 3800);
 }
 
 async function apiFetch(path, opts = {}) {
@@ -623,8 +763,19 @@ async function syncBackend() {
     ]);
     accounts = accRes.accounts || [];
     pubByVideo = stRes.by_video || {};
-    savedCovers = { ...savedCovers, ...(covRes.covers || {}) };
+    const mergedCovers = { ...savedCovers };
+    for (const [k, u] of Object.entries(covRes.covers || {})) {
+      if (u) mergedCovers[k] = withCoverBust(k, u);
+    }
     scheduledPosts = schRes.posts || [];
+    for (const p of scheduledPosts) {
+      if (p.cover_url && p.video_id) {
+        const busted = withCoverBust(p.video_id, p.cover_url);
+        mergedCovers[p.video_id] = busted;
+        mergedCovers[safeCoverKey(p.video_id)] = busted;
+      }
+    }
+    savedCovers = mergedCovers;
     nextSlot = schRes.next_slot || null;
     nextByBrand = schRes.next_by_brand || {};
     ytQuotaToday = schRes.yt_quota_today || { used: 0, limit: 5 };
@@ -658,7 +809,7 @@ function copyBlock(id, label, text, mono = false) {
   return `<div class="block">
     <div class="block-head">
       <span class="block-label">${label}</span>
-      <button class="btn sm copy-btn" onclick="copyText('${id}', this)">Kopyala</button>
+      <button class="btn sm copy-btn" onclick="copyText('${escJsAttr(id)}', this)">Kopyala</button>
     </div>
     <div class="block-body ${mono ? 'mono' : ''}">${esc(text)}</div>
   </div>`;
@@ -673,16 +824,29 @@ function openLightbox(url, title) {
 function closeModal() { document.getElementById('modal-root').innerHTML = ''; }
 
 function setCoverStyle(key, styleId) { styleChoice[key] = styleId; renderAll(false); }
+function resetCoverPrompt(key) { delete customPrompts[key]; renderAll(false); }
 
-function coverWorkbenchHtml(key, heading, defaultPrompt, aspectRatio = '9:16', helperNote = '') {
-  const isGen = !!generatingCovers[key];
-  const url = savedCovers[key];
-  const promptId = 'prompt_' + key;
-  const hlId = 'hl_' + key;
+function coverWorkbenchHtml(key, heading, defaultPrompt, aspectRatio = '9:16', helperNote = '', opts = {}) {
+  const brand = opts.brand || 'akilalmaz';
+  const schedPost = opts.scheduledPost || scheduledPosts.find(p => p.video_id === key || safeCoverKey(p.video_id) === safeCoverKey(key)) || null;
+  const styles = getCoverStylesForBrand(brand);
+  const fallbackStyle = opts.defaultStyle || 'default';
+  const chosenStyle = styleChoice[key];
+  const activeStyle = (chosenStyle && styles.some(s => s.id === chosenStyle))
+    ? chosenStyle
+    : (styles.some(s => s.id === fallbackStyle) ? fallbackStyle : (styles[0]?.id || 'default'));
+
+  const isGen = isCoverGenerating(key);
+  const url = getCoverUrl(key, schedPost?.cover_url || '');
+  const domKey = safeCoverKey(key);
+  const promptId = 'prompt_' + domKey;
+  const hlId = 'hl_' + domKey;
   const savedHl = getCoverHeadline(key);
-  const activeStyle = styleChoice[key] || 'default';
-  copyStore[promptId] = defaultPrompt || '';
+  const promptVal = (customPrompts[key] !== undefined) ? customPrompts[key] : (defaultPrompt || '');
+  copyStore[promptId] = promptVal;
   const cfClass = aspectRatio === '9:16' ? 'cf-916' : aspectRatio === '1:1' ? 'cf-11' : 'cf-169';
+  const jsKey = escJsAttr(key);
+  const jsBrand = escJsAttr(brand);
 
   return `
   <div class="cover-bench">
@@ -692,54 +856,81 @@ function coverWorkbenchHtml(key, heading, defaultPrompt, aspectRatio = '9:16', h
         ${helperNote ? `<div class="panel-sub">${esc(helperNote)}</div>` : ''}
       </div>
       <div class="row">
+        <span class="badge b-mut">${esc(brandLabel(brand))}</span>
         <span class="badge b-coral mono">${aspectRatio}</span>
         ${url ? `<span class="badge b-ok"><span class="dot"></span> Kayıtlı</span>` : `<span class="badge b-mut">Boş</span>`}
       </div>
     </div>
+
+    ${schedPost ? `
+      <div class="name-row" style="margin-bottom:0;border-color:${schedPost.yt_uploaded ? 'var(--ok)' : 'var(--line-strong)'}">
+        <div style="font-size:12.5px;line-height:1.45">
+          <b>📅 Yayın Planı Bağlantısı:</b> <span class="mono" style="color:var(--coral)">${esc(schedPost.label_tr || schedPost.scheduled_at)}</span>
+          <div class="panel-sub" style="margin-top:2px">
+            ${schedPost.yt_uploaded
+              ? 'YouTube Studio\'da planlı — yeni 9:16 kapak üretilince otomatik olarak cover_url + YouTube thumbnails.set (/api/schedule/sync-covers) güncellenir.'
+              : 'Yeni 9:16 kapak üretilince bu planlı kaydın cover_url alanına otomatik olarak bağlanır.'}
+          </div>
+        </div>
+        ${schedPost.yt_uploaded
+          ? `<a class="badge b-ok" href="${esc(schedPost.yt_video_url || '#')}" target="_blank" rel="noreferrer"><span class="dot"></span>YT Planlandı ↗</a>`
+          : `<span class="badge ${badge(schedPost.status)}">${esc(schedPost.status)}</span>`}
+      </div>
+    ` : ''}
 
     <div class="fld">
       <label for="${hlId}">
         <span>Kapak Üzeri / Görsel Başlığı</span>
         <span class="hint">Video başlığından bağımsızdır · Boşsa yazısız üretilir</span>
       </label>
-      <input id="${hlId}" type="text" placeholder="Örn: GÖRÜNMEZ SOYGUNCU? veya 2 KEZ SATTI!" value="${esc(savedHl)}" oninput="setCoverHeadline('${key}', this.value)">
+      <input id="${hlId}" type="text" placeholder="Örn: GÖRÜNMEZ SOYGUNCU? veya 12 BİN YILLIK SIR!" value="${esc(savedHl)}" oninput="setCoverHeadline('${jsKey}', this.value)">
     </div>
 
     <div class="fld">
-      <label><span>Sanat Yönetimi Stili</span><span class="hint">Tek tıkla estetik ton</span></label>
+      <label><span>Markaya Özel Kapak Stili</span><span class="hint">${esc(brandLabel(brand))}</span></label>
       <div class="style-pills">
-        ${COVER_STYLES.map(s => `<button type="button" class="style-pill ${activeStyle === s.id ? 'on' : ''}" onclick="setCoverStyle('${key}', '${s.id}')">${esc(s.label)}</button>`).join('')}
+        ${styles.map(s => `<button type="button" class="style-pill ${activeStyle === s.id ? 'on' : ''}" onclick="setCoverStyle('${jsKey}', '${escJsAttr(s.id)}')">${esc(s.label)}</button>`).join('')}
       </div>
     </div>
 
     <div class="fld">
       <label for="${promptId}">
         <span>Sahne & Kompozisyon Promptu</span>
-        <button type="button" class="btn sm ghost" onclick="copyText('${promptId}', this)">Promptu Kopyala</button>
+        <span class="row" style="gap:4px">
+          ${customPrompts[key] !== undefined ? `<button type="button" class="btn sm ghost" onclick="resetCoverPrompt('${jsKey}')">Varsayılana Dön</button>` : ''}
+          <button type="button" class="btn sm ghost" onclick="copyText('${escJsAttr(promptId)}', this)">Promptu Kopyala</button>
+        </span>
       </label>
-      <textarea id="${promptId}" class="mono-input" rows="3">${esc(defaultPrompt || '')}</textarea>
+      <textarea id="${promptId}" class="mono-input" rows="3" oninput="customPrompts['${jsKey}']=this.value;copyStore['${escJsAttr(promptId)}']=this.value">${esc(promptVal)}</textarea>
     </div>
 
     <div class="row">
-      <button class="btn primary" ${isGen ? 'disabled' : ''} onclick="generateCover('${key}', '${aspectRatio}')">
+      <button class="btn primary" ${isGen ? 'disabled' : ''} onclick="generateCover('${jsKey}', '${aspectRatio}', '${jsBrand}', '${escJsAttr(activeStyle)}')">
         ${isGen ? '<span class="spinner"></span> Vertex AI üretiyor…' : (url ? '🔄 Yeniden Üret' : '✨ Görsel Kapağı Üret')}
       </button>
       ${url ? `
-        <a class="btn" href="${esc(url)}" download="${key}_kapak.png" target="_blank">⬇ PNG İndir</a>
-        <button class="btn" onclick="copyRaw('${esc(url)}', 'Kapak URL panoya kopyalandı')">🔗 URL Kopyala</button>
+        <a class="btn" href="${esc(url)}" download="${esc(domKey)}_kapak.png" target="_blank">⬇ PNG İndir</a>
+        <button class="btn" onclick="copyRaw('${escJsAttr(url)}', 'Kapak URL panoya kopyalandı')">🔗 URL Kopyala</button>
+      ` : ''}
+      ${url && schedPost?.yt_uploaded ? `
+        <button class="btn sm ink-btn" ${coverSyncing ? 'disabled' : ''} onclick="syncAllCoversToYouTube()">${coverSyncing ? '<span class="spinner"></span>' : '▶️ YT Küçük Resmini Güncelle'}</button>
       ` : ''}
     </div>
 
     ${url ? `
       <div class="cover-preview-stage">
-        <div class="cover-frame ${cfClass}" onclick="openLightbox('${esc(url)}', '${esc(heading)}')" title="Tam boyutta büyüt">
+        <div class="cover-frame ${cfClass}" onclick="openLightbox('${escJsAttr(url)}', '${escJsAttr(heading)}')" title="Tam boyutta büyüt">
           <img src="${esc(url)}" alt="${esc(heading)}">
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
           <div class="badge b-ok" style="align-self:flex-start"><span class="dot"></span> Paylaşıma Hazır</div>
           <div style="font-size:13px;color:var(--ink-mute);line-height:1.6">
-            Görsel Cloud Storage üzerinde <code class="mono" style="color:var(--ink)">covers/${esc(key)}.png</code> olarak saklanıyor.
-            ${aspectRatio === '9:16' ? 'Instagram Reels ve video paylaşımında otomatik kapak görseli olarak eklenir.' : 'Kanal profil veya banner alanına doğrudan yükleyebilirsiniz.'}
+            Görsel Cloud Storage üzerinde <code class="mono" style="color:var(--ink)">covers/${esc(domKey)}.png</code> olarak saklanıyor.
+            ${aspectRatio === '9:16'
+              ? (schedPost?.yt_uploaded
+                ? 'Planlı kaydın cover_url alanına ve YouTube küçük resmine (thumbnails.set) bağlıdır.'
+                : 'Planlı kaydın cover_url alanına ve Instagram Reels / YouTube paylaşımlarına otomatik bağlanır.')
+              : 'Kanal profil veya banner alanına doğrudan yükleyebilirsiniz.'}
           </div>
           <div class="panel-sub">Önizlemeye tıklayarak tam boyutta inceleyin.</div>
         </div>
@@ -748,33 +939,129 @@ function coverWorkbenchHtml(key, heading, defaultPrompt, aspectRatio = '9:16', h
   </div>`;
 }
 
-async function generateCover(key, aspectRatio) {
-  const ta = document.getElementById('prompt_' + key);
-  let prompt = ta ? ta.value.trim() : (copyStore['prompt_' + key] || '');
-  if (!prompt) { toast('Lütfen bir görsel promptu girin.', 'err'); return; }
+async function runCoverGeneration({ key, aspectRatio = '9:16', prompt, headline = '', brand = 'akilalmaz', styleId = 'default', onStep = null }) {
+  let finalPrompt = String(prompt || '').trim();
+  if (!finalPrompt) throw new Error('Lütfen bir görsel promptu girin.');
 
-  const hlEl = document.getElementById('hl_' + key);
-  const headline = (hlEl ? hlEl.value : getCoverHeadline(key)).trim();
-  const st = COVER_STYLES.find(s => s.id === (styleChoice[key] || 'default'));
-  if (st && st.suffix) prompt += st.suffix;
-  if (headline) {
-    prompt += `. Include bold, ultra-legible high-contrast display thumbnail title text reading "${headline}" cleanly integrated into the composition with strong drop shadow and clear margins.`;
+  const styles = getCoverStylesForBrand(brand);
+  const st = styles.find(s => s.id === styleId) || COVER_STYLES.find(s => s.id === styleId);
+  if (st && st.suffix) finalPrompt += st.suffix;
+  const cleanHl = String(headline || '').trim();
+  if (cleanHl) {
+    finalPrompt += `. Include bold, ultra-legible high-contrast display thumbnail title text reading "${cleanHl}" cleanly integrated into the composition with strong drop shadow and clear margins.`;
   }
 
+  const sk = safeCoverKey(key);
   generatingCovers[key] = true;
+  generatingCovers[sk] = true;
   renderAll(false);
+
   try {
+    onStep?.('1/2 · Vertex AI 9:16 kapak üretiliyor…');
     const res = await apiFetch('/api/covers/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, prompt, aspect_ratio: aspectRatio }),
+      body: JSON.stringify({ key, prompt: finalPrompt, aspect_ratio: aspectRatio }),
     });
-    savedCovers[key] = res.image_url;
-    toast('Görsel kapak başarıyla üretildi!', 'ok');
-  } catch (e) {
-    toast('Kapak üretimi hatası: ' + (e.message || e), 'err');
+    const resKey = res.key || sk;
+    coverVersions[sk] = Date.now();
+    coverVersions[resKey] = coverVersions[sk];
+    const bustedUrl = withCoverBust(key, res.image_url);
+    savedCovers[key] = bustedUrl;
+    savedCovers[sk] = bustedUrl;
+    savedCovers[resKey] = bustedUrl;
+
+    const matchedPosts = scheduledPosts.filter(p => p.video_id === key || safeCoverKey(p.video_id) === sk || safeCoverKey(p.video_id) === resKey);
+    for (const p of matchedPosts) p.cover_url = bustedUrl;
+
+    let syncRes = null;
+    const hasYtUploaded = matchedPosts.some(p => p.yt_uploaded);
+    if (aspectRatio === '9:16' && matchedPosts.length > 0 && hasYtUploaded) {
+      onStep?.('2/2 · Kayda (cover_url) bağlandı · YouTube thumbnails.set (/api/schedule/sync-covers) uygulanıyor…');
+      try {
+        syncRes = await apiFetch('/api/schedule/sync-covers', { method: 'POST' });
+      } catch (syncErr) {
+        syncRes = { ok: false, error: syncErr.message || String(syncErr) };
+      }
+    }
+
+    await syncBackend();
+    return { res, imageUrl: bustedUrl, syncRes, matchedPosts, hasYtUploaded, resKey };
   } finally {
     generatingCovers[key] = false;
+    generatingCovers[sk] = false;
+    renderAll(false);
+  }
+}
+
+function summarizeCoverToast(key, result) {
+  const sk = safeCoverKey(key);
+  const { syncRes, matchedPosts, hasYtUploaded, resKey } = result;
+  if (hasYtUploaded && syncRes) {
+    if (syncRes.error) {
+      toast(`Kapak üretildi ve cover_url bağlandı; YT sync uyarısı: ${syncRes.error}`, 'info');
+      return;
+    }
+    const ytOk = (syncRes.yt_thumbnails_applied || []).find(x => x.video_id === key || safeCoverKey(x.video_id) === sk || safeCoverKey(x.video_id) === resKey);
+    const ytErr = (syncRes.yt_thumbnail_errors || []).find(x => x.video_id === key || safeCoverKey(x.video_id) === sk || safeCoverKey(x.video_id) === resKey);
+    if (ytOk) {
+      toast('9:16 kapak üretildi · cover_url + YouTube thumbnails.set güncellendi!', 'ok');
+    } else if (ytErr) {
+      toast(`Kapak cover_url'e bağlandı, YT thumbnail uyarısı: ${ytErr.error}`, 'info');
+    } else {
+      toast('9:16 kapak üretildi · cover_url + YouTube kapak senkronu tamamlandı!', 'ok');
+    }
+  } else if (matchedPosts.length) {
+    toast('9:16 kapak üretildi ve yayın planı kaydına (cover_url) bağlandı!', 'ok');
+  } else {
+    toast('Görsel kapak başarıyla üretildi!', 'ok');
+  }
+}
+
+async function generateCover(key, aspectRatio, brand = 'akilalmaz', defaultStyle = 'default') {
+  const domKey = safeCoverKey(key);
+  const ta = document.getElementById('prompt_' + domKey);
+  const prompt = ta ? ta.value.trim() : (customPrompts[key] || copyStore['prompt_' + domKey] || '');
+  if (!prompt) { toast('Lütfen bir görsel promptu girin.', 'err'); return; }
+
+  const hlEl = document.getElementById('hl_' + domKey);
+  const headline = (hlEl ? hlEl.value : getCoverHeadline(key)).trim();
+  const activeStyle = styleChoice[key] || defaultStyle || 'default';
+
+  try {
+    const result = await runCoverGeneration({
+      key,
+      aspectRatio,
+      prompt,
+      headline,
+      brand,
+      styleId: activeStyle,
+    });
+    summarizeCoverToast(key, result);
+  } catch (e) {
+    toast('Kapak üretimi hatası: ' + (e.message || e), 'err');
+  }
+}
+
+async function syncAllCoversToYouTube() {
+  if (coverSyncing) return;
+  coverSyncing = true;
+  renderAll(false);
+  try {
+    const res = await apiFetch('/api/schedule/sync-covers', { method: 'POST' });
+    const linked = (res.linked_covers || []).length;
+    const ytOk = (res.yt_thumbnails_applied || []).length;
+    const ytErr = (res.yt_thumbnail_errors || []).length;
+    const parts = [];
+    if (linked) parts.push(`${linked} cover_url bağlandı`);
+    if (ytOk) parts.push(`${ytOk} YouTube küçük resmi güncellendi`);
+    if (ytErr) parts.push(`${ytErr} YT uyarısı`);
+    toast(parts.length ? parts.join(' · ') : 'Tüm kapaklar ve YouTube küçük resimleri zaten senkronize.', ytErr && !ytOk ? 'info' : 'ok');
+    await load(true);
+  } catch (e) {
+    toast('Kapak senkron hatası: ' + (e.message || e), 'err');
+  } finally {
+    coverSyncing = false;
     renderAll(false);
   }
 }
@@ -790,8 +1077,8 @@ function setView(v) {
 }
 
 async function fetchAnalytics(forceRefresh = false) {
-  const cfg = getApiCfg();
-  if (!cfg.url) {
+  const { apiUrl } = getCfg();
+  if (!apiUrl) {
     analyticsError = 'Cloud Run API URL tanımlı değil (Ayarlar sekmesinden girin).';
     renderAll(true);
     return;
@@ -838,7 +1125,7 @@ async function load(force) {
       pubByVideo,
       accounts.length,
       Object.keys(savedCovers).length,
-      scheduledPosts.map(p => [p.id, p.status, p.scheduled_at, p.yt_uploaded]),
+      scheduledPosts.map(p => [p.id, p.brand, p.status, p.scheduled_at, p.yt_uploaded, p.cover_url]),
     ]);
     if (!force && ns === sig) return;
     sig = ns; videos = data;
@@ -891,10 +1178,10 @@ function renderList() {
   const cnt = document.getElementById('q-count');
   if (cnt) cnt.textContent = `${filtered.length}/${videos.length}`;
   listEl.innerHTML = filtered.map(v => {
-    const cov = savedCovers[v.slug];
+    const cov = getCoverUrl(v.slug);
     const sch = scheduledPosts.find(p => p.video_id === v.slug && p.status === 'Planlandı');
     return `
-      <div class="q-item ${v.slug === sel ? 'active' : ''}" onclick="pick('${v.slug}')">
+      <div class="q-item ${v.slug === sel ? 'active' : ''}" onclick="pick('${escJsAttr(v.slug)}')">
         <div class="q-thumb">${cov ? `<img src="${esc(cov)}" alt="">` : `${videos.indexOf(v) + 1}`}</div>
         <div class="q-meta">
           <div class="q-title">${esc(v.title)}</div>
@@ -930,12 +1217,15 @@ function renderSocialTextOnly(v) {
 
 function renderVideoCoverTab(v) {
   const m = v.meta || {};
+  const sch = scheduledPosts.find(p => p.video_id === v.slug || safeCoverKey(p.video_id) === safeCoverKey(v.slug)) || null;
+  const brand = sch?.brand || 'akilalmaz';
   return coverWorkbenchHtml(
     v.slug,
     'Görsel Kapak & Thumbnail Üretimi',
-    m.flow_prompt || '',
+    m.flow_prompt || buildDefaultCoverPrompt(brand, v.title, m.youtube?.description || ''),
     '9:16',
-    `${v.title} için dikey kapak tasarımı · Başlığı video başlığından ayrı özelleştirebilirsiniz`
+    `${v.title} için dikey kapak tasarımı · Başlığı video başlığından ayrı özelleştirebilirsiniz`,
+    { brand, scheduledPost: sch, defaultStyle: m.flow_prompt ? 'default' : getBrandConfig(brand).defaultStyle }
   );
 }
 
@@ -971,6 +1261,7 @@ function renderDetail(full, tabOnly) {
     return;
   }
 
+  const hasCov = !!getCoverUrl(v.slug);
   el.innerHTML = `
     <div class="stage">
       <div class="monitor-wrap">
@@ -980,7 +1271,7 @@ function renderDetail(full, tabOnly) {
         </div>
         ${v.video ? `
           <div class="monitor-actions">
-            <button class="btn primary" onclick="openPublishModal('${v.slug}')">📅 Yayınla / Planla</button>
+            <button class="btn primary" onclick="openPublishModal('${escJsAttr(v.slug)}')">📅 Yayınla / Planla</button>
             <a class="btn" href="${v.video}" download="${v.fileName}">⬇ MP4 İndir</a>
           </div>
           <div class="monitor-foot">
@@ -1005,7 +1296,7 @@ function renderDetail(full, tabOnly) {
           <div class="spec-item"><small>Çözünürlük</small><b>${v.width ? v.width + '×' + v.height : '—'}</b></div>
           <div class="spec-item"><small>Boyut</small><b>${v.sizeMB ? v.sizeMB + ' MB' : '—'}</b></div>
           <div class="spec-item"><small>Senaryo</small><b>${v.words} kelime</b></div>
-          <div class="spec-item"><small>Kapak</small><b style="color:${savedCovers[v.slug] ? 'var(--ok)' : 'var(--ink-faint)'}">${savedCovers[v.slug] ? 'Hazır' : 'Yok'}</b></div>
+          <div class="spec-item"><small>Kapak</small><b style="color:${hasCov ? 'var(--ok)' : 'var(--ink-faint)'}">${hasCov ? 'Hazır' : 'Yok'}</b></div>
         </div>
 
         <div id="tabbox">${tabsHtml}</div>
@@ -1013,66 +1304,208 @@ function renderDetail(full, tabOnly) {
     </div>`;
 }
 
-/* II. Cover Studio Workspace */
+/* II. Cover Studio Workspace (4 Brands + /api/schedule + Brand-Specific Styles) */
 function getStudioItems() {
   const items = [];
+  const seenKeys = new Set();
+
+  // Map scheduled posts by normalized video_id (preferring yt_uploaded / Planlandı)
+  const schedByNorm = new Map();
+  for (const p of scheduledPosts) {
+    if (!p?.video_id) continue;
+    const nk = safeCoverKey(p.video_id);
+    const prev = schedByNorm.get(nk);
+    if (!prev || (p.yt_uploaded && !prev.yt_uploaded) || (p.status === 'Planlandı' && prev.status !== 'Planlandı')) {
+      schedByNorm.set(nk, p);
+    }
+  }
+
+  // 1. Brand identity assets (AKILALMAZ)
   if (kit?.brand_prompts) {
-    items.push({ key: 'brand_logo', title: 'AKILALMAZ Profil Logosu', subtitle: 'YouTube & Instagram Avatar', aspect: '1:1', prompt: kit.brand_prompts.logo_flow || '', kind: 'Marka' });
-    items.push({ key: 'brand_banner', title: 'AKILALMAZ Kanal Bannerı', subtitle: 'YouTube Kapak Görseli (2560×1440)', aspect: '16:9', prompt: kit.brand_prompts.banner_flow || '', kind: 'Marka' });
+    items.push({
+      key: 'brand_logo',
+      brand: 'akilalmaz',
+      title: 'AKILALMAZ Profil Logosu',
+      subtitle: 'YouTube & Instagram Avatar (1:1)',
+      aspect: '1:1',
+      prompt: kit.brand_prompts.logo_flow || '',
+      defaultStyle: 'default',
+      kind: 'Marka',
+      scheduledPost: null,
+      coverUrl: '',
+    });
+    seenKeys.add('brand_logo');
+    items.push({
+      key: 'brand_banner',
+      brand: 'akilalmaz',
+      title: 'AKILALMAZ Kanal Bannerı',
+      subtitle: 'YouTube Kapak Görseli (2560×1440)',
+      aspect: '16:9',
+      prompt: kit.brand_prompts.banner_flow || '',
+      defaultStyle: 'default',
+      kind: 'Marka',
+      scheduledPost: null,
+      coverUrl: '',
+    });
+    seenKeys.add('brand_banner');
   }
+
+  // 2. All /api/schedule uploaded/planned videos across all 4 brands (not already in videos.json)
+  const archiveByNorm = new Map(videos.map(v => [safeCoverKey(v.slug), v]));
+  for (const p of scheduledPosts) {
+    if (!p?.video_id) continue;
+    const nk = safeCoverKey(p.video_id);
+    if (seenKeys.has(nk) || archiveByNorm.has(nk)) continue;
+    seenKeys.add(nk);
+    const brand = p.brand || 'akilalmaz';
+    const bCfg = getBrandConfig(brand);
+    items.push({
+      key: p.video_id,
+      brand,
+      title: p.title || p.video_id,
+      subtitle: `${brandLabel(brand)} · ${p.label_tr || p.status}${p.yt_uploaded ? ' · YT Planlı' : ''}`,
+      aspect: '9:16',
+      prompt: buildDefaultCoverPrompt(brand, p.title, p.description || p.ig_caption || ''),
+      defaultStyle: bCfg.defaultStyle,
+      kind: p.yt_uploaded ? 'YT Planlı' : (p.status === 'Yayında' ? 'Yayında' : 'Planlı'),
+      scheduledPost: p,
+      coverUrl: p.cover_url || '',
+    });
+  }
+
+  // 3. Archive videos from videos.json (enriched with matching /api/schedule record if scheduled)
   for (const v of videos) {
-    items.push({ key: v.slug, title: v.title, subtitle: 'Shorts & Reels Dikey Kapağı', aspect: '9:16', prompt: v.meta?.flow_prompt || '', kind: 'Shorts' });
+    const nk = safeCoverKey(v.slug);
+    if (seenKeys.has(nk)) continue;
+    seenKeys.add(nk);
+    const sch = schedByNorm.get(nk) || null;
+    const brand = sch?.brand || 'akilalmaz';
+    const hasFlow = !!(v.meta?.flow_prompt && v.meta.flow_prompt.trim());
+    items.push({
+      key: v.slug,
+      brand,
+      title: v.title,
+      subtitle: sch
+        ? `${brandLabel(brand)} · ${sch.label_tr || sch.status}${sch.yt_uploaded ? ' · YT Planlı' : ''}`
+        : 'Shorts & Reels Dikey Kapağı',
+      aspect: '9:16',
+      prompt: hasFlow ? v.meta.flow_prompt : buildDefaultCoverPrompt(brand, v.title, v.meta?.youtube?.description || ''),
+      defaultStyle: hasFlow ? 'default' : getBrandConfig(brand).defaultStyle,
+      kind: sch ? (sch.yt_uploaded ? 'YT Planlı' : sch.status) : 'Shorts',
+      scheduledPost: sch,
+      coverUrl: sch?.cover_url || '',
+    });
   }
+
   return items;
 }
-function selectStudioItem(key) { studioKey = key; renderCoverStudio(document.getElementById('app')); }
+
+function selectStudioItem(key) {
+  studioKey = key;
+  renderCoverStudio(document.getElementById('app'));
+}
+
+function setCoverBrandFilter(b) {
+  coverBrandFilter = b;
+  renderCoverStudio(document.getElementById('app'));
+}
+
+function openInCoverStudio(key, brand = 'all') {
+  closeModal();
+  if (brand && brand !== 'all') coverBrandFilter = brand;
+  studioKey = key;
+  setView('covers');
+}
 
 function renderCoverStudio(el) {
-  const items = getStudioItems();
-  if (!items.length) { el.innerHTML = '<div class="workspace-full panel ph">Veriler yükleniyor…</div>'; return; }
-  const current = items.find(i => i.key === studioKey) || items[0];
-  studioKey = current.key;
-  const readyCount = items.filter(i => savedCovers[i.key]).length;
+  const { apiUrl } = getCfg();
+  const allItems = getStudioItems();
+  if (!allItems.length) { el.innerHTML = '<div class="workspace-full panel ph">Veriler yükleniyor…</div>'; return; }
+
+  const filtered = coverBrandFilter === 'all'
+    ? allItems
+    : allItems.filter(i => (i.brand || 'akilalmaz') === coverBrandFilter);
+
+  const current = filtered.find(i => i.key === studioKey) || filtered[0] || null;
+  if (current) studioKey = current.key;
+
+  const readyCount = filtered.filter(i => !!getCoverUrl(i.key, i.coverUrl)).length;
+  const activeBrandCfg = coverBrandFilter !== 'all' ? getBrandConfig(coverBrandFilter) : null;
 
   el.innerHTML = `
     <div class="workspace-full">
       <div class="studio-hero">
         <div>
-          <div class="eyebrow">BÖLÜM II · GÖRSEL ATÖLYE</div>
+          <div class="eyebrow">BÖLÜM II · 4 MARKA GÖRSEL ATÖLYE</div>
           <h2>Kapak & <span class="serif">Thumbnail</span> Stüdyosu</h2>
-          <p>Tüm Shorts kapaklarını, kanal logosunu ve banner görsellerini Vertex AI ile tek ekrandan üretin. Her görsel için video başlığından bağımsız özel kapak başlığı belirleyebilirsiniz.</p>
+          <p>4 markanın (<b>AKILALMAZ, Kadim Anadolu, Likya Studios, FoodBallsTV</b>) <code class="mono">/api/schedule</code> üzerinden yüklenen/planlanan tüm videolarını ve arşiv içeriklerini markaya özel kapak stilleriyle Vertex AI'da üretin.</p>
         </div>
-        <span class="badge b-coral mono">${readyCount} / ${items.length} Görsel Hazır</span>
+        <div class="row">
+          <span class="badge b-coral mono">${readyCount} / ${filtered.length} Görsel Hazır</span>
+          <button class="btn sm" ${!apiUrl || coverSyncing ? 'disabled' : ''} onclick="syncAllCoversToYouTube()">
+            ${coverSyncing ? '<span class="spinner"></span> Senkronlanıyor…' : '🔄 Kapakları YT\'ye Senkronla'}
+          </button>
+        </div>
       </div>
 
-      <div class="studio-grid">
-        <div class="gallery-grid">
-          ${items.map(it => {
-            const url = savedCovers[it.key];
-            const isGen = !!generatingCovers[it.key];
-            return `
-              <div class="gal-card ${it.key === current.key ? 'selected' : ''}" onclick="selectStudioItem('${it.key}')">
-                <div class="gal-media ${it.aspect === '16:9' ? 'wide' : ''}">
-                  <span class="gal-ratio">${it.aspect}</span>
-                  ${url
-                    ? `<img src="${esc(url)}" alt="${esc(it.title)}" loading="lazy">`
-                    : `<div class="gal-empty">${isGen ? '<span class="spinner"></span><div style="margin-top:6px">Üretiliyor…</div>' : 'Henüz kapak yok'}</div>`}
-                </div>
-                <div class="gal-info">
-                  <div class="gal-name">${esc(it.title)}</div>
-                  <div class="gal-status">
-                    <span>${esc(it.kind)}</span>
-                    <span style="color:${url ? 'var(--ok)' : 'var(--ink-faint)'}">${url ? '● Hazır' : '○ Boş'}</span>
+      <div class="style-pills" style="margin-bottom:14px">
+        <button class="style-pill ${coverBrandFilter==='all'?'on':''}" onclick="setCoverBrandFilter('all')">Tümü (${allItems.length})</button>
+        ${BRANDS_LIST.map(b => {
+          const c = allItems.filter(i => (i.brand || 'akilalmaz') === b.id).length;
+          return `<button class="style-pill ${coverBrandFilter===b.id?'on':''}" onclick="setCoverBrandFilter('${b.id}')">${b.icon} ${b.label} (${c})</button>`;
+        }).join('')}
+      </div>
+
+      ${activeBrandCfg ? `
+        <div class="brand-hint-bar">
+          <div><b>${esc(brandLabel(coverBrandFilter))} Kapak Yönelimi:</b> ${esc(activeBrandCfg.tagline)}</div>
+          <div class="row" style="gap:5px">
+            ${activeBrandCfg.styles.filter(s => s.id !== 'default').map(s => `<span class="badge b-mut">${esc(s.label)}</span>`).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      ${filtered.length ? `
+        <div class="studio-grid">
+          <div class="gallery-grid">
+            ${filtered.map(it => {
+              const url = getCoverUrl(it.key, it.coverUrl);
+              const isGen = isCoverGenerating(it.key);
+              return `
+                <div class="gal-card ${current && it.key === current.key ? 'selected' : ''}" onclick="selectStudioItem('${escJsAttr(it.key)}')">
+                  <div class="gal-media ${it.aspect === '16:9' ? 'wide' : ''}">
+                    <span class="gal-brand">${esc(brandShort(it.brand))}</span>
+                    <span class="gal-ratio">${it.aspect}</span>
+                    ${url
+                      ? `<img src="${esc(url)}" alt="${esc(it.title)}" loading="lazy">`
+                      : `<div class="gal-empty">${isGen ? '<span class="spinner"></span><div style="margin-top:6px">Üretiliyor…</div>' : 'Henüz kapak yok'}</div>`}
                   </div>
-                </div>
-              </div>`;
-          }).join('')}
-        </div>
+                  <div class="gal-info">
+                    <div class="gal-name" title="${esc(it.title)}">${esc(it.title)}</div>
+                    <div class="gal-status">
+                      <span>${esc(it.kind)}</span>
+                      <span style="color:${url ? 'var(--ok)' : 'var(--ink-faint)'}">${url ? '● Hazır' : '○ Boş'}</span>
+                    </div>
+                  </div>
+                </div>`;
+            }).join('')}
+          </div>
 
-        <div class="panel" style="position:sticky;top:76px">
-          ${coverWorkbenchHtml(current.key, current.title, current.prompt, current.aspect, current.subtitle)}
+          <div class="panel" style="position:sticky;top:76px">
+            ${coverWorkbenchHtml(current.key, current.title, current.prompt, current.aspect, current.subtitle, {
+              brand: current.brand,
+              scheduledPost: current.scheduledPost,
+              defaultStyle: current.defaultStyle,
+            })}
+          </div>
         </div>
-      </div>
+      ` : `
+        <div class="panel ph">
+          <div style="font-weight:700;color:var(--ink);margin-bottom:6px">${esc(brandLabel(coverBrandFilter))} için henüz yüklenmiş veya planlanmış video yok.</div>
+          <div class="panel-sub" style="margin-bottom:14px">III. Yayın Planı'ndan MP4 yüklediğinizde veya <code class="mono">likya_push.py</code> ile gönderdiğinizde videolar burada otomatik görünür.</div>
+          <button class="btn primary" ${!apiUrl?'disabled':''} onclick="openUploadModal('${escJsAttr(coverBrandFilter)}')">➕ ${esc(brandLabel(coverBrandFilter))} için MP4 Yükle & Planla</button>
+        </div>
+      `}
     </div>`;
 }
 
@@ -1096,7 +1529,7 @@ function openPublishModal(slug) {
   if (!v) return;
   const { apiUrl } = getCfg();
   const absUrl = new URL(v.video, location.href).href;
-  const coverUrl = savedCovers[v.slug] || '';
+  const coverUrl = getCoverUrl(v.slug);
   const defaultTrLocal = nextSlot?.scheduled_at_tr ? nextSlot.scheduled_at_tr.slice(0, 16) : '';
 
   const coverBannerHtml = coverUrl ? `
@@ -1152,7 +1585,7 @@ function openPublishModal(slug) {
         <div class="fld"><label for="p_thumb">Instagram Kapak Karesi (ms)</label><input id="p_thumb" type="number" value="1500" min="0" step="500"></div>
         <div id="p_msg" class="panel-sub" style="margin-bottom:10px"></div>
         <div class="row">
-          <button id="p_submit_btn" data-mode="schedule" class="btn primary" ${!apiUrl?'disabled':''} onclick="submitPublish('${v.slug}', '${esc(absUrl)}')">📅 Yayın Planına Ekle</button>
+          <button id="p_submit_btn" data-mode="schedule" class="btn primary" ${!apiUrl?'disabled':''} onclick="submitPublish('${escJsAttr(v.slug)}', '${escJsAttr(absUrl)}')">📅 Yayın Planına Ekle</button>
           <button class="btn" onclick="closeModal()">İptal</button>
         </div>
       </div>
@@ -1176,7 +1609,7 @@ async function submitPublish(slug, videoUrl) {
     description: document.getElementById('p_desc').value,
     ig_caption: document.getElementById('p_ig').value,
     thumb_offset_ms: Number(document.getElementById('p_thumb').value || 0),
-    cover_url: savedCovers[slug] || undefined,
+    cover_url: getCoverUrl(slug) || undefined,
     account_ids: checked,
   };
 
@@ -1223,7 +1656,7 @@ async function bulkScheduleAll() {
     title: v.meta?.youtube?.title || v.title,
     description: v.meta?.youtube?.description || '',
     ig_caption: v.meta?.instagram?.caption || '',
-    cover_url: savedCovers[v.slug] || undefined,
+    cover_url: getCoverUrl(v.slug) || undefined,
     thumb_offset_ms: 1500,
   }));
   try {
@@ -1392,6 +1825,157 @@ function setBrandFilter(b) {
   renderSchedule(document.getElementById('app'));
 }
 
+function setModalCoverStyle(key, styleId, btnEl) {
+  styleChoice[key] = styleId;
+  const wrap = document.getElementById('sc_styles');
+  if (wrap) wrap.querySelectorAll('.style-pill').forEach(b => b.classList.remove('on'));
+  if (btnEl) btnEl.classList.add('on');
+  const sub = document.getElementById('sc_btn');
+  if (sub) sub.dataset.style = styleId;
+}
+
+function openScheduleCoverModal(postId, lastResult = null) {
+  const p = scheduledPosts.find(x => Number(x.id) === Number(postId));
+  if (!p) { toast('Planlanmış kayıt bulunamadı.', 'err'); return; }
+  const { apiUrl } = getCfg();
+  const brand = p.brand || 'akilalmaz';
+  const key = p.video_id;
+  const jsKey = escJsAttr(key);
+  const styles = getCoverStylesForBrand(brand);
+  const arch = videos.find(v => safeCoverKey(v.slug) === safeCoverKey(key)) || null;
+  const hasFlow = !!(arch?.meta?.flow_prompt && arch.meta.flow_prompt.trim());
+  const defaultPrompt = hasFlow
+    ? arch.meta.flow_prompt
+    : buildDefaultCoverPrompt(brand, p.title, p.description || p.ig_caption || '');
+  const promptVal = (customPrompts[key] !== undefined) ? customPrompts[key] : defaultPrompt;
+  const fallbackStyle = hasFlow ? 'default' : getBrandConfig(brand).defaultStyle;
+  const chosen = styleChoice[key];
+  const activeStyle = (chosen && styles.some(s => s.id === chosen))
+    ? chosen
+    : (styles.some(s => s.id === fallbackStyle) ? fallbackStyle : (styles[0]?.id || 'default'));
+  const covUrl = lastResult?.imageUrl || getCoverUrl(key, p.cover_url || '');
+  const savedHl = getCoverHeadline(key);
+  const isGen = isCoverGenerating(key);
+
+  let resultBanner = '';
+  if (lastResult) {
+    const sk = safeCoverKey(key);
+    const ytOk = (lastResult.syncRes?.yt_thumbnails_applied || []).find(x => x.video_id === key || safeCoverKey(x.video_id) === sk || safeCoverKey(x.video_id) === lastResult.resKey);
+    const ytErr = (lastResult.syncRes?.yt_thumbnail_errors || []).find(x => x.video_id === key || safeCoverKey(x.video_id) === sk || safeCoverKey(x.video_id) === lastResult.resKey);
+    const detailTxt = p.yt_uploaded
+      ? (ytOk
+          ? `cover_url güncellendi ve YouTube videosuna (${ytOk.yt_id}) thumbnails.set uygulandı.`
+          : ytErr
+            ? `cover_url güncellendi · YouTube thumbnail uyarısı: ${ytErr.error}`
+            : (lastResult.syncRes?.error ? `cover_url güncellendi · YT sync uyarısı: ${lastResult.syncRes.error}` : 'cover_url güncellendi ve /api/schedule/sync-covers tamamlandı.'))
+      : 'Yeni 9:16 kapak bu planlı kaydın cover_url alanına otomatik bağlandı.';
+    resultBanner = `<div class="name-row" style="margin-bottom:12px;border-color:var(--ok)"><div style="font-size:12.5px"><b style="color:var(--ok)">✓ Kapak Hazır & Bağlandı</b><div class="panel-sub" style="margin-top:2px">${esc(detailTxt)}</div></div><span class="badge b-ok">9:16</span></div>`;
+  }
+
+  document.getElementById('modal-root').innerHTML = `
+    <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="panel-head" style="margin-bottom:12px">
+          <div>
+            <h3 style="margin:0;font-size:18px;font-weight:800">🎨 Kapak Üret / <span class="serif">Yenile</span></h3>
+            <div class="panel-sub">${esc(brandLabel(brand))} · ${esc(p.title)}</div>
+          </div>
+          <button class="btn ghost icon-btn" onclick="closeModal()" aria-label="Kapat">✕</button>
+        </div>
+
+        ${resultBanner}
+
+        <div class="name-row" style="margin-bottom:14px;align-items:flex-start;border-color:${p.yt_uploaded ? 'var(--ok)' : 'var(--line-strong)'}">
+          <div style="display:flex;gap:12px;align-items:center;min-width:0">
+            ${covUrl
+              ? `<img src="${esc(covUrl)}" alt="" style="width:48px;height:84px;object-fit:cover;border-radius:6px;border:1px solid var(--ink);cursor:zoom-in;flex-shrink:0" onclick="openLightbox('${escJsAttr(covUrl)}', '${escJsAttr(p.title)}')" title="Tam boyutta büyüt">`
+              : `<div class="sched-thumb empty" style="width:48px;height:84px;cursor:default">9:16<br>Kapak yok</div>`}
+            <div style="font-size:12.5px;line-height:1.5">
+              <div><b class="mono" style="color:var(--coral)">${esc(p.label_tr || p.scheduled_at)}</b> · <span class="mono">${esc(key)}</span></div>
+              <div class="panel-sub" style="margin-top:3px">
+                Üretilen 9:16 Vertex AI kapağı otomatik olarak bu kaydın <code class="mono">cover_url</code> alanına yazılır.
+                ${p.yt_uploaded
+                  ? `<br><b style="color:var(--ok)">YouTube'a yüklü:</b> üretim bitince <code class="mono">/api/schedule/sync-covers</code> (<code class="mono">thumbnails.set</code>) otomatik çağrılıp YouTube küçük resmi güncellenir.`
+                  : `<br>YouTube Studio'ya yüklendiğinde bu kapak otomatik küçük resim olarak gönderilir.`}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="fld">
+          <label><span>Markaya Özel Kapak Stili</span><span class="hint">${esc(brandLabel(brand))}</span></label>
+          <div id="sc_styles" class="style-pills">
+            ${styles.map(s => `<button type="button" class="style-pill ${activeStyle === s.id ? 'on' : ''}" onclick="setModalCoverStyle('${jsKey}', '${escJsAttr(s.id)}', this)">${esc(s.label)}</button>`).join('')}
+          </div>
+        </div>
+
+        <div class="fld">
+          <label for="sc_hl"><span>Kapak Üzeri Başlık (opsiyonel)</span><span class="hint">Boş bırakılırsa yazısız 9:16 üretilir</span></label>
+          <input id="sc_hl" type="text" placeholder="Örn: 12 BİN YILLIK SIR!" value="${esc(savedHl)}" oninput="setCoverHeadline('${jsKey}', this.value)">
+        </div>
+
+        <div class="fld">
+          <label for="sc_prompt"><span>Vertex AI 9:16 Kapak Promptu</span><span class="hint">Düzenleyebilirsiniz</span></label>
+          <textarea id="sc_prompt" class="mono-input" rows="4" oninput="customPrompts['${jsKey}']=this.value">${esc(promptVal)}</textarea>
+        </div>
+
+        <div id="sc_msg" class="panel-sub" style="margin-bottom:12px;min-height:18px"></div>
+
+        <div class="row">
+          <button id="sc_btn" data-style="${esc(activeStyle)}" class="btn primary" ${!apiUrl || isGen ? 'disabled' : ''} onclick="submitScheduleCoverModal(${Number(p.id)})">
+            ${isGen ? '<span class="spinner"></span> Üretiliyor…' : (covUrl ? '🔄 9:16 Kapağı Yenile & Bağla' : '✨ 9:16 Kapak Üret & Bağla')}
+          </button>
+          <button class="btn" onclick="openInCoverStudio('${jsKey}', '${escJsAttr(brand)}')">🎨 Stüdyoda Aç</button>
+          ${covUrl ? `<a class="btn" href="${esc(covUrl)}" download="${esc(safeCoverKey(key))}_kapak.png" target="_blank">⬇ PNG</a>` : ''}
+          <button class="btn ghost" onclick="closeModal()">Kapat</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function submitScheduleCoverModal(postId) {
+  const p = scheduledPosts.find(x => Number(x.id) === Number(postId));
+  if (!p) return;
+  const brand = p.brand || 'akilalmaz';
+  const key = p.video_id;
+  const promptEl = document.getElementById('sc_prompt');
+  const hlEl = document.getElementById('sc_hl');
+  const msg = document.getElementById('sc_msg');
+  const btn = document.getElementById('sc_btn');
+  const prompt = (promptEl?.value || '').trim();
+  const headline = (hlEl?.value || '').trim();
+  const styleId = styleChoice[key] || btn?.dataset?.style || getBrandConfig(brand).defaultStyle;
+
+  if (!prompt) {
+    if (msg) { msg.style.color = 'var(--err)'; msg.textContent = 'Lütfen bir 9:16 görsel promptu girin.'; }
+    return;
+  }
+
+  customPrompts[key] = prompt;
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Vertex AI üretiyor…'; }
+  if (msg) { msg.style.color = 'var(--ink-mute)'; msg.textContent = '1/2 · Vertex AI 9:16 kapak üretiliyor…'; }
+
+  try {
+    const result = await runCoverGeneration({
+      key,
+      aspectRatio: '9:16',
+      prompt,
+      headline,
+      brand,
+      styleId,
+      onStep: txt => { const m = document.getElementById('sc_msg'); if (m) m.textContent = txt; },
+    });
+    summarizeCoverToast(key, result);
+    openScheduleCoverModal(postId, result);
+  } catch (e) {
+    const m = document.getElementById('sc_msg');
+    if (m) { m.style.color = 'var(--err)'; m.textContent = 'Hata: ' + (e.message || e); }
+    const b = document.getElementById('sc_btn');
+    if (b) { b.disabled = false; b.textContent = '🔄 Tekrar Dene'; }
+    toast('Kapak üretimi hatası: ' + (e.message || e), 'err');
+  }
+}
+
 function renderSchedule(el) {
   const { apiUrl } = getCfg();
   const visible = activeBrandFilter === 'all'
@@ -1409,11 +1993,12 @@ function renderSchedule(el) {
         <div>
           <div class="eyebrow">BÖLÜM III · 4 MARKA OTONOM YAYIN TAKVİMİ</div>
           <h2>Yayın Planı & <span class="serif">YouTube Studio</span> Senkronu</h2>
-          <p>Her marka için ayrı haftalık kural: <b>Pzt 06:01 → Paz 06:07 (TR)</b>. Claude Code ile ürettiğiniz videoları ister tek komutla (<code class="mono">likya_push.py</code>) ister aşağıdaki <b>MP4 Yükle</b> butonuyla anında planlayın.</p>
+          <p>Her marka için ayrı haftalık kural: <b>Pzt 06:01 → Paz 06:07 (TR)</b>. Her karttan tek tıkla 9:16 Vertex AI kapağı üretebilir, kaydın <code class="mono">cover_url</code> alanına ve YouTube küçük resmine otomatik bağlayabilirsiniz.</p>
         </div>
         <div class="row">
           <button class="btn primary" ${!apiUrl?'disabled':''} onclick="openUploadModal()">➕ MP4 Yükle & Planla</button>
           <button class="btn ink-btn" ${!apiUrl?'disabled':''} onclick="bulkScheduleAll()">⚡ AKILALMAZ Videolarını Sırala</button>
+          <button class="btn" ${!apiUrl || coverSyncing?'disabled':''} onclick="syncAllCoversToYouTube()">${coverSyncing ? '<span class="spinner"></span> Senkronlanıyor…' : '🖼️ Kapakları YT\'ye Senkronla'}</button>
           <button class="btn" ${!apiUrl?'disabled':''} onclick="runSchedulerTick()">▶ Senkronize Et</button>
         </div>
       </div>
@@ -1451,43 +2036,49 @@ function renderSchedule(el) {
         <div class="panel-head">
           <div>
             <h3 style="margin:0;font-size:17px;font-weight:800">Yayın Kuyruğu (${visible.length} kayıt · ${planned} bekliyor)</h3>
-            <div class="panel-sub">Her marka yalnızca V. Ayarlar'da kendisine atanmış YouTube & Instagram kanallarına yayınlanır.</div>
+            <div class="panel-sub">Her marka yalnızca VI. Ayarlar'da kendisine atanmış YouTube & Instagram kanallarına yayınlanır.</div>
           </div>
         </div>
         ${visible.length ? `
-          <table class="sch">
-            <thead><tr><th>Marka</th><th>Yayın Zamanı (TR)</th><th>Video</th><th>YouTube Studio</th><th>Durum</th><th>İşlem</th></tr></thead>
-            <tbody>
-              ${visible.map(p => `
-                <tr>
-                  <td><span class="badge b-mut">${esc(brandLabel(p.brand || 'akilalmaz'))}</span></td>
-                  <td class="mono" style="white-space:nowrap;color:var(--coral);font-weight:600">${esc(p.label_tr || p.scheduled_at)}</td>
-                  <td>
-                    <div style="display:flex;align-items:center;gap:10px">
-                      ${p.cover_url ? `<img src="${esc(p.cover_url)}" alt="" style="width:28px;height:48px;object-fit:cover;border-radius:4px;border:1px solid var(--line)">` : ''}
-                      <div>
-                        <b>${esc(p.title)}</b>
-                        <div class="panel-sub mono">${esc(p.video_id)}</div>
-                        ${p.error_message ? `<div style="color:var(--err);font-size:11.5px;margin-top:2px">${esc(p.error_message)}</div>` : ''}
-                      </div>
+          <div class="sched-list">
+            ${visible.map(p => {
+              const brand = p.brand || 'akilalmaz';
+              const covUrl = getCoverUrl(p.video_id, p.cover_url || '');
+              const isGen = isCoverGenerating(p.video_id);
+              return `
+                <article class="sched-card">
+                  ${covUrl
+                    ? `<div class="sched-thumb" onclick="openLightbox('${escJsAttr(covUrl)}', '${escJsAttr(p.title)}')" title="9:16 kapağı büyüt"><img src="${esc(covUrl)}" alt="${esc(p.title)}" loading="lazy"></div>`
+                    : `<div class="sched-thumb empty" onclick="openScheduleCoverModal(${Number(p.id)})" title="9:16 kapak üret">${isGen ? '<span class="spinner"></span>' : '9:16<br>Kapak yok'}</div>`}
+
+                  <div class="sched-body">
+                    <div class="sched-meta">
+                      <span class="badge b-mut">${esc(brandLabel(brand))}</span>
+                      <span class="mono" style="color:var(--coral);font-weight:700;font-size:12.5px">${esc(p.label_tr || p.scheduled_at)}</span>
+                      <span class="badge ${badge(p.status)}"><span class="dot"></span>${esc(p.status)}</span>
+                      ${p.yt_uploaded
+                        ? `<a class="badge b-ok" href="${esc(p.yt_video_url || '#')}" target="_blank" rel="noreferrer"><span class="dot"></span>YT Planlandı ↗</a>`
+                        : `<span class="badge b-mut">YT Kuyrukta</span>`}
+                      ${covUrl
+                        ? `<span class="badge b-ok">9:16 Kapak ✓</span>`
+                        : `<span class="badge b-mut">Kapak Yok</span>`}
                     </div>
-                  </td>
-                  <td>
-                    ${p.yt_uploaded
-                      ? `<a class="badge b-ok" href="${esc(p.yt_video_url || '#')}" target="_blank" rel="noreferrer"><span class="dot"></span>YT Planlandı ↗</a>`
-                      : `<span class="badge b-mut">YT Kuyrukta</span>`}
-                  </td>
-                  <td><span class="badge ${badge(p.status)}"><span class="dot"></span>${esc(p.status)}</span></td>
-                  <td style="white-space:nowrap">
-                    <div class="row">
-                      ${!p.yt_uploaded && p.status === 'Planlandı' ? `<button class="btn sm ink-btn" onclick="syncPostToYouTube(${p.id})">YT'ye Planla</button>` : ''}
-                      ${p.status === 'Planlandı' || p.status === 'Hata' ? `<button class="btn sm" onclick="runScheduleNow(${p.id})">Şimdi Yayınla</button>` : ''}
-                      <button class="btn sm danger" onclick="cancelSchedule(${p.id})">Sil</button>
-                    </div>
-                  </td>
-                </tr>`).join('')}
-            </tbody>
-          </table>
+                    <div class="sched-title">${esc(p.title)}</div>
+                    <div class="panel-sub mono">${esc(p.video_id)}</div>
+                    ${p.error_message ? `<div style="color:var(--err);font-size:12px">${esc(p.error_message)}</div>` : ''}
+                  </div>
+
+                  <div class="sched-actions">
+                    <button class="btn sm primary" ${!apiUrl || isGen ? 'disabled' : ''} onclick="openScheduleCoverModal(${Number(p.id)})">
+                      ${isGen ? '<span class="spinner"></span> Kapak Üretiliyor…' : '🎨 Kapak Üret / Yenile'}
+                    </button>
+                    ${!p.yt_uploaded && p.status === 'Planlandı' ? `<button class="btn sm ink-btn" onclick="syncPostToYouTube(${Number(p.id)})">YT'ye Planla</button>` : ''}
+                    ${p.status === 'Planlandı' || p.status === 'Hata' ? `<button class="btn sm" onclick="runScheduleNow(${Number(p.id)})">Şimdi Yayınla</button>` : ''}
+                    <button class="btn sm danger" onclick="cancelSchedule(${Number(p.id)})">Sil</button>
+                  </div>
+                </article>`;
+            }).join('')}
+          </div>
         ` : `<div class="ph">Bu marka için henüz planlanmış yayın yok. Yukarıdaki <b>➕ MP4 Yükle & Planla</b> butonunu kullanabilirsiniz.</div>`}
       </div>
     </div>`;

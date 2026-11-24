@@ -1725,53 +1725,97 @@ async function reschedulePost(id) {
   }
 }
 
-function syncUploadChannelSelection(brand) {
+function syncUploadChannelSelection(brand, platformMode) {
+  const pm = platformMode || document.getElementById('u_btn')?.dataset.platform || 'ALL';
   document.querySelectorAll('input[name="u_acc_id"]').forEach(cb => {
-    cb.checked = (cb.dataset.brand || 'akilalmaz') === brand;
+    const brandOk = (cb.dataset.brand || 'akilalmaz') === brand;
+    const platOk = pm === 'ALL' || cb.dataset.platform === pm;
+    cb.checked = brandOk && platOk;
   });
 }
 
-function openUploadModal(defaultBrand) {
-  const b = (defaultBrand && defaultBrand !== 'all') ? defaultBrand : (activeBrandFilter !== 'all' ? activeBrandFilter : 'kadimanadolu');
-  const slotLbl = nextByBrand[b]?.label_tr || nextSlot?.label_tr || '06:01–06:07 TR';
-  const chHtml = accounts.length ? `
+function toggleUploadMode(mode) {
+  const box = document.getElementById('u_sched_box');
+  const btnNow = document.getElementById('um_now');
+  const btnSch = document.getElementById('um_sch');
+  const subBtn = document.getElementById('u_btn');
+  if (box) box.style.display = mode === 'schedule' ? 'block' : 'none';
+  if (btnNow) btnNow.classList.toggle('on', mode === 'now');
+  if (btnSch) btnSch.classList.toggle('on', mode === 'schedule');
+  if (subBtn) {
+    subBtn.dataset.mode = mode;
+    subBtn.textContent = mode === 'schedule' ? '📅 Yükle & Planla' : '🚀 Yükle & Şimdi Yayınla';
+  }
+}
+
+function openUploadModal(defaultBrand, platformMode = 'ALL') {
+  const b = (defaultBrand && defaultBrand !== 'all') ? defaultBrand : (activeBrandFilter !== 'all' ? activeBrandFilter : 'likyastudios');
+  const pm = (platformMode === 'YT' || platformMode === 'IG') ? platformMode : 'ALL';
+  const slotObj = nextByBrand[b] || nextSlot;
+  const slotLbl = slotObj?.label_tr || '06:01–06:07 TR';
+  const defaultTrLocal = slotObj?.scheduled_at_tr ? slotObj.scheduled_at_tr.slice(0, 16) : '';
+  const modalTitle = pm === 'YT'
+    ? '▶️ YouTube Shorts <span class="serif">Yayın & Planla</span>'
+    : pm === 'IG'
+      ? '📸 Instagram Reels <span class="serif">Yayın & Planla</span>'
+      : '➕ Ortak (YT + IG) <span class="serif">Yükle & Planla</span>';
+  const modalSub = pm === 'YT'
+    ? 'Sadece seçtiğiniz YouTube kanalına Shorts olarak planlayın veya anında yayınlayın.'
+    : pm === 'IG'
+      ? 'Sadece seçtiğiniz Instagram hesabına Reels olarak planlayın veya anında yayınlayın.'
+      : 'MP4 dosyasını seçtiğiniz YouTube + Instagram kanallarına birlikte planlayın veya yayınlayın.';
+
+  const filteredAccs = pm === 'ALL' ? accounts : accounts.filter(a => a.platform === pm);
+  const chHtml = filteredAccs.length ? `
     <div class="fld">
-      <label>Hedef Kanallar (YouTube & Instagram)</label>
-      ${accounts.map(a => {
+      <label>Hedef Kanallar (${pm === 'YT' ? 'YouTube' : pm === 'IG' ? 'Instagram' : 'YouTube & Instagram'})</label>
+      ${filteredAccs.map(a => {
         const ab = a.brand || 'akilalmaz';
-        return `<label class="name-row" style="cursor:pointer"><span><input type="checkbox" name="u_acc_id" value="${a.id}" data-brand="${esc(ab)}" ${ab === b ? 'checked' : ''}> <b>${a.platform==='YT'?'▶️ YouTube':'📸 Instagram'}</b> · ${esc(a.account_name)} <span class="badge b-mut" style="margin-left:4px">${esc(brandLabel(ab))}</span></span><span class="badge b-ok">Bağlı</span></label>`;
+        const checked = ab === b ? 'checked' : '';
+        return `<label class="name-row" style="cursor:pointer"><span><input type="checkbox" name="u_acc_id" value="${a.id}" data-brand="${esc(ab)}" data-platform="${esc(a.platform)}" ${checked}> <b>${a.platform==='YT'?'▶️ YouTube':'📸 Instagram'}</b> · ${esc(a.account_name)} <span class="badge b-mut" style="margin-left:4px">${esc(brandLabel(ab))}</span></span><span class="badge b-ok">Bağlı</span></label>`;
       }).join('')}
-    </div>` : `<div class="panel-sub" style="margin-bottom:10px">Not: Henüz bağlı kanal yok; planlama yaptıktan sonra Ayarlar'dan YouTube/Instagram bağlayabilirsiniz.</div>`;
+    </div>` : `<div class="block" style="border-color:var(--warn);margin-bottom:12px"><b>Bağlı ${pm === 'YT' ? 'YouTube' : pm === 'IG' ? 'Instagram' : 'YouTube/Instagram'} kanalı bulunamadı</b><div class="panel-sub" style="margin-top:4px">Planlama yapabilirsiniz; yayın saatinden önce VI. Ayarlar'dan kanalı bağlayıp markasını seçmeniz yeterlidir.</div></div>`;
 
   document.getElementById('modal-root').innerHTML = `
     <div class="modal-bg" onclick="if(event.target===this)closeModal()">
       <div class="modal">
         <div class="panel-head" style="margin-bottom:14px">
           <div>
-            <h3 style="margin:0;font-size:18px;font-weight:800">➕ MP4 Yükle & <span class="serif">Planla</span></h3>
-            <div class="panel-sub">Claude Code ile ürettiğiniz MP4'ü seçin; seçtiğiniz YouTube + Instagram kanallarının kuyruğuna eklensin.</div>
+            <h3 style="margin:0;font-size:18px;font-weight:800">${modalTitle}</h3>
+            <div class="panel-sub">${modalSub}</div>
           </div>
           <button class="btn ghost icon-btn" onclick="closeModal()" aria-label="Kapat">✕</button>
         </div>
+        <div class="style-pills" style="margin-bottom:14px">
+          <button type="button" id="um_sch" class="style-pill on" onclick="toggleUploadMode('schedule')">📅 Planla</button>
+          <button type="button" id="um_now" class="style-pill" onclick="toggleUploadMode('now')">🚀 Şimdi Yayınla</button>
+        </div>
         <div class="fld">
           <label for="u_brand">Hedef Marka <span class="hint" id="u_slot_hint">${esc(slotLbl)}</span></label>
-          <select id="u_brand" onchange="document.getElementById('u_slot_hint').textContent=(nextByBrand[this.value]?.label_tr||'06:01–06:07 TR');syncUploadChannelSelection(this.value)">
+          <select id="u_brand" onchange="const s=nextByBrand[this.value]||nextSlot;document.getElementById('u_slot_hint').textContent=(s?.label_tr||'06:01–06:07 TR');if(s?.scheduled_at_tr)document.getElementById('u_dt').value=s.scheduled_at_tr.slice(0,16);syncUploadChannelSelection(this.value,'${pm}')">
             ${BRANDS_LIST.map(x => `<option value="${x.id}" ${x.id===b?'selected':''}>${x.icon} ${x.label} (${x.handles})</option>`).join('')}
           </select>
+        </div>
+        <div id="u_sched_box" class="block" style="margin-bottom:14px;border-color:var(--coral)">
+          <div class="fld" style="margin-bottom:8px">
+            <label for="u_dt"><span>Yayın Tarihi & Saati (Türkiye Saati · UTC+3)</span><span class="hint">${esc(slotLbl)}</span></label>
+            <input id="u_dt" type="datetime-local" value="${esc(defaultTrLocal)}" disabled>
+          </div>
+          <label class="tg"><input type="checkbox" id="u_auto_slot" checked onchange="document.getElementById('u_dt').disabled=this.checked"> Otomatik sıradaki haftalık slotu kullan (06:01–06:07 TR)</label>
+          ${pm !== 'IG' ? `<label class="tg" style="margin-top:6px"><input type="checkbox" id="u_yt_sync" checked> YouTube Studio'ya hemen <b>"Planlandı"</b> olarak yükle (<code class="mono">publishAt</code>)</label>` : ''}
         </div>
         ${chHtml}
         <div class="fld">
           <label for="u_file">Video Dosyası (.mp4)</label>
           <input id="u_file" type="file" accept="video/mp4" style="padding:8px;background:var(--paper);border:1px dashed var(--line-strong);border-radius:6px;width:100%">
         </div>
-        <div class="fld"><label for="u_title">YouTube Shorts Başlığı</label><input id="u_title" type="text" placeholder="Çarpıcı başlık #shorts"></div>
-        <div class="fld"><label for="u_desc">YouTube Açıklama & Etiketler</label><textarea id="u_desc" rows="2" placeholder="Kısa açıklama + #shorts #etiketler"></textarea></div>
-        <div class="fld"><label for="u_ig">Instagram Reels Açıklama (opsiyonel — boşsa YT açıklaması kullanılır)</label><textarea id="u_ig" rows="2"></textarea></div>
+        <div class="fld"><label for="u_title">${pm === 'IG' ? 'Reels Başlığı / Kayıt Adı' : 'YouTube Shorts Başlığı'}</label><input id="u_title" type="text" placeholder="${pm === 'IG' ? 'Kısa başlık / konu adı' : 'Çarpıcı başlık #shorts'}"></div>
+        ${pm !== 'IG' ? `<div class="fld"><label for="u_desc">YouTube Açıklama & Etiketler</label><textarea id="u_desc" rows="2" placeholder="Kısa açıklama + #shorts #etiketler"></textarea></div>` : ''}
+        ${pm !== 'YT' ? `<div class="fld"><label for="u_ig">Instagram Reels Açıklama & Etiketler</label><textarea id="u_ig" rows="3" placeholder="Reels açıklaması + #reels #keşfet"></textarea></div>` : ''}
         <div class="fld"><label for="u_cov">Vertex AI 9:16 Kapak Promptu (opsiyonel — doluysa kapağı otomatik üretir)</label><textarea id="u_cov" class="mono-input" rows="2" placeholder="Bold vertical 9:16 illustration..., no text"></textarea></div>
-        <label class="tg" style="margin-bottom:10px"><input type="checkbox" id="u_yt_sync" checked> YouTube Studio'ya hemen <b>"Planlandı"</b> olarak yükle (<code class="mono">publishAt</code>)</label>
         <div id="u_msg" class="panel-sub" style="margin-bottom:10px"></div>
         <div class="row">
-          <button id="u_btn" class="btn primary" onclick="submitUploadAndSchedule()">🚀 Yükle & Planla</button>
+          <button id="u_btn" data-mode="schedule" data-platform="${pm}" class="btn primary" onclick="submitUploadAndSchedule()">📅 Yükle & Planla</button>
           <button class="btn" onclick="closeModal()">İptal</button>
         </div>
       </div>
@@ -1782,18 +1826,25 @@ async function submitUploadAndSchedule() {
   const { apiUrl, apiKey } = getCfg();
   const msg = document.getElementById('u_msg');
   const btn = document.getElementById('u_btn');
+  const mode = btn?.dataset.mode || 'schedule';
+  const pm = btn?.dataset.platform || 'ALL';
   const fileEl = document.getElementById('u_file');
   const file = fileEl?.files?.[0];
   const brand = document.getElementById('u_brand').value;
   const title = document.getElementById('u_title').value.trim();
-  const desc = document.getElementById('u_desc').value.trim() || title;
-  const ig = document.getElementById('u_ig').value.trim() || desc;
+  const descEl = document.getElementById('u_desc');
+  const igEl = document.getElementById('u_ig');
+  const desc = (descEl ? descEl.value.trim() : '') || (igEl ? igEl.value.trim() : '') || title;
+  const ig = (igEl ? igEl.value.trim() : '') || desc;
   const covPrompt = document.getElementById('u_cov').value.trim();
-  const syncYt = document.getElementById('u_yt_sync').checked;
+  const syncYt = pm === 'IG' ? false : (document.getElementById('u_yt_sync')?.checked ?? true);
+  const autoSlot = document.getElementById('u_auto_slot')?.checked ?? true;
+  const dtVal = document.getElementById('u_dt')?.value || '';
   const selectedAccIds = [...document.querySelectorAll('input[name="u_acc_id"]:checked')].map(el => Number(el.value));
 
   if (!file) { msg.textContent = 'Lütfen bir .mp4 dosyası seçin.'; return; }
   if (!title) { msg.textContent = 'Lütfen bir başlık girin.'; return; }
+  if (mode === 'now' && !selectedAccIds.length) { msg.textContent = 'Şimdi yayınlamak için en az bir bağlı kanal seçin.'; return; }
 
   btn.disabled = true;
   msg.style.color = 'var(--ink-mute)';
@@ -1821,11 +1872,27 @@ async function submitUploadAndSchedule() {
       coverUrl = covRes.image_url;
     }
 
-    msg.textContent = '3/3 · Yayın planına ve kanallara ekleniyor…';
-    const schRes = await apiFetch('/api/schedule', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    if (mode === 'now') {
+      msg.textContent = '3/3 · Seçilen kanallara yayınlanıyor…';
+      await apiFetch('/api/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          video_id: upData.video_id,
+          video_url: upData.video_url,
+          title,
+          description: desc,
+          ig_caption: ig,
+          cover_url: coverUrl,
+          thumb_offset_ms: 1500,
+          account_ids: selectedAccIds,
+        }),
+      });
+      closeModal();
+      toast(`${brandLabel(brand)} · ${pm === 'IG' ? 'Instagram' : pm === 'YT' ? 'YouTube' : 'YT + IG'} yayını başlatıldı!`, 'ok');
+    } else {
+      msg.textContent = '3/3 · Yayın planına ve kanallara ekleniyor…';
+      const payload = {
         brand,
         video_id: upData.video_id,
         video_url: upData.video_url,
@@ -1834,12 +1901,18 @@ async function submitUploadAndSchedule() {
         ig_caption: ig,
         cover_url: coverUrl,
         account_ids: selectedAccIds,
-        auto_next_slot: true,
+        auto_next_slot: !!autoSlot,
         sync_youtube_now: syncYt,
-      }),
-    });
-    closeModal();
-    toast(`${brandLabel(brand)} için planlandı: ${schRes.post?.label_tr || ''}`, 'ok');
+      };
+      if (!autoSlot && dtVal) payload.scheduled_at = dtVal + ':00+03:00';
+      const schRes = await apiFetch('/api/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      closeModal();
+      toast(`${brandLabel(brand)} için planlandı: ${schRes.post?.label_tr || ''}`, 'ok');
+    }
     await load(true);
   } catch (e) {
     msg.style.color = 'var(--err)';
@@ -2017,6 +2090,61 @@ function postMatchesBrand(p, brandId) {
   return getScheduledTargets(p).some(a => (a.brand || 'akilalmaz') === brandId);
 }
 
+function renderScheduleCard(p, platformScope, apiUrl) {
+  const brand = p.brand || 'akilalmaz';
+  const covUrl = getCoverUrl(p.video_id, p.cover_url || '');
+  const isGen = isCoverGenerating(p.video_id);
+  const targets = getScheduledTargets(p);
+  const scopedTargets = platformScope ? targets.filter(a => a.platform === platformScope) : targets;
+  const targetBadgesHtml = scopedTargets.length
+    ? `<div class="sched-meta" style="margin-top:4px">${scopedTargets.map(a => {
+        if (a.platform === 'YT') {
+          const st = p.yt_uploaded ? 'Planlandı' : (p.status === 'Yayında' ? 'Yayında' : 'Kuyrukta');
+          const cls = p.yt_uploaded || p.status === 'Yayında' ? 'b-ok' : 'b-mut';
+          return `<span class="badge ${cls}">▶️ ${esc(a.account_name)} · ${st}</span>`;
+        }
+        const st = p.status === 'Yayında' ? 'Yayında' : 'Planlandı';
+        const cls = p.status === 'Yayında' ? 'b-ok' : 'b-warn';
+        return `<span class="badge ${cls}">📸 ${esc(a.account_name)} · ${st}</span>`;
+      }).join('')}</div>`
+    : `<div class="panel-sub" style="margin-top:4px">${platformScope === 'IG' ? 'Bu marka için henüz bağlı Instagram hesabı yok' : 'Bu marka için henüz bağlı YouTube kanalı yok'} (<a href="#settings" onclick="setView('settings');return false">VI. Ayarlar</a>).</div>`;
+
+  return `
+    <article class="sched-card">
+      ${covUrl
+        ? `<div class="sched-thumb" onclick="openLightbox('${escJsAttr(covUrl)}', '${escJsAttr(p.title)}')" title="9:16 kapağı büyüt"><img src="${esc(covUrl)}" alt="${esc(p.title)}" loading="lazy"></div>`
+        : `<div class="sched-thumb empty" onclick="openScheduleCoverModal(${Number(p.id)})" title="9:16 kapak üret">${isGen ? '<span class="spinner"></span>' : '9:16<br>Kapak yok'}</div>`}
+
+      <div class="sched-body">
+        <div class="sched-meta">
+          <span class="badge b-mut">${esc(brandLabel(brand))}</span>
+          <span class="mono" style="color:var(--coral);font-weight:700;font-size:12.5px">${esc(p.label_tr || p.scheduled_at)}</span>
+          <span class="badge ${badge(p.status)}"><span class="dot"></span>${esc(p.status)}</span>
+          ${platformScope !== 'IG' && p.yt_uploaded
+            ? `<a class="badge b-ok" href="${esc(p.yt_video_url || '#')}" target="_blank" rel="noreferrer"><span class="dot"></span>YT Planlandı ↗</a>`
+            : ''}
+          ${covUrl
+            ? `<span class="badge b-ok">9:16 Kapak ✓</span>`
+            : `<span class="badge b-mut">Kapak Yok</span>`}
+        </div>
+        <div class="sched-title">${esc(p.title)}</div>
+        <div class="panel-sub mono">${esc(p.video_id)}</div>
+        ${targetBadgesHtml}
+        ${p.error_message ? `<div style="color:var(--err);font-size:12px">${esc(p.error_message)}</div>` : ''}
+      </div>
+
+      <div class="sched-actions">
+        <button class="btn sm primary" ${!apiUrl || isGen ? 'disabled' : ''} onclick="openScheduleCoverModal(${Number(p.id)})">
+          ${isGen ? '<span class="spinner"></span> Kapak…' : '🎨 Kapak'}
+        </button>
+        ${p.status === 'Hata' ? `<button class="btn sm ink-btn" onclick="reschedulePost(${Number(p.id)})">🔁 Sıradaki Slota Planla</button>` : ''}
+        ${platformScope !== 'IG' && !p.yt_uploaded && p.status === 'Planlandı' ? `<button class="btn sm ink-btn" onclick="syncPostToYouTube(${Number(p.id)})">YT'ye Planla</button>` : ''}
+        ${p.status === 'Planlandı' || p.status === 'Hata' ? `<button class="btn sm" onclick="runScheduleNow(${Number(p.id)})">Şimdi Yayınla</button>` : ''}
+        <button class="btn sm danger" onclick="cancelSchedule(${Number(p.id)})">Sil</button>
+      </div>
+    </article>`;
+}
+
 function renderSchedule(el) {
   const { apiUrl } = getCfg();
   const visible = activeBrandFilter === 'all'
@@ -2024,20 +2152,38 @@ function renderSchedule(el) {
     : scheduledPosts.filter(p => postMatchesBrand(p, activeBrandFilter));
   const planned = visible.filter(p => p.status === 'Planlandı').length;
   const ytSynced = visible.filter(p => p.yt_uploaded).length;
+  const activeBrand = activeBrandFilter === 'all' ? 'likyastudios' : activeBrandFilter;
   const activeSlot = activeBrandFilter === 'all'
     ? nextSlot
     : (nextByBrand[activeBrandFilter] || nextSlot);
+
+  const brandAccounts = activeBrandFilter === 'all'
+    ? accounts
+    : accounts.filter(a => (a.brand || 'akilalmaz') === activeBrandFilter);
+  const ytAccounts = brandAccounts.filter(a => a.platform === 'YT');
+  const igAccounts = brandAccounts.filter(a => a.platform === 'IG');
+
+  const ytPosts = visible.filter(p => {
+    const t = getScheduledTargets(p);
+    if (Array.isArray(p.account_ids) && p.account_ids.length) return t.some(a => a.platform === 'YT');
+    return t.length === 0 || t.some(a => a.platform === 'YT');
+  });
+  const igPosts = visible.filter(p => {
+    const t = getScheduledTargets(p);
+    if (Array.isArray(p.account_ids) && p.account_ids.length) return t.some(a => a.platform === 'IG');
+    return t.length === 0 || t.some(a => a.platform === 'IG');
+  });
 
   el.innerHTML = `
     <div class="workspace-full">
       <div class="studio-hero">
         <div>
-          <div class="eyebrow">BÖLÜM III · 4 MARKA OTONOM YAYIN TAKVİMİ</div>
-          <h2>Yayın Planı & <span class="serif">YouTube / Instagram</span> Senkronu</h2>
-          <p>Her marka için ayrı haftalık kural: <b>Pzt 06:01 → Paz 06:07 (TR)</b>. Planlanan her video bağlı YouTube ve Instagram kanallarında listelenir; tek tıkla 9:16 Vertex AI kapağı üretip bağlayabilirsiniz.</p>
+          <div class="eyebrow">BÖLÜM III · 4 MARKA YOUTUBE & INSTAGRAM YAYIN MERKEZİ</div>
+          <h2>Yayın Planı & <span class="serif">YouTube / Instagram</span> Masası</h2>
+          <p>Her marka (<b>AKILALMAZ, Kadim Anadolu, Likya Studios, FoodBallsTV</b>) için <b>YouTube Shorts</b> ve <b>Instagram Reels</b> videolarını ayrı ayrı veya birlikte planlayıp yayınlayın.</p>
         </div>
         <div class="row">
-          <button class="btn primary" ${!apiUrl?'disabled':''} onclick="openUploadModal()">➕ MP4 Yükle & Planla</button>
+          <button class="btn primary" ${!apiUrl?'disabled':''} onclick="openUploadModal('${activeBrand}', 'ALL')">➕ Ortak (YT + IG) Planla</button>
           <button class="btn ink-btn" ${!apiUrl?'disabled':''} onclick="bulkScheduleAll()">⚡ AKILALMAZ Videolarını Sırala</button>
           <button class="btn" ${!apiUrl || coverSyncing?'disabled':''} onclick="syncAllCoversToYouTube()">${coverSyncing ? '<span class="spinner"></span> Senkronlanıyor…' : '🖼️ Kapakları YT\'ye Senkronla'}</button>
           <button class="btn" ${!apiUrl?'disabled':''} onclick="runSchedulerTick()">▶ Senkronize Et</button>
@@ -2056,7 +2202,7 @@ function renderSchedule(el) {
         <div class="panel">
           <div class="block-label">Sıradaki Boş Slot (${activeBrandFilter==='all'?'AKILALMAZ':brandLabel(activeBrandFilter)})</div>
           <div style="font-size:19px;font-weight:800;margin-top:6px;color:var(--coral)" class="mono">${esc(activeSlot?.label_tr || 'API bağlantısı gerekli')}</div>
-          <div class="panel-sub" style="margin-top:6px">Her marka kendi bağımsız 06:01–06:07 TR kuyruğuna sahiptir.</div>
+          <div class="panel-sub" style="margin-top:6px">Her marka kendi bağımsız 06:01–06:07 TR kuyruğuna sahiptir (${planned} bekliyor).</div>
         </div>
         <div class="panel">
           <div class="block-label">YouTube Studio Günlük Kotası</div>
@@ -2073,74 +2219,40 @@ function renderSchedule(el) {
         </div>
       </div>
 
-      <div class="panel">
-        <div class="panel-head">
-          <div>
-            <h3 style="margin:0;font-size:17px;font-weight:800">Yayın Kuyruğu (${visible.length} kayıt · ${planned} bekliyor)</h3>
-            <div class="panel-sub">Her kayıt hedef YouTube ve Instagram kanallarına otomatik olarak yayınlanır.</div>
+      <div class="grid2" style="align-items:start">
+        <div class="panel">
+          <div class="panel-head" style="margin-bottom:12px">
+            <div>
+              <h3 style="margin:0;font-size:17px;font-weight:800">▶️ YouTube Shorts · Yayın & Planlama (${ytPosts.length})</h3>
+              <div class="panel-sub" style="margin-top:4px">
+                ${ytAccounts.length
+                  ? ytAccounts.map(a => `<span class="badge b-ok" style="margin-right:4px">▶️ ${esc(a.account_name)}</span>`).join('')
+                  : `Bu marka için bağlı YouTube kanalı yok · <a href="#settings" onclick="setView('settings');return false">VI. Ayarlar'dan bağla</a>`}
+              </div>
+            </div>
+            <button class="btn sm primary" ${!apiUrl?'disabled':''} onclick="openUploadModal('${activeBrand}', 'YT')">➕ YouTube'a Planla / Yayınla</button>
           </div>
+          ${ytPosts.length
+            ? `<div class="sched-list">${ytPosts.map(p => renderScheduleCard(p, 'YT', apiUrl)).join('')}</div>`
+            : `<div class="ph">Bu marka için YouTube Shorts kuyruğunda henüz video yok.<br><button class="btn sm primary" style="margin-top:10px" ${!apiUrl?'disabled':''} onclick="openUploadModal('${activeBrand}', 'YT')">➕ İlk YouTube Videosunu Planla / Yayınla</button></div>`}
         </div>
-        ${visible.length ? `
-          <div class="sched-list">
-            ${visible.map(p => {
-              const brand = p.brand || 'akilalmaz';
-              const covUrl = getCoverUrl(p.video_id, p.cover_url || '');
-              const isGen = isCoverGenerating(p.video_id);
-              const targets = getScheduledTargets(p);
-              const ytTargets = targets.filter(a => a.platform === 'YT');
-              const igTargets = targets.filter(a => a.platform === 'IG');
-              const targetBadgesHtml = targets.length
-                ? `<div class="sched-meta" style="margin-top:4px">${targets.map(a => {
-                    if (a.platform === 'YT') {
-                      const st = p.yt_uploaded ? 'Planlandı' : (p.status === 'Yayında' ? 'Yayında' : 'Kuyrukta');
-                      const cls = p.yt_uploaded || p.status === 'Yayında' ? 'b-ok' : 'b-mut';
-                      return `<span class="badge ${cls}">▶️ ${esc(a.account_name)} · ${st}</span>`;
-                    }
-                    const st = p.status === 'Yayında' ? 'Yayında' : 'Planlandı';
-                    const cls = p.status === 'Yayında' ? 'b-ok' : 'b-warn';
-                    return `<span class="badge ${cls}">📸 ${esc(a.account_name)} · ${st}</span>`;
-                  }).join('')}</div>`
-                : `<div class="panel-sub" style="margin-top:4px">Henüz bu markaya bağlı YouTube/Instagram kanalı yok (VI. Ayarlar'dan eşleştirin).</div>`;
-              return `
-                <article class="sched-card">
-                  ${covUrl
-                    ? `<div class="sched-thumb" onclick="openLightbox('${escJsAttr(covUrl)}', '${escJsAttr(p.title)}')" title="9:16 kapağı büyüt"><img src="${esc(covUrl)}" alt="${esc(p.title)}" loading="lazy"></div>`
-                    : `<div class="sched-thumb empty" onclick="openScheduleCoverModal(${Number(p.id)})" title="9:16 kapak üret">${isGen ? '<span class="spinner"></span>' : '9:16<br>Kapak yok'}</div>`}
 
-                  <div class="sched-body">
-                    <div class="sched-meta">
-                      <span class="badge b-mut">${esc(brandLabel(brand))}</span>
-                      <span class="mono" style="color:var(--coral);font-weight:700;font-size:12.5px">${esc(p.label_tr || p.scheduled_at)}</span>
-                      <span class="badge ${badge(p.status)}"><span class="dot"></span>${esc(p.status)}</span>
-                      ${p.yt_uploaded
-                        ? `<a class="badge b-ok" href="${esc(p.yt_video_url || '#')}" target="_blank" rel="noreferrer"><span class="dot"></span>YT Planlandı ↗</a>`
-                        : (ytTargets.length ? `<span class="badge b-mut">YT Kuyrukta</span>` : '')}
-                      ${igTargets.length
-                        ? `<span class="badge ${p.status === 'Yayında' ? 'b-ok' : 'b-warn'}">📸 IG ${p.status === 'Yayında' ? 'Yayında' : 'Planlandı'} (${igTargets.length})</span>`
-                        : ''}
-                      ${covUrl
-                        ? `<span class="badge b-ok">9:16 Kapak ✓</span>`
-                        : `<span class="badge b-mut">Kapak Yok</span>`}
-                    </div>
-                    <div class="sched-title">${esc(p.title)}</div>
-                    <div class="panel-sub mono">${esc(p.video_id)}</div>
-                    ${targetBadgesHtml}
-                    ${p.error_message ? `<div style="color:var(--err);font-size:12px">${esc(p.error_message)}</div>` : ''}
-                  </div>
-
-                  <div class="sched-actions">
-                    <button class="btn sm primary" ${!apiUrl || isGen ? 'disabled' : ''} onclick="openScheduleCoverModal(${Number(p.id)})">
-                      ${isGen ? '<span class="spinner"></span> Kapak Üretiliyor…' : '🎨 Kapak Üret / Yenile'}
-                    </button>
-                    ${p.status === 'Hata' ? `<button class="btn sm ink-btn" onclick="reschedulePost(${Number(p.id)})">🔁 Sıradaki Slota Planla</button>` : ''}
-                    ${!p.yt_uploaded && p.status === 'Planlandı' ? `<button class="btn sm ink-btn" onclick="syncPostToYouTube(${Number(p.id)})">YT'ye Planla</button>` : ''}
-                    ${p.status === 'Planlandı' || p.status === 'Hata' ? `<button class="btn sm" onclick="runScheduleNow(${Number(p.id)})">Şimdi Yayınla</button>` : ''}
-                    <button class="btn sm danger" onclick="cancelSchedule(${Number(p.id)})">Sil</button>
-                  </div>
-                </article>`;
-            }).join('')}
+        <div class="panel">
+          <div class="panel-head" style="margin-bottom:12px">
+            <div>
+              <h3 style="margin:0;font-size:17px;font-weight:800">📸 Instagram Reels · Yayın & Planlama (${igPosts.length})</h3>
+              <div class="panel-sub" style="margin-top:4px">
+                ${igAccounts.length
+                  ? igAccounts.map(a => `<span class="badge b-ok" style="margin-right:4px">📸 ${esc(a.account_name)}</span>`).join('')
+                  : `Bu marka için bağlı Instagram hesabı yok · <a href="#settings" onclick="setView('settings');return false">VI. Ayarlar'dan bağla</a>`}
+              </div>
+            </div>
+            <button class="btn sm primary" ${!apiUrl?'disabled':''} onclick="openUploadModal('${activeBrand}', 'IG')">➕ Instagram'a Planla / Yayınla</button>
           </div>
-        ` : `<div class="ph">Bu marka için henüz planlanmış yayın yok. Yukarıdaki <b>➕ MP4 Yükle & Planla</b> butonunu kullanabilirsiniz.</div>`}
+          ${igPosts.length
+            ? `<div class="sched-list">${igPosts.map(p => renderScheduleCard(p, 'IG', apiUrl)).join('')}</div>`
+            : `<div class="ph">Bu marka için Instagram Reels kuyruğunda henüz video yok.<br><button class="btn sm primary" style="margin-top:10px" ${!apiUrl?'disabled':''} onclick="openUploadModal('${activeBrand}', 'IG')">➕ İlk Instagram Reels'ini Planla / Yayınla</button></div>`}
+        </div>
       </div>
     </div>`;
 }

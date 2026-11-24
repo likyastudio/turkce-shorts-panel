@@ -84,7 +84,8 @@ def instagram_oauth_start(redirect_to: str = Query(default=FRONTEND_URL)):
         "client_id": aid,
         "redirect_uri": f"{base}/api/oauth/instagram/callback",
         "response_type": "code",
-        "scope": "instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement",
+        "scope": "instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management",
+        "auth_type": "rerequest",
         "state": redirect_to,
     }
     return RedirectResponse("https://www.facebook.com/v21.0/dialog/oauth?" + urllib.parse.urlencode(params))
@@ -125,23 +126,51 @@ def instagram_oauth_callback(code: str, state: str = FRONTEND_URL):
     expires_at = (datetime.now(timezone.utc) + timedelta(seconds=int(ll.get("expires_in", 5184000)))).isoformat()
 
     # 3. Discover linked Instagram Business/Creator accounts via user's Facebook Pages
+    page_fields = "id,name,instagram_business_account{id,username},connected_instagram_account{id,username}"
     pages = requests.get(
         f"{IG_GRAPH_BASE_URL}/me/accounts",
-        params={"fields": "id,name,instagram_business_account{id,username}", "access_token": access},
+        params={"fields": page_fields, "limit": 100, "access_token": access},
         timeout=20,
     ).json()
 
-    saved = 0
-    for pg in pages.get("data", []):
-        ig = pg.get("instagram_business_account")
-        if ig and ig.get("id"):
+    candidate_pages: list[dict] = list(pages.get("data", []))
+
+    # Fallback / supplement: pages owned or managed via Meta Business Portfolios
+    biz = requests.get(
+        f"{IG_GRAPH_BASE_URL}/me/businesses",
+        params={
+            "fields": f"id,name,owned_pages{{{page_fields}}},client_pages{{{page_fields}}}",
+            "limit": 50,
+            "access_token": access,
+        },
+        timeout=20,
+    ).json()
+    for b in biz.get("data", []):
+        candidate_pages.extend((b.get("owned_pages") or {}).get("data", []))
+        candidate_pages.extend((b.get("client_pages") or {}).get("data", []))
+
+    seen_ig_ids: set[str] = set()
+    page_names: list[str] = []
+    for pg in candidate_pages:
+        if pg.get("name") and pg["name"] not in page_names:
+            page_names.append(pg["name"])
+        ig = pg.get("instagram_business_account") or pg.get("connected_instagram_account")
+        if ig and ig.get("id") and ig["id"] not in seen_ig_ids:
             uname = "@" + ig.get("username", pg.get("name", "instagram"))
             db.upsert_account("IG", uname, ig["id"], access, None, expires_at)
-            saved += 1
+            seen_ig_ids.add(ig["id"])
 
-    if saved == 0:
+    if not seen_ig_ids:
+        diag_parts = []
+        if pages.get("error"):
+            diag_parts.append(f"me/accounts hata: {pages['error'].get('message')}")
+        diag_parts.append(f"bulunan FB sayfası: {len(page_names)}" + (f" ({', '.join(page_names[:5])})" if page_names else ""))
         raise HTTPException(
             status_code=400,
-            detail="Bağlı bir Instagram İşletme/İçerik Üreticisi hesabı bulunamadı (Instagram hesabınız bir Facebook Sayfasına bağlı olmalıdır).",
+            detail=(
+                "Bağlı bir Instagram İşletme/İçerik Üreticisi hesabı bulunamadı "
+                "(Instagram hesabınız bir Facebook Sayfasına bağlı olmalıdır). "
+                f"[Tanı: {'; '.join(diag_parts)}]"
+            ),
         )
     return RedirectResponse(f"{state}#settings?connected=IG")

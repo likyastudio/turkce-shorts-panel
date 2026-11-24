@@ -154,14 +154,10 @@ def test_weekly_slots_and_scheduler():
     assert len(r_get.json()["posts"]) >= 2
 
     # Schedule past due item and trigger tick
-    r_due = client.post("/api/schedule", headers=HDR, json={
-        "video_id": "v_due",
-        "video_url": "https://example.com/due.mp4",
-        "title": "Due Video",
-        "scheduled_at": "2020-01-01T00:00:00+00:00",
-    })
-    assert r_due.status_code == 200
-    due_id = r_due.json()["post"]["id"]
+    past = {"video_id": "v_due", "video_url": "https://example.com/due.mp4", "title": "Due Video",
+            "scheduled_at": "2020-01-01T00:00:00+00:00"}
+    assert client.post("/api/schedule", headers=HDR, json=past).status_code == 400
+    due_id = db.create_scheduled_post("v_due", past["video_url"], "Due Video", "", past["scheduled_at"])["id"]
 
     with patch("app.main._execute_scheduled_post") as m_exec:
         r_tick = client.post("/api/scheduler/tick", headers=HDR)
@@ -173,3 +169,108 @@ def test_weekly_slots_and_scheduler():
     assert client.delete(f"/api/schedule/{p1['id']}", headers=HDR).status_code == 200
 
 
+def _future(days=5):
+    from datetime import datetime, timedelta, timezone
+    return (datetime.now(timezone.utc) + timedelta(days=days)).isoformat()
+
+
+def _post(vid, brand="foodballstv", at=None, ids=None):
+    return db.create_scheduled_post(vid, "https://example.com/x.mp4", "T", "D", at or _future(), brand=brand, account_ids=ids)
+
+
+def test_publish_requires_channels():
+    r = client.post("/api/publish", headers=HDR, json={"video_id": "x", "video_url": "https://example.com/x.mp4", "title": "t", "description": ""})
+    assert r.status_code == 400
+
+
+def test_missing_server_key_fails_closed():
+    with patch.dict(os.environ, {"API_SECRET_KEY": ""}):
+        assert client.get("/api/accounts").status_code == 503
+
+
+def test_oauth_needs_key_and_signed_state():
+    assert client.get("/api/oauth/youtube/start", follow_redirects=False).status_code == 405
+    assert client.post("/api/oauth/youtube/start", json={}).status_code == 401
+    with patch.dict(os.environ, {"YT_CLIENT_ID": "cid"}):
+        bad = client.post("/api/oauth/youtube/start", headers=HDR, json={"redirect_to": "https://evil.example/"})
+        assert bad.status_code == 400
+        ok = client.post("/api/oauth/youtube/start", headers=HDR, json={"redirect_to": "https://studio.likyastudios.live/", "brand": "foodballstv"})
+    from urllib.parse import parse_qs, urlparse
+    from app.security import read_state
+    state = parse_qs(urlparse(ok.json()["url"]).query)["state"][0]
+    assert read_state(state, "YT")["b"] == "foodballstv"
+    for s in ("", "https://evil.example/", state[:-1] + ("0" if state[-1] != "0" else "1")):
+        assert client.get("/api/oauth/youtube/callback", params={"code": "c", "state": s}, follow_redirects=False).status_code == 400
+    c = client.get("/api/oauth/youtube/callback", params={"error": "access_denied", "state": state}, follow_redirects=False)
+    assert c.headers["location"].startswith("https://studio.likyastudios.live/#settings?cancelled")
+
+
+def test_claims_are_exclusive_and_stale_recovers():
+    p = _post("claim1", at="2020-01-01T00:00:00+00:00")
+    assert db.claim_scheduled_post(p["id"]) is True
+    assert db.claim_scheduled_post(p["id"]) is False
+    with db.get_conn() as (c, _p, _g):
+        c.execute("UPDATE scheduled_posts SET updated_at='2020-01-01' WHERE id=?", (p["id"],))
+    assert db.fail_stale_publishing() >= 1
+    assert db.get_scheduled_post(p["id"])["status"] == "Hata"
+    q = _post("claim2")
+    assert db.claim_yt_sync(q["id"]) is True
+    assert db.claim_yt_sync(q["id"]) is False
+    assert db.claim_scheduled_post(q["id"]) is False  # yükleme sürerken yayınlanmaz
+
+
+def test_partial_presync_not_uploaded_twice():
+    import asyncio
+    from app import main
+    a = db.upsert_account("YT", "A", "UCA", "t", brand="pmarka")
+    b = db.upsert_account("YT", "B", "UCB", "t", brand="pmarka")
+    p = _post("partial", brand="pmarka")
+    calls = []
+
+    def fake(**kw):
+        calls.append(kw)
+        if len(calls) == 2:
+            raise RuntimeError("kota")
+        return {"status": "YT Planlandı", "url": f"https://youtube.com/shorts/{len(calls)}"}
+
+    with patch("app.main.download_video_to_tmp", return_value="/tmp/none.mp4"), patch("app.main.covers_svc.list_covers", return_value=[]), \
+         patch("app.main.YT_DAILY_PRESYNC_LIMIT", 999), patch("app.main.publish_to_youtube", side_effect=fake):
+        asyncio.run(main._sync_scheduled_post_to_youtube(db.get_scheduled_post(p["id"])))
+        row = db.get_scheduled_post(p["id"])
+        assert not row["yt_uploaded"] and "kota" in row["error_message"]
+        asyncio.run(main._sync_scheduled_post_to_youtube(row))
+    assert len(calls) == 3  # 2 + yalnızca başarısız hesap
+    assert db.get_scheduled_post(p["id"])["yt_uploaded"]
+    assert {a["id"], b["id"]} == db.get_published_account_ids(p)
+
+
+def test_edit_schedule_and_guards():
+    body = {"brand": "foodballstv", "video_id": "edit1", "video_url": "https://example.com/e.mp4", "title": "Eski", "scheduled_at": _future(), "sync_youtube_now": False}
+    pid = client.post("/api/schedule", headers=HDR, json=body).json()["post"]["id"]
+    assert client.post("/api/schedule", headers=HDR, json=body).status_code == 409
+    r = client.patch(f"/api/schedule/{pid}", headers=HDR, json={"title": "Yeni", "ig_caption": "ig", "scheduled_at": "2099-01-02T06:01:00"})
+    assert r.status_code == 200 and r.json()["post"]["title"] == "Yeni"
+    assert r.json()["post"]["scheduled_at"].startswith("2099-01-02T03:01")  # TR saati -> UTC
+    assert client.patch(f"/api/schedule/{pid}", headers=HDR, json={"scheduled_at": "2020-01-01T00:00:00"}).status_code == 400
+    db.mark_scheduled_yt_uploaded(pid, "https://youtube.com/shorts/z")
+    assert client.patch(f"/api/schedule/{pid}", headers=HDR, json={"title": "Başka"}).status_code == 409
+    assert client.patch(f"/api/schedule/{pid}", headers=HDR, json={"title": "Yeni", "ig_caption": "ig2"}).status_code == 200
+    assert client.post(f"/api/schedule/{pid}/reschedule", headers=HDR).status_code in (400, 409)
+    assert client.delete(f"/api/schedule/{pid}", headers=HDR).json()["yt_video_url"]
+    done = _post("done1")
+    db.update_scheduled_post(done["id"], "Yayında")
+    assert client.post(f"/api/schedule/{done['id']}/run-now", headers=HDR).status_code == 409
+
+
+def test_media_range(tmp_path):
+    os.makedirs("/tmp/uploads/akilalmaz", exist_ok=True)
+    with open("/tmp/uploads/akilalmaz/rng.mp4", "wb") as f:
+        f.write(b"0123456789")
+    u = "/api/media/akilalmaz/rng.mp4"
+    assert client.get(u).content == b"0123456789"
+    r = client.get(u, headers={"Range": "bytes=2-4"})
+    assert r.status_code == 206 and r.content == b"234" and r.headers["content-range"] == "bytes 2-4/10"
+    assert client.get(u, headers={"Range": "bytes=-3"}).content == b"789"
+    assert client.get(u, headers={"Range": "bytes=50-"}).status_code == 416
+    bad = client.post("/api/media/upload", headers=HDR, files={"file": ("a.mp4", b"not a video", "video/mp4")})
+    assert bad.status_code == 400

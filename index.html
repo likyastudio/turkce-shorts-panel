@@ -232,9 +232,9 @@
 
   /* Layout */
   main { max-width: 1480px; margin: 0 auto; padding: 24px 26px 56px; }
-  .workspace-videos { display: grid; grid-template-columns: 320px 1fr; gap: 26px; align-items: start; }
+  .workspace-videos { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 26px; align-items: start; }
   .workspace-full { max-width: 1200px; margin: 0 auto; }
-  @media (max-width: 960px) { .workspace-videos { grid-template-columns: 1fr; } }
+  @media (max-width: 960px) { .workspace-videos { grid-template-columns: minmax(0, 1fr); } }
 
   /* Sidebar Queue */
   .sidebar { display: flex; flex-direction: column; gap: 10px; position: sticky; top: 76px; max-height: calc(100vh - 96px); }
@@ -245,12 +245,12 @@
     font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-mute);
   }
   .search-wrap { position: relative; }
-  .search-wrap input { padding-left: 32px; height: 36px; background: var(--bone); }
+  .search-wrap input[type=text] { padding-left: 32px; height: 36px; background: var(--bone); }
   .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--ink-faint); pointer-events: none; }
 
   .queue-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; padding-right: 4px; }
   .q-item {
-    display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: center;
+    display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: center;
     padding: 10px 12px;
     background: var(--bone);
     border: 1px solid var(--line);
@@ -297,8 +297,8 @@
   .plat-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
 
   /* Stage */
-  .stage { display: grid; grid-template-columns: minmax(270px, 340px) 1fr; gap: 26px; align-items: start; }
-  @media (max-width: 1180px) { .stage { grid-template-columns: 1fr; } }
+  .stage { display: grid; grid-template-columns: minmax(270px, 340px) minmax(0, 1fr); gap: 26px; align-items: start; }
+  @media (max-width: 1180px) { .stage { grid-template-columns: minmax(0, 1fr); } .monitor-wrap { max-width: 420px; } }
 
   .monitor-wrap { display: flex; flex-direction: column; gap: 12px; }
   .player {
@@ -431,10 +431,10 @@
   .sched-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
   .sched-title { font-size: 15px; font-weight: 700; color: var(--ink); line-height: 1.3; letter-spacing: -0.01em; }
   .sched-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 7px; }
-  .grid2 .sched-card { grid-template-columns: 60px 1fr; align-items: start; }
+  .grid2 .sched-card { grid-template-columns: 60px minmax(0, 1fr); align-items: start; }
   .grid2 .sched-actions { grid-column: 1 / -1; justify-content: flex-start; padding-top: 8px; border-top: 1px solid var(--line); }
   @media (max-width: 860px) {
-    .sched-card { grid-template-columns: 52px 1fr; }
+    .sched-card { grid-template-columns: 52px minmax(0, 1fr); }
     .sched-actions { grid-column: 1 / -1; justify-content: flex-start; }
   }
 
@@ -536,6 +536,43 @@
   .toast.err { border-left: 4px solid var(--coral); }
   .toast.info { border-left: 4px solid var(--mustard); }
   @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Telefon ve dar ekran */
+  #net-warn { max-width: 1480px; margin: 14px auto 0; padding: 0 26px; }
+  #net-warn:empty { display: none; }
+  #net-warn > div { padding: 11px 15px; border: 1px solid var(--err); background: var(--err-bg); color: var(--err); border-radius: var(--radius-md); font-size: 13px; font-weight: 600; }
+  .sched-desc { font-size: 12.5px; color: var(--ink-soft); }
+  .sched-desc summary { cursor: pointer; font-weight: 700; color: var(--ink-mute); padding: 4px 0; }
+  .sched-desc p { margin: 4px 0 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .sched-desc span { overflow-wrap: anywhere; }
+  .sched-desc b { font-size: 11px; color: var(--ink-faint); }
+  .sched-snip { font-size: 12.5px; color: var(--ink-mute); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+  .fld .count { float: right; font-weight: 500; font-size: 11px; color: var(--ink-faint); }
+  .modal video { width: 100%; max-height: 70vh; background: #000; border-radius: var(--radius-md); }
+  :focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; }
+  @media (max-width: 960px) {
+    .sidebar { position: static; max-height: none; }
+    .queue-list { max-height: 44vh; }
+  }
+  @media (max-width: 700px) {
+    header.topbar { padding: 10px 14px; gap: 8px; }
+    nav.seg-nav { order: 3; width: 100%; flex-wrap: nowrap; overflow-x: auto; border-radius: 14px; }
+    nav.seg-nav button { flex: 0 0 auto; padding: 9px 12px; }
+    main { padding: 16px 14px 48px; }
+    #net-warn { padding: 0 14px; }
+    .panel { padding: 16px 14px; min-width: 0; }
+    .grid2, .grid3 { grid-template-columns: minmax(0, 1fr) !important; }
+    .studio-hero h2 { font-size: 25px; }
+    .modal-bg { padding: 10px; }
+    .modal { padding: 16px 14px; max-height: 94vh; }
+    .sched-card, .grid2 .sched-card { padding: 12px; gap: 12px; }
+    .sched-title, .panel-sub { overflow-wrap: anywhere; }
+    .badge { white-space: normal; }
+    .btn.sm { min-height: 36px; }
+    .name-row { flex-wrap: wrap; }
+    input[type=text], input[type=password], input[type=number], input[type=datetime-local], textarea, select { font-size: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
 </style>
 </head>
 <body>
@@ -565,6 +602,7 @@
   </div>
 </header>
 
+<div id="net-warn" role="alert"></div>
 <main id="app"></main>
 <div id="modal-root"></div>
 <div id="toast-root" aria-live="polite"></div>
@@ -748,21 +786,54 @@ async function apiFetch(path, opts = {}) {
   if (apiKey) headers['X-API-Key'] = apiKey;
   const r = await fetch(apiUrl + path, { ...opts, headers });
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(data.detail || `HTTP ${r.status}`);
+  if (!r.ok) {
+    const d = data.detail;
+    const text = Array.isArray(d) ? d.map(x => x.msg).join(' · ') : d;
+    const err = new Error(r.status === 401 ? 'API anahtarı geçersiz veya boş. Ayarlar sekmesinden kontrol edin.' : (text || `HTTP ${r.status}`));
+    err.status = r.status;
+    throw err;
+  }
   return data;
 }
 
+let syncError = '';
+const jsonPost = (path, body, method = 'POST') => apiFetch(path, {
+  method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+});
+// Aynı düğmeye iki kez basılınca isteğin iki kez gitmesini engeller
+const busyOps = new Set();
+async function once(key, fn) {
+  if (busyOps.has(key)) { toast('Bu işlem zaten sürüyor…', 'info'); return; }
+  busyOps.add(key);
+  try { return await fn(); } finally { busyOps.delete(key); }
+}
+// 'YYYY-MM-DDTHH:MM' (Türkiye saati) -> ISO; boş veya geçmişse hata
+function trTimeToIso(val) {
+  if (!val) throw new Error('Yayın tarihi ve saatini seçin ya da otomatik slotu açın.');
+  const iso = val.slice(0, 16) + ':00+03:00';
+  if (!(new Date(iso).getTime() > Date.now())) throw new Error('Geçmiş bir saate plan yapılamaz.');
+  return iso;
+}
+const isoToTrLocal = iso => {
+  const t = new Date(iso).getTime();
+  return Number.isFinite(t) ? new Date(t + 3 * 3600e3).toISOString().slice(0, 16) : '';
+};
+
 async function syncBackend() {
   const { apiUrl } = getCfg();
-  if (!apiUrl) { apiHealth = null; accounts = []; pubByVideo = {}; scheduledPosts = []; nextSlot = null; nextByBrand = {}; return; }
+  if (!apiUrl) { syncError = ''; apiHealth = null; accounts = []; pubByVideo = {}; scheduledPosts = []; nextSlot = null; nextByBrand = {}; return; }
   try {
     apiHealth = await fetch(apiUrl + '/api/health', { cache: 'no-store' }).then(r => r.json());
+    // Bir istek hata verirse eski veriyi koru; "boş liste" gibi gösterme
+    let firstErr = '';
+    const soft = (path, prev) => apiFetch(path).catch(e => { firstErr = firstErr || e.message; return prev; });
     const [accRes, stRes, covRes, schRes] = await Promise.all([
-      apiFetch('/api/accounts').catch(() => ({ accounts: [] })),
-      apiFetch('/api/publish/status').catch(() => ({ by_video: {} })),
-      apiFetch('/api/covers').catch(() => ({ covers: {} })),
-      apiFetch('/api/schedule').catch(() => ({ posts: [], next_slot: null, next_by_brand: {}, rule: '', yt_quota_today: { used: 0, limit: 5 } })),
+      soft('/api/accounts', { accounts }),
+      soft('/api/publish/status', { by_video: pubByVideo }),
+      soft('/api/covers', { covers: {} }),
+      soft('/api/schedule', { posts: scheduledPosts, next_slot: nextSlot, next_by_brand: nextByBrand, rule: schedRule, yt_quota_today: ytQuotaToday }),
     ]);
+    syncError = firstErr;
     accounts = accRes.accounts || [];
     pubByVideo = stRes.by_video || {};
     const mergedCovers = { ...savedCovers };
@@ -784,6 +855,7 @@ async function syncBackend() {
     schedRule = schRes.rule || 'Pzt 06:01 · Sal 06:02 · Çar 06:03 · Per 06:04 · Cum 06:05 · Cmt 06:06 · Paz 06:07 (TR)';
   } catch (e) {
     apiHealth = { ok: false, error: String(e.message || e) };
+    syncError = 'Sunucuya ulaşılamadı: ' + (e.message || e);
   }
 }
 
@@ -823,7 +895,35 @@ function openLightbox(url, title) {
       <img src="${esc(url)}" alt="${esc(title || 'Kapak önizleme')}" onclick="event.stopPropagation()">
     </div>`;
 }
-function closeModal() { document.getElementById('modal-root').innerHTML = ''; }
+let modalOpener = null;
+function closeModal() {
+  document.getElementById('modal-root').innerHTML = '';
+  if (modalOpener && document.contains(modalOpener)) modalOpener.focus();
+  modalOpener = null;
+}
+new MutationObserver(() => {
+  const m = document.querySelector('#modal-root .modal');
+  if (!m || m.getAttribute('role')) return;
+  modalOpener = document.activeElement;
+  m.setAttribute('role', 'dialog');
+  m.setAttribute('aria-modal', 'true');
+  const h = m.querySelector('h3');
+  if (h) { h.id = 'modal-title'; m.setAttribute('aria-labelledby', 'modal-title'); }
+  m.tabIndex = -1;
+  m.focus();
+  m.querySelectorAll('[maxlength]').forEach(showCount);
+}).observe(document.getElementById('modal-root'), { childList: true });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('modal-root').children.length) closeModal();
+});
+function showCount(el) {
+  const lab = document.querySelector(`label[for="${el.id}"]`);
+  if (!lab) return;
+  let c = lab.querySelector('.count');
+  if (!c) { c = document.createElement('span'); c.className = 'count'; lab.appendChild(c); }
+  c.textContent = `${el.value.length}/${el.maxLength}`;
+}
+document.addEventListener('input', e => { if (e.target.maxLength > 0) showCount(e.target); });
 
 function setCoverStyle(key, styleId) { styleChoice[key] = styleId; renderAll(false); }
 function resetCoverPrompt(key) { delete customPrompts[key]; renderAll(false); }
@@ -1113,7 +1213,18 @@ function platformBadgesHtml(slug) {
   }).join('')}</div>`;
 }
 
+let loadBusy = null;
 async function load(force) {
+  if (loadBusy) { if (!force) return; await loadBusy; }
+  loadBusy = loadInner(force);
+  try { await loadBusy; } finally { loadBusy = null; }
+}
+function renderNetWarn() {
+  const el = document.getElementById('net-warn');
+  const html = syncError ? `<div>${esc(syncError)} Ekrandaki bilgiler güncel olmayabilir.</div>` : '';
+  if (el && el.innerHTML !== html) el.innerHTML = html;
+}
+async function loadInner(force) {
   try {
     const [rv, rk] = await Promise.all([
       fetch('videos.json?t=' + Date.now(), { cache: 'no-store' }),
@@ -1122,12 +1233,14 @@ async function load(force) {
     const data = await rv.json();
     if (rk && rk.ok) kit = await rk.json();
     await syncBackend();
+    renderNetWarn();
     const ns = JSON.stringify([
       data.map(v => [v.slug, v.status, v.updated, v.frames, !!v.meta]),
       pubByVideo,
-      accounts.length,
+      accounts.map(a => [a.id, a.brand]),
       Object.keys(savedCovers).length,
-      scheduledPosts.map(p => [p.id, p.brand, p.status, p.scheduled_at, p.yt_uploaded, p.cover_url]),
+      scheduledPosts.map(p => [p.id, p.brand, p.status, p.scheduled_at, p.yt_uploaded, p.cover_url, p.title, p.description, p.ig_caption, p.error_message]),
+      syncError,
     ]);
     if (!force && ns === sig) return;
     sig = ns; videos = data;
@@ -1532,7 +1645,8 @@ function openPublishModal(slug) {
   const { apiUrl } = getCfg();
   const absUrl = new URL(v.video, location.href).href;
   const coverUrl = getCoverUrl(v.slug);
-  const defaultTrLocal = nextSlot?.scheduled_at_tr ? nextSlot.scheduled_at_tr.slice(0, 16) : '';
+  const pubSlot = nextByBrand.akilalmaz || nextSlot;
+  const defaultTrLocal = pubSlot?.scheduled_at_tr ? pubSlot.scheduled_at_tr.slice(0, 16) : '';
 
   const coverBannerHtml = coverUrl ? `
     <div class="name-row" style="margin-bottom:14px;border-color:var(--ok)">
@@ -1551,7 +1665,7 @@ function openPublishModal(slug) {
     : accounts.length === 0
       ? `<div class="block" style="border-color:var(--warn)"><b>Bağlı kanal bulunamadı</b><div class="panel-sub" style="margin-top:4px">Planlama yapabilirsiniz; yayın saati gelmeden Ayarlar'dan YouTube/IG bağlamanız yeterlidir.</div><div class="row" style="margin-top:10px"><button class="btn primary sm" onclick="closeModal();setView('settings')">Kanal Bağla</button></div></div>`
       : `<div class="fld"><label>Hedef Kanallar (YouTube & Instagram)</label>${accounts.map(a =>
-          `<label class="name-row" style="cursor:pointer"><span><input type="checkbox" name="acc_id" value="${a.id}" checked> <b>${a.platform==='YT'?'▶️ YouTube':'📸 Instagram'}</b> · ${esc(a.account_name)} <span class="badge b-mut" style="margin-left:4px">${esc(brandLabel(a.brand || 'akilalmaz'))}</span></span><span class="badge b-ok">Bağlı</span></label>`
+          `<label class="name-row" style="cursor:pointer"><span><input type="checkbox" name="acc_id" value="${a.id}" data-brand="${esc(a.brand || 'akilalmaz')}" ${(a.brand || 'akilalmaz') === 'akilalmaz' ? 'checked' : ''}> <b>${a.platform==='YT'?'▶️ YouTube':'📸 Instagram'}</b> · ${esc(a.account_name)} <span class="badge b-mut" style="margin-left:4px">${esc(brandLabel(a.brand || 'akilalmaz'))}</span></span><span class="badge b-ok">Bağlı</span></label>`
         ).join('')}</div>`;
 
   document.getElementById('modal-root').innerHTML = `
@@ -1568,11 +1682,17 @@ function openPublishModal(slug) {
           <button type="button" id="pm_now" class="style-pill" onclick="togglePubMode('now')">🚀 Şimdi Yayınla</button>
           <button type="button" id="pm_sch" class="style-pill on" onclick="togglePubMode('schedule')">📅 Planla (06:01–06:07 TR)</button>
         </div>
+        <div class="fld">
+          <label for="p_brand">Hedef Marka</label>
+          <select id="p_brand" onchange="onPublishBrand(this.value)">
+            ${BRANDS_LIST.map(x => `<option value="${x.id}">${x.icon} ${x.label}</option>`).join('')}
+          </select>
+        </div>
         <div id="p_sched_box" class="block" style="margin-bottom:14px;border-color:var(--coral)">
           <div class="fld" style="margin-bottom:8px">
             <label for="p_dt">
               <span>Yayın Tarihi & Saati (Türkiye Saati · UTC+3)</span>
-              <span class="hint">${esc(nextSlot?.label_tr || 'Sıradaki haftalık slot')}</span>
+              <span class="hint" id="p_slot_hint">${esc((nextByBrand.akilalmaz || nextSlot)?.label_tr || 'Sıradaki haftalık slot')}</span>
             </label>
             <input id="p_dt" type="datetime-local" value="${esc(defaultTrLocal)}">
           </div>
@@ -1581,9 +1701,9 @@ function openPublishModal(slug) {
         </div>
         ${chHtml}
         ${coverBannerHtml}
-        <div class="fld"><label for="p_title">YouTube Shorts Başlık</label><input id="p_title" type="text" value="${esc(v.meta?.youtube?.title || v.title)}"></div>
-        <div class="fld"><label for="p_desc">YouTube Shorts Açıklama</label><textarea id="p_desc" rows="3">${esc(v.meta?.youtube?.description || '')}</textarea></div>
-        <div class="fld"><label for="p_ig">Instagram Reels Açıklama</label><textarea id="p_ig" rows="3">${esc(v.meta?.instagram?.caption || '')}</textarea></div>
+        <div class="fld"><label for="p_title">YouTube Shorts Başlık</label><input id="p_title" type="text" maxlength="100" value="${esc(v.meta?.youtube?.title || v.title)}"></div>
+        <div class="fld"><label for="p_desc">YouTube Shorts Açıklama</label><textarea id="p_desc" maxlength="4900" rows="3">${esc(v.meta?.youtube?.description || '')}</textarea></div>
+        <div class="fld"><label for="p_ig">Instagram Reels Açıklama</label><textarea id="p_ig" maxlength="2200" rows="3">${esc(v.meta?.instagram?.caption || '')}</textarea></div>
         <div class="fld"><label for="p_thumb">Instagram Kapak Karesi (ms)</label><input id="p_thumb" type="number" value="1500" min="0" step="500"></div>
         <div id="p_msg" class="panel-sub" style="margin-bottom:10px"></div>
         <div class="row">
@@ -1596,15 +1716,39 @@ function openPublishModal(slug) {
   if (dtInput) dtInput.disabled = true;
 }
 
-async function submitPublish(slug, videoUrl) {
+function onPublishBrand(brand) {
+  const slot = nextByBrand[brand] || nextSlot;
+  document.getElementById('p_slot_hint').textContent = slot?.label_tr || '';
+  if (slot?.scheduled_at_tr) document.getElementById('p_dt').value = slot.scheduled_at_tr.slice(0, 16);
+  document.querySelectorAll('input[name="acc_id"]').forEach(cb => { cb.checked = cb.dataset.brand === brand; });
+}
+
+// Yanlış kanala yayını önler: seçim yoksa durdurur, başka markanın kanalı seçiliyse onay ister
+function checkChannels(inputName, brand) {
+  const all = [...document.querySelectorAll(`input[name="${inputName}"]`)];
+  const on = all.filter(el => el.checked);
+  if (!on.length && all.some(el => el.dataset.brand === brand)) throw new Error('En az bir kanal seçin.');
+  const other = on.filter(el => el.dataset.brand !== brand);
+  if (other.length && !confirm(`Seçtiğiniz ${other.length} kanal "${brandLabel(brand)}" markasına ait değil. Yine de devam edilsin mi?`)) return null;
+  return on.map(el => Number(el.value));
+}
+
+function submitPublish(slug, videoUrl) { return once('publish', () => submitPublishInner(slug, videoUrl)); }
+async function submitPublishInner(slug, videoUrl) {
   const msg = document.getElementById('p_msg');
   const subBtn = document.getElementById('p_submit_btn');
   const mode = subBtn?.dataset.mode || 'now';
-  const checked = [...document.querySelectorAll('input[name="acc_id"]:checked')].map(el => Number(el.value));
-
+  const brand = document.getElementById('p_brand').value;
+  let checked;
+  try { checked = checkChannels('acc_id', brand); } catch (e) { msg.style.color = 'var(--err)'; msg.textContent = e.message; return; }
+  if (!checked) return;
   if (mode === 'now' && !checked.length) { msg.textContent = 'Şimdi yayınlamak için en az bir bağlı kanal seçin.'; return; }
+  if (mode === 'now' && !confirm(`Video ${checked.length} kanalda HEMEN herkese açık yayınlanacak. Devam edilsin mi?`)) return;
 
+  subBtn.disabled = true;
+  msg.style.color = 'var(--ink-mute)';
   const payload = {
+    brand,
     video_id: slug,
     video_url: videoUrl,
     title: document.getElementById('p_title').value,
@@ -1623,7 +1767,7 @@ async function submitPublish(slug, videoUrl) {
       const dtVal = document.getElementById('p_dt')?.value;
       payload.auto_next_slot = !!autoSlot;
       payload.sync_youtube_now = !!syncYt;
-      if (!autoSlot && dtVal) payload.scheduled_at = dtVal + ':00+03:00';
+      if (!autoSlot) payload.scheduled_at = trTimeToIso(dtVal);
       const res = await apiFetch('/api/schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1645,14 +1789,20 @@ async function submitPublish(slug, videoUrl) {
   } catch (e) {
     msg.style.color = 'var(--err)';
     msg.textContent = 'Hata: ' + e.message;
+    subBtn.disabled = false;
   }
 }
 
 /* III. Schedule & YouTube Native PublishAt Workspace */
-async function bulkScheduleAll() {
+function bulkScheduleAll() { return once('bulk', bulkScheduleAllInner); }
+async function bulkScheduleAllInner() {
   const readyVideos = videos.filter(v => v.video);
   if (!readyVideos.length) { toast('Planlanacak hazır video yok.', 'err'); return; }
-  const items = readyVideos.map(v => ({
+  const queued = new Set(scheduledPosts.filter(p => p.brand === 'akilalmaz' && p.status !== 'Hata').map(p => p.video_id));
+  const fresh = readyVideos.filter(v => !queued.has(v.slug));
+  if (!fresh.length) { toast('Bütün hazır videolar zaten planlı veya yayında.', 'info'); return; }
+  if (!confirm(`${fresh.length} AKILALMAZ videosu sırayla her güne bir tane planlanacak ve YouTube'a yüklenmeye başlayacak. Devam edilsin mi?`)) return;
+  const items = fresh.map(v => ({
     video_id: v.slug,
     video_url: new URL(v.video, location.href).href,
     title: v.meta?.youtube?.title || v.title,
@@ -1665,7 +1815,7 @@ async function bulkScheduleAll() {
     const res = await apiFetch('/api/schedule/bulk-daily', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items, sync_youtube_now: true }),
+      body: JSON.stringify({ brand: 'akilalmaz', items, sync_youtube_now: true }),
     });
     toast(`${res.created_count} video planlandı · ${res.yt_sync_queued || 0} video YouTube Studio'ya aktarılıyor!`, 'ok');
     await load(true);
@@ -1674,7 +1824,8 @@ async function bulkScheduleAll() {
   }
 }
 
-async function syncPostToYouTube(id) {
+function syncPostToYouTube(id) { return once('post' + id, () => syncPostToYouTubeInner(id)); }
+async function syncPostToYouTubeInner(id) {
   try {
     const res = await apiFetch(`/api/schedule/${id}/sync-youtube`, { method: 'POST' });
     toast(res.already_uploaded ? 'Bu video zaten YouTube Studio\'da planlı.' : 'YouTube Studio\'ya "Planlandı" olarak yükleniyor…', 'ok');
@@ -1684,7 +1835,9 @@ async function syncPostToYouTube(id) {
   }
 }
 
-async function runSchedulerTick() {
+function runSchedulerTick() { return once('tick', runSchedulerTickInner); }
+async function runSchedulerTickInner() {
+  toast('Kontrol ediliyor, yükleme varsa birkaç dakika sürebilir…', 'info');
   try {
     const res = await apiFetch('/api/scheduler/tick', { method: 'POST' });
     const parts = [];
@@ -1697,7 +1850,12 @@ async function runSchedulerTick() {
   }
 }
 
-async function cancelSchedule(id) {
+function cancelSchedule(id) { return once('post' + id, () => cancelScheduleInner(id)); }
+async function cancelScheduleInner(id) {
+  const p = scheduledPosts.find(x => x.id === id);
+  const ytNote = p?.yt_uploaded && p.status === 'Planlandı'
+    ? '\n\nDİKKAT: Video YouTube\'a planlı olarak yüklendi. Buradan silmek YouTube\'daki videoyu silmez; saati gelince yayınlanır. YouTube Studio\'dan da silmeniz gerekir.' : '';
+  if (!confirm(`"${p?.title || 'Bu gönderi'}" plandan silinsin mi?${ytNote}`)) return;
   try {
     await apiFetch('/api/schedule/' + id, { method: 'DELETE' });
     toast('Planlanan yayın silindi.', 'info');
@@ -1707,7 +1865,12 @@ async function cancelSchedule(id) {
   }
 }
 
-async function runScheduleNow(id) {
+function runScheduleNow(id) { return once('post' + id, () => runScheduleNowInner(id)); }
+async function runScheduleNowInner(id) {
+  const p = scheduledPosts.find(x => x.id === id);
+  const names = p ? getScheduledTargets(p).filter(a => !(p.yt_uploaded && a.platform === 'YT')).map(a => a.account_name) : [];
+  const ytNote = p?.yt_uploaded ? '\n\nYouTube\'daki video kendi planlı saatinde yayınlanır; şimdi yalnızca Instagram\'a gönderilir.' : '';
+  if (!confirm(`"${p?.title || ''}" HEMEN yayınlansın mı?\nKanallar: ${names.join(', ') || 'yok'}${ytNote}`)) return;
   try {
     await apiFetch(`/api/schedule/${id}/run-now`, { method: 'POST' });
     toast('Yayın hemen başlatıldı!', 'ok');
@@ -1717,7 +1880,8 @@ async function runScheduleNow(id) {
   }
 }
 
-async function reschedulePost(id) {
+function reschedulePost(id) { return once('post' + id, () => reschedulePostInner(id)); }
+async function reschedulePostInner(id) {
   try {
     const res = await apiFetch(`/api/schedule/${id}/reschedule`, { method: 'POST' });
     toast(`Sıradaki slota planlandı: ${res.post?.label_tr || ''}`, 'ok');
@@ -1794,13 +1958,13 @@ function openUploadModal(defaultBrand, platformMode = 'ALL') {
         </div>
         <div class="fld">
           <label for="u_brand">Hedef Marka <span class="hint" id="u_slot_hint">${esc(slotLbl)}</span></label>
-          <select id="u_brand" onchange="const s=nextByBrand[this.value]||nextSlot;document.getElementById('u_slot_hint').textContent=(s?.label_tr||'06:01–06:07 TR');if(s?.scheduled_at_tr)document.getElementById('u_dt').value=s.scheduled_at_tr.slice(0,16);syncUploadChannelSelection(this.value,'${pm}')">
+          <select id="u_brand" onchange="const s=nextByBrand[this.value]||nextSlot;document.getElementById('u_slot_hint').textContent=document.getElementById('u_dt_hint').textContent=(s?.label_tr||'06:01–06:07 TR');if(s?.scheduled_at_tr)document.getElementById('u_dt').value=s.scheduled_at_tr.slice(0,16);syncUploadChannelSelection(this.value,'${pm}')">
             ${BRANDS_LIST.map(x => `<option value="${x.id}" ${x.id===b?'selected':''}>${x.icon} ${x.label} (${x.handles})</option>`).join('')}
           </select>
         </div>
         <div id="u_sched_box" class="block" style="margin-bottom:14px;border-color:var(--coral)">
           <div class="fld" style="margin-bottom:8px">
-            <label for="u_dt"><span>Yayın Tarihi & Saati (Türkiye Saati · UTC+3)</span><span class="hint">${esc(slotLbl)}</span></label>
+            <label for="u_dt"><span>Yayın Tarihi & Saati (Türkiye Saati · UTC+3)</span><span class="hint" id="u_dt_hint">${esc(slotLbl)}</span></label>
             <input id="u_dt" type="datetime-local" value="${esc(defaultTrLocal)}" disabled>
           </div>
           <label class="tg"><input type="checkbox" id="u_auto_slot" checked onchange="document.getElementById('u_dt').disabled=this.checked"> Otomatik sıradaki haftalık slotu kullan (06:01–06:07 TR)</label>
@@ -1811,9 +1975,9 @@ function openUploadModal(defaultBrand, platformMode = 'ALL') {
           <label for="u_file">Video Dosyası (.mp4)</label>
           <input id="u_file" type="file" accept="video/mp4" style="padding:8px;background:var(--paper);border:1px dashed var(--line-strong);border-radius:6px;width:100%">
         </div>
-        <div class="fld"><label for="u_title">${pm === 'IG' ? 'Reels Başlığı / Kayıt Adı' : 'YouTube Shorts Başlığı'}</label><input id="u_title" type="text" placeholder="${pm === 'IG' ? 'Kısa başlık / konu adı' : 'Çarpıcı başlık #shorts'}"></div>
-        ${pm !== 'IG' ? `<div class="fld"><label for="u_desc">YouTube Açıklama & Etiketler</label><textarea id="u_desc" rows="2" placeholder="Kısa açıklama + #shorts #etiketler"></textarea></div>` : ''}
-        ${pm !== 'YT' ? `<div class="fld"><label for="u_ig">Instagram Reels Açıklama & Etiketler</label><textarea id="u_ig" rows="3" placeholder="Reels açıklaması + #reels #keşfet"></textarea></div>` : ''}
+        <div class="fld"><label for="u_title">${pm === 'IG' ? 'Reels Başlığı / Kayıt Adı' : 'YouTube Shorts Başlığı'}</label><input id="u_title" type="text" maxlength="100" placeholder="${pm === 'IG' ? 'Kısa başlık / konu adı' : 'Çarpıcı başlık #shorts'}"></div>
+        ${pm !== 'IG' ? `<div class="fld"><label for="u_desc">YouTube Açıklama & Etiketler</label><textarea id="u_desc" maxlength="4900" rows="2" placeholder="Kısa açıklama + #shorts #etiketler"></textarea></div>` : ''}
+        ${pm !== 'YT' ? `<div class="fld"><label for="u_ig">Instagram Reels Açıklama & Etiketler</label><textarea id="u_ig" maxlength="2200" rows="3" placeholder="Reels açıklaması + #reels #keşfet"></textarea></div>` : ''}
         <div class="fld"><label for="u_cov">Vertex AI 9:16 Kapak Promptu (opsiyonel — doluysa kapağı otomatik üretir)</label><textarea id="u_cov" class="mono-input" rows="2" placeholder="Bold vertical 9:16 illustration..., no text"></textarea></div>
         <div id="u_msg" class="panel-sub" style="margin-bottom:10px"></div>
         <div class="row">
@@ -1824,7 +1988,8 @@ function openUploadModal(defaultBrand, platformMode = 'ALL') {
     </div>`;
 }
 
-async function submitUploadAndSchedule() {
+function submitUploadAndSchedule() { return once('upload', submitUploadInner); }
+async function submitUploadInner() {
   const { apiUrl, apiKey } = getCfg();
   const msg = document.getElementById('u_msg');
   const btn = document.getElementById('u_btn');
@@ -1842,10 +2007,20 @@ async function submitUploadAndSchedule() {
   const syncYt = pm === 'IG' ? false : (document.getElementById('u_yt_sync')?.checked ?? true);
   const autoSlot = document.getElementById('u_auto_slot')?.checked ?? true;
   const dtVal = document.getElementById('u_dt')?.value || '';
-  const selectedAccIds = [...document.querySelectorAll('input[name="u_acc_id"]:checked')].map(el => Number(el.value));
-
+  let selectedAccIds, schedIso;
   if (!file) { msg.textContent = 'Lütfen bir .mp4 dosyası seçin.'; return; }
   if (!title) { msg.textContent = 'Lütfen bir başlık girin.'; return; }
+  if (file.size > 31 * 1024 * 1024) {
+    msg.style.color = 'var(--err)';
+    msg.textContent = `Video ${(file.size / 1048576).toFixed(0)} MB. Sunucu en fazla 31 MB kabul ediyor; videoyu daha küçük dışa aktarın.`;
+    return;
+  }
+  try {
+    selectedAccIds = checkChannels('u_acc_id', brand);
+    if (mode === 'schedule' && !autoSlot) schedIso = trTimeToIso(dtVal);
+  } catch (e) { msg.style.color = 'var(--err)'; msg.textContent = e.message; return; }
+  if (!selectedAccIds) return;
+  if (mode === 'now' && selectedAccIds.length && !confirm(`Video ${selectedAccIds.length} kanalda HEMEN herkese açık yayınlanacak. Devam edilsin mi?`)) return;
   if (mode === 'now' && !selectedAccIds.length) { msg.textContent = 'Şimdi yayınlamak için en az bir bağlı kanal seçin.'; return; }
 
   btn.disabled = true;
@@ -1906,7 +2081,7 @@ async function submitUploadAndSchedule() {
         auto_next_slot: !!autoSlot,
         sync_youtube_now: syncYt,
       };
-      if (!autoSlot && dtVal) payload.scheduled_at = dtVal + ':00+03:00';
+      if (schedIso) payload.scheduled_at = schedIso;
       const schRes = await apiFetch('/api/schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2092,6 +2267,101 @@ function postMatchesBrand(p, brandId) {
   return getScheduledTargets(p).some(a => (a.brand || 'akilalmaz') === brandId);
 }
 
+const openDescs = new Set();
+function scheduleTextHtml(p, scope) {
+  const parts = [];
+  if (scope !== 'IG') parts.push(['YouTube açıklaması', p.description]);
+  if (scope !== 'YT') parts.push(['Instagram metni', p.ig_caption || p.description]);
+  const first = (parts[0][1] || '').trim();
+  const key = `${p.id}_${scope || ''}`;
+  if (!parts.some(x => (x[1] || '').trim())) return '<div class="panel-sub" style="color:var(--warn)">Açıklama yazılmamış</div>';
+  return `<details class="sched-desc" ${openDescs.has(key) ? 'open' : ''} ontoggle="openDescs[this.open?'add':'delete']('${key}')">
+      <summary>Açıklama</summary>
+      ${parts.map(([l, t]) => `<b>${l}</b><p>${esc((t || '').trim() || '—')}</p>`).join('')}
+      <span class="mono" style="font-size:11px;color:var(--ink-faint)">${esc(p.video_id)}</span>
+    </details>
+    ${openDescs.has(key) ? '' : `<div class="sched-snip">${esc(first)}</div>`}`;
+}
+
+function openVideoPreview(id) {
+  const p = scheduledPosts.find(x => x.id === id);
+  if (!p) return;
+  const url = /^https?:/.test(p.video_url) ? p.video_url : getCfg().apiUrl + p.video_url;
+  document.getElementById('modal-root').innerHTML = `
+    <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="panel-head">
+          <div><h3 style="margin:0;font-size:17px;font-weight:800">${esc(p.title)}</h3>
+          <div class="panel-sub">${esc(brandLabel(p.brand))} · ${esc(p.label_tr || '')}</div></div>
+          <button class="btn ghost icon-btn" onclick="closeModal()" aria-label="Kapat">✕</button>
+        </div>
+        <video src="${esc(url)}" controls playsinline preload="metadata"
+          onerror="this.outerHTML='<div class=&quot;ph&quot;>Video dosyası açılamadı.</div>'"></video>
+        <div style="margin-top:14px">
+          ${copyBlock('pv_yt', 'YouTube açıklaması', p.description || '')}
+          ${copyBlock('pv_ig', 'Instagram metni', p.ig_caption || '')}
+        </div>
+      </div>
+    </div>`;
+}
+
+function openEditSchedule(id) {
+  const p = scheduledPosts.find(x => x.id === id);
+  if (!p) return;
+  const lock = p.yt_uploaded ? 'disabled' : '';
+  document.getElementById('modal-root').innerHTML = `
+    <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="panel-head" style="margin-bottom:14px">
+          <div><h3 style="margin:0;font-size:18px;font-weight:800">Planı <span class="serif">Düzenle</span></h3>
+          <div class="panel-sub">${esc(brandLabel(p.brand))} · ${esc(p.label_tr || '')}</div></div>
+          <button class="btn ghost icon-btn" onclick="closeModal()" aria-label="Kapat">✕</button>
+        </div>
+        ${lock ? '<div class="block" style="border-color:var(--warn)">Video YouTube\'a planlı yüklendi. Başlık, açıklama ve saati YouTube Studio\'dan değiştirin; burada yalnızca Instagram metni değişir.</div>' : ''}
+        <div class="fld"><label for="e_dt">Yayın Tarihi & Saati (Türkiye)</label><input id="e_dt" type="datetime-local" value="${isoToTrLocal(p.scheduled_at)}" ${lock}></div>
+        <div class="fld"><label for="e_title">Başlık</label><input id="e_title" type="text" maxlength="100" value="${esc(p.title)}" ${lock}></div>
+        <div class="fld"><label for="e_desc">YouTube açıklaması</label><textarea id="e_desc" maxlength="4900" rows="4" ${lock}>${esc(p.description || '')}</textarea></div>
+        <div class="fld"><label for="e_ig">Instagram metni</label><textarea id="e_ig" maxlength="2200" rows="4">${esc(p.ig_caption || '')}</textarea></div>
+        <div id="e_msg" class="panel-sub" style="margin-bottom:10px"></div>
+        <div class="row">
+          <button id="e_btn" class="btn primary" onclick="submitEditSchedule(${Number(p.id)})">Kaydet</button>
+          <button class="btn" onclick="closeModal()">Vazgeç</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function submitEditSchedule(id) {
+  return once('post' + id, async () => {
+    const p = scheduledPosts.find(x => x.id === id);
+    const msg = document.getElementById('e_msg');
+    const btn = document.getElementById('e_btn');
+    const body = {};
+    try {
+      const ig = document.getElementById('e_ig').value;
+      if (ig !== (p.ig_caption || '')) body.ig_caption = ig;
+      if (!p.yt_uploaded) {
+        const title = document.getElementById('e_title').value.trim();
+        if (!title) throw new Error('Başlık boş olamaz.');
+        const dt = document.getElementById('e_dt').value;
+        if (title !== p.title) body.title = title;
+        if (document.getElementById('e_desc').value !== (p.description || '')) body.description = document.getElementById('e_desc').value;
+        if (dt.slice(0, 16) !== isoToTrLocal(p.scheduled_at)) body.scheduled_at = trTimeToIso(dt);
+      }
+      if (!Object.keys(body).length) { closeModal(); return; }
+      btn.disabled = true;
+      await jsonPost(`/api/schedule/${id}`, body, 'PATCH');
+      closeModal();
+      toast('Plan güncellendi.', 'ok');
+      await load(true);
+    } catch (e) {
+      msg.style.color = 'var(--err)';
+      msg.textContent = e.status === 405 ? 'Sunucu henüz güncellenmedi; düzenleme güncellemeden sonra çalışacak.' : 'Hata: ' + e.message;
+      btn.disabled = false;
+    }
+  });
+}
+
 function renderScheduleCard(p, platformScope, apiUrl) {
   const brand = p.brand || 'akilalmaz';
   const covUrl = getCoverUrl(p.video_id, p.cover_url || '');
@@ -2101,12 +2371,12 @@ function renderScheduleCard(p, platformScope, apiUrl) {
   const targetBadgesHtml = scopedTargets.length
     ? `<div class="sched-meta" style="margin-top:4px">${scopedTargets.map(a => {
         if (a.platform === 'YT') {
-          const st = p.yt_uploaded ? 'Planlandı' : (p.status === 'Yayında' ? 'Yayında' : 'Kuyrukta');
+          const st = p.yt_uploaded && new Date(p.scheduled_at) > new Date() ? 'Planlandı' : (p.status === 'Yayında' ? 'Yayında' : 'Kuyrukta');
           const cls = p.yt_uploaded || p.status === 'Yayında' ? 'b-ok' : 'b-mut';
           return `<span class="badge ${cls}">▶️ ${esc(a.account_name)} · ${st}</span>`;
         }
-        const st = p.status === 'Yayında' ? 'Yayında' : 'Planlandı';
-        const cls = p.status === 'Yayında' ? 'b-ok' : 'b-warn';
+        const st = p.status;
+        const cls = badge(p.status);
         return `<span class="badge ${cls}">📸 ${esc(a.account_name)} · ${st}</span>`;
       }).join('')}</div>`
     : `<div class="panel-sub" style="margin-top:4px">${platformScope === 'IG' ? 'Bu marka için henüz bağlı Instagram hesabı yok' : 'Bu marka için henüz bağlı YouTube kanalı yok'} (<a href="#settings" onclick="setView('settings');return false">VI. Ayarlar</a>).</div>`;
@@ -2130,7 +2400,7 @@ function renderScheduleCard(p, platformScope, apiUrl) {
             : `<span class="badge b-mut">Kapak Yok</span>`}
         </div>
         <div class="sched-title">${esc(p.title)}</div>
-        <div class="panel-sub mono">${esc(p.video_id)}</div>
+        ${scheduleTextHtml(p, platformScope)}
         ${targetBadgesHtml}
         ${p.error_message ? `<div style="color:var(--err);font-size:12px">${esc(p.error_message)}</div>` : ''}
       </div>
@@ -2142,6 +2412,8 @@ function renderScheduleCard(p, platformScope, apiUrl) {
         ${p.status === 'Hata' ? `<button class="btn sm ink-btn" onclick="reschedulePost(${Number(p.id)})">🔁 Sıradaki Slota Planla</button>` : ''}
         ${platformScope !== 'IG' && !p.yt_uploaded && p.status === 'Planlandı' ? `<button class="btn sm ink-btn" onclick="syncPostToYouTube(${Number(p.id)})">YT'ye Planla</button>` : ''}
         ${p.status === 'Planlandı' || p.status === 'Hata' ? `<button class="btn sm" onclick="runScheduleNow(${Number(p.id)})">Şimdi Yayınla</button>` : ''}
+        <button class="btn sm" onclick="openVideoPreview(${Number(p.id)})">▶ İzle</button>
+        ${p.status === 'Planlandı' || p.status === 'Hata' ? `<button class="btn sm" onclick="openEditSchedule(${Number(p.id)})">✏️ Düzenle</button>` : ''}
         <button class="btn sm danger" onclick="cancelSchedule(${Number(p.id)})">Sil</button>
       </div>
     </article>`;
@@ -2156,7 +2428,7 @@ function renderSchedule(el) {
   const ytSynced = visible.filter(p => p.yt_uploaded).length;
   const activeBrand = activeBrandFilter === 'all' ? 'likyastudios' : activeBrandFilter;
   const activeSlot = activeBrandFilter === 'all'
-    ? nextSlot
+    ? (nextByBrand[activeBrand] || nextSlot)
     : (nextByBrand[activeBrandFilter] || nextSlot);
 
   const brandAccounts = activeBrandFilter === 'all'
@@ -2202,7 +2474,7 @@ function renderSchedule(el) {
 
       <div class="grid3">
         <div class="panel">
-          <div class="block-label">Sıradaki Boş Slot (${activeBrandFilter==='all'?'AKILALMAZ':brandLabel(activeBrandFilter)})</div>
+          <div class="block-label">Sıradaki Boş Slot (${brandLabel(activeBrand)})</div>
           <div style="font-size:19px;font-weight:800;margin-top:6px;color:var(--coral)" class="mono">${esc(activeSlot?.label_tr || 'API bağlantısı gerekli')}</div>
           <div class="panel-sub" style="margin-top:6px">Her marka kendi bağımsız 06:01–06:07 TR kuyruğuna sahiptir (${planned} bekliyor).</div>
         </div>
@@ -2271,7 +2543,7 @@ function renderChannel(el) {
     <div class="workspace-full">
       <div class="studio-hero">
         <div>
-          <div class="eyebrow">BÖLÜM IV · MARKA KİMLİĞİ</div>
+          <div class="eyebrow">BÖLÜM V · MARKA KİMLİĞİ</div>
           <h2>Kanal <span class="serif">Kurulum</span> Kiti</h2>
           <p>AKILALMAZ YouTube Shorts ve Instagram Reels hesapları için marka kimliği, açıklama metinleri ve ilk hafta yayın stratejisi.</p>
         </div>
@@ -2343,13 +2615,12 @@ function renderSettings(el) {
     : apiUrl
       ? `<span class="badge b-err"><span class="dot"></span> Bağlantı Hatası: ${esc(apiHealth?.error || 'Ulaşılamadı')}</span>`
       : `<span class="badge b-mut">Yapılandırılmadı</span>`;
-  const retUrl = encodeURIComponent(location.origin + location.pathname);
 
   el.innerHTML = `
     <div class="workspace-full">
       <div class="studio-hero">
         <div>
-          <div class="eyebrow">BÖLÜM V · SİSTEM & ÇOKLU MARKA OAUTH</div>
+          <div class="eyebrow">BÖLÜM VI · SİSTEM & ÇOKLU MARKA OAUTH</div>
           <h2>Stüdyo <span class="serif">Ayarları</span></h2>
           <p>Cloud Run API bağlantısını ve 4 markanızın (<b>AKILALMAZ, Kadim Anadolu, Likya Studios, FoodBallsTV</b>) YouTube & Instagram kanallarını buradan eşleştirin.</p>
         </div>
@@ -2370,8 +2641,11 @@ function renderSettings(el) {
         <div class="panel">
           <h3 style="margin:0 0 14px;font-size:16px">OAuth 2.0 Bağlı Kanallar (${accounts.length})</h3>
           <div class="row" style="margin-bottom:16px">
-            <a class="btn ink-btn ${!apiUrl?'disabled':''}" href="${apiUrl ? `${apiUrl}/api/oauth/youtube/start?redirect_to=${retUrl}` : '#'}">YouTube Kanalı Bağla</a>
-            <a class="btn ${!apiUrl?'disabled':''}" href="${apiUrl ? `${apiUrl}/api/oauth/instagram/start?redirect_to=${retUrl}` : '#'}">Instagram Hesabı Bağla</a>
+            <select id="cfg_conn_brand" aria-label="Bağlanacak kanalın markası" style="width:auto">
+              ${BRANDS_LIST.map(b => `<option value="${b.id}">${b.icon} ${b.label}</option>`).join('')}
+            </select>
+            <button class="btn ink-btn" ${!apiUrl?'disabled':''} onclick="connectChannel('youtube')">YouTube Kanalı Bağla</button>
+            <button class="btn" ${!apiUrl?'disabled':''} onclick="connectChannel('instagram')">Instagram Hesabı Bağla</button>
           </div>
           ${accounts.length ? accounts.map(a => `
             <div class="name-row" style="flex-wrap:wrap">
@@ -2380,7 +2654,8 @@ function renderSettings(el) {
                 <div class="panel-sub mono">ID: ${esc(a.external_id)}</div>
               </div>
               <div class="row">
-                <select style="width:auto;padding:5px 8px;font-size:12px" onchange="changeAccountBrand(${a.id}, this.value)" title="Marka seç">
+                <select style="width:auto;padding:5px 8px;font-size:12px" onchange="changeAccountBrand(${a.id}, this.value)" title="Marka seç" aria-label="${esc(a.account_name)} markası">
+                  ${BRANDS_LIST.some(b => b.id === (a.brand||'akilalmaz')) ? '' : '<option value="" selected disabled>Marka seçin</option>'}
                   ${BRANDS_LIST.map(b => `<option value="${b.id}" ${(a.brand||'akilalmaz')===b.id?'selected':''}>${b.icon} ${b.label}</option>`).join('')}
                 </select>
                 <button class="btn sm danger" onclick="delAccount(${a.id})">Kaldır</button>
@@ -2394,12 +2669,36 @@ function renderSettings(el) {
 async function saveSettings() {
   setCfg(document.getElementById('cfg_url').value, document.getElementById('cfg_key').value);
   await load(true);
-  toast(apiHealth?.ok ? 'Cloud Run bağlantısı doğrulandı!' : 'Ayarlar kaydedildi', apiHealth?.ok ? 'ok' : 'info');
+  if (syncError) toast(syncError, 'err');
+  else toast(apiHealth?.ok ? 'Bağlantı ve API anahtarı doğrulandı!' : 'Ayarlar kaydedildi', apiHealth?.ok ? 'ok' : 'info');
 }
 async function delAccount(id) {
-  await apiFetch('/api/accounts/' + id, { method: 'DELETE' });
-  toast('Kanal bağlantısı kaldırıldı', 'info');
-  await load(true);
+  const a = accounts.find(x => x.id === id);
+  if (!confirm(`"${a?.account_name || 'Kanal'}" bağlantısı kaldırılsın mı? Bu kanala planlı yayınlar gönderilemez.`)) return;
+  try {
+    await apiFetch('/api/accounts/' + id, { method: 'DELETE' });
+    toast('Kanal bağlantısı kaldırıldı', 'info');
+    await load(true);
+  } catch (e) {
+    toast('Kaldırma hatası: ' + e.message, 'err');
+  }
+}
+
+// Kanal bağlama, API anahtarıyla başlatılır; böylece başkası kendi kanalını panele bağlayamaz
+async function connectChannel(platform) {
+  const { apiUrl } = getCfg();
+  const back = location.origin + location.pathname;
+  const brand = document.getElementById('cfg_conn_brand').value;
+  try {
+    const res = await jsonPost(`/api/oauth/${platform}/start`, { redirect_to: back, brand });
+    location.href = res.url;
+  } catch (e) {
+    if (e.status === 405 || e.status === 404) { // sunucu henüz eski sürümde
+      location.href = `${apiUrl}/api/oauth/${platform}/start?redirect_to=${encodeURIComponent(back)}`;
+      return;
+    }
+    toast('Kanal bağlanamadı: ' + e.message, 'err');
+  }
 }
 
 function fmtNum(n) {
@@ -2492,7 +2791,7 @@ function renderReports(el) {
                   <tbody>
                     ${vids.map(v => {
                       const pct = Math.max(2, Math.round((Number(v.views||0) / maxViews) * 100));
-                      const stCls = v.state === 'Yayında' ? 'ok' : (v.state === 'Planlandı' ? 'warn' : '');
+                      const stCls = v.state === 'Yayında' ? 'b-ok' : (v.state === 'Planlandı' ? 'b-warn' : 'b-mut');
                       const img = v.cover_url || v.thumbnail;
                       const when = v.state === 'Planlandı' ? ('Planlı: ' + fmtDateTr(v.publish_at)) : fmtDateTr(v.published_at);
                       return `
@@ -2545,15 +2844,19 @@ function renderReports(el) {
     </div>`;
 }
 
+if (location.hash.includes('connected=')) toast('Kanal bağlandı. Markasını aşağıdan kontrol edin.', 'ok');
+if (location.hash.includes('cancelled=')) toast('Kanal bağlama iptal edildi.', 'info');
+if (/connected=|cancelled=/.test(location.hash)) history.replaceState(null, '', location.pathname + '#settings');
 if (location.hash.startsWith('#settings')) view = 'settings';
 else if (location.hash.startsWith('#covers')) view = 'covers';
 else if (location.hash.startsWith('#schedule')) view = 'schedule';
 else if (location.hash.startsWith('#reports')) { view = 'reports'; fetchAnalytics(false); }
+document.querySelectorAll('.seg-nav button').forEach(b => b.classList.toggle('nav-on', b.id === 'btn-' + view));
 load(true);
 setInterval(() => {
   const activePoll = Object.values(pubByVideo).flat().some(l => l.status === 'Bekliyor' || l.status === 'Yükleniyor');
-  if (activePoll || (document.getElementById('auto').checked && (view === 'videos' || view === 'schedule'))) load(false);
-}, 4000);
+  if (activePoll || (document.getElementById('auto').checked && !document.hidden && (view === 'videos' || view === 'schedule'))) load(false);
+}, 6000);
 </script>
 </body>
 </html>

@@ -13,6 +13,7 @@ echo "1) GCS geçici video bucket + 24 saatlik otomatik silme kuralı ayarlanıy
 gcloud storage buckets create "gs://${BUCKET}" --project="${PROJECT_ID}" --location="${REGION}" 2>/dev/null || true
 gcloud storage buckets update "gs://${BUCKET}" --lifecycle-file=gcs_lifecycle.json
 
+# DİKKAT: --set-env-vars KULLANMAYIN; API_SECRET_KEY ve DATABASE_URL dahil tüm ayarları siler.
 echo "2) Cloud Run servisi derlenip yayına alınıyor..."
 gcloud run deploy "${SERVICE}" \
   --project="${PROJECT_ID}" \
@@ -21,7 +22,7 @@ gcloud run deploy "${SERVICE}" \
   --allow-unauthenticated \
   --timeout=300 \
   --memory=1Gi \
-  --set-env-vars="GCS_BUCKET_NAME=${BUCKET},USE_GCS_SIGNED_URL=true"
+  --update-env-vars="GCS_BUCKET_NAME=${BUCKET},USE_GCS_SIGNED_URL=true"
 
 URL="$(gcloud run services describe "${SERVICE}" --project="${PROJECT_ID}" --region="${REGION}" --format="value(status.url)")"
 echo "TAMAM! Cloud Run URL: ${URL}"

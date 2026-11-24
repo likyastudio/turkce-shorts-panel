@@ -2,6 +2,7 @@
 from __future__ import annotations
 import os
 import tempfile
+import uuid
 from datetime import timedelta
 import requests
 from google.cloud import storage
@@ -12,7 +13,7 @@ GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME", "likya-temp-videos")
 def download_video_to_tmp(video_url: str, video_id: str) -> str:
     """Downloads a remote MP4 (e.g., from GitHub Pages or GCS) to /tmp for Cloud Run processing."""
     safe_id = "".join(c if c.isalnum() or c in "-_" else "_" for c in video_id)
-    out_path = os.path.join(tempfile.gettempdir(), f"{safe_id}.mp4")
+    out_path = os.path.join(tempfile.gettempdir(), f"{safe_id}_{uuid.uuid4().hex[:8]}.mp4")
     with requests.get(video_url, stream=True, timeout=120) as r:
         r.raise_for_status()
         with open(out_path, "wb") as f:

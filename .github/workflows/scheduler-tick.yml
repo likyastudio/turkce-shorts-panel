@@ -8,6 +8,10 @@ on:
     - cron: '*/15 * * * *'
   workflow_dispatch:
 
+concurrency:
+  group: scheduler-tick
+  cancel-in-progress: false
+
 jobs:
   tick:
     runs-on: ubuntu-latest
@@ -16,7 +20,7 @@ jobs:
         env:
           LIKYA_API_KEY: ${{ secrets.LIKYA_API_KEY }}
         run: |
-          RESP=$(curl -fsS --max-time 60 -X POST \
+          RESP=$(curl -fsS --max-time 295 -X POST \
             -H "X-API-Key: $LIKYA_API_KEY" \
             "https://likya-crosspost-api-64i7umkgnq-ew.a.run.app/api/scheduler/tick")
           echo "Scheduler tick response: $RESP"

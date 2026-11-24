@@ -12,6 +12,7 @@ Akış:
 from __future__ import annotations
 import base64
 import json
+import time
 import math
 import os
 import re
@@ -286,24 +287,46 @@ def main() -> None:
 
     if AUTO_SCHEDULE:
         video_abs_url = f"{SITE_BASE}/{video_rel}"
-        r = requests.post(
-            f"{API_URL}/api/schedule",
-            headers=HEADERS,
-            json={
-                "video_id": slug,
-                "video_url": video_abs_url,
-                "title": entry["meta"]["youtube"]["title"],
-                "description": entry["meta"]["youtube"]["description"],
-                "ig_caption": entry["meta"]["instagram"]["caption"],
-                "cover_url": cover_url,
-                "auto_next_slot": True,
-            },
-            timeout=30,
-        )
-        r.raise_for_status()
-        post = r.json()["post"]
-        print(f"  -> Otomatik planlandı: {post['label_tr']} (ID #{post['id']})")
+        # Planlama, MP4 siteye çıktıktan sonra ayrı adımda yapılır (schedule_pending); yoksa YouTube
+        # yüklemesi henüz yayında olmayan dosyayı isteyip 404 alıyordu.
+        PENDING.write_text(json.dumps({
+            "brand": "akilalmaz",
+            "video_id": slug,
+            "video_url": video_abs_url,
+            "title": entry["meta"]["youtube"]["title"],
+            "description": entry["meta"]["youtube"]["description"],
+            "ig_caption": entry["meta"]["instagram"]["caption"],
+            "cover_url": cover_url,
+            "auto_next_slot": True,
+        }, ensure_ascii=False), encoding="utf-8")
+        print("  -> Planlama, video siteye çıkınca yapılacak.")
+
+
+PENDING = Path(tempfile.gettempdir()) / "likya_pending_schedule.json"
+
+
+def schedule_pending():
+    if not PENDING.exists():
+        print("Planlanacak video yok.")
+        return
+    payload = json.loads(PENDING.read_text(encoding="utf-8"))
+    for _ in range(40):  # GitHub Pages yayını için en fazla ~10 dk bekle
+        try:
+            if requests.head(payload["video_url"], timeout=20, allow_redirects=True).status_code == 200:
+                break
+        except requests.RequestException:
+            pass
+        time.sleep(15)
+    else:
+        raise SystemExit("Video siteye çıkmadı; planlama yapılmadı.")
+    r = requests.post(f"{API_URL}/api/schedule", headers=HEADERS, json=payload, timeout=60)
+    r.raise_for_status()
+    post = r.json()["post"]
+    print(f"  -> Otomatik planlandı: {post['label_tr']} (ID #{post['id']})")
 
 
 if __name__ == "__main__":
-    main()
+    if "--schedule-pending" in sys.argv:
+        schedule_pending()
+    else:
+        main()

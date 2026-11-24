@@ -114,18 +114,30 @@ JSON ŞEMASI:
 }}"""
 
     client = genai.Client(vertexai=True, project=project, location=location)
-    resp = client.models.generate_content(
-        model=model,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            temperature=0.85,
-            response_mime_type="application/json",
-        ),
-    )
-    raw = (resp.text or "").strip()
-    if raw.startswith("```"):
-        raw = re.sub(r"^```[a-zA-Z]*\n?", "", raw).rstrip("`").strip()
-    data = json.loads(raw)
+    import time
+    data = None
+    for attempt in range(3):  # Model ara sıra bozuk JSON / geçici hata döndürüyor
+        try:
+            resp = client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.85,
+                    response_mime_type="application/json",
+                ),
+            )
+            raw = (resp.text or "").strip()
+            if raw.startswith("```"):
+                raw = re.sub(r"^```[a-zA-Z]*\n?", "", raw).rstrip("`").strip()
+            data = json.loads(raw)
+            if not isinstance(data, dict) or not data.get("script") or not data.get("title"):
+                raise ValueError("Model eksik senaryo döndürdü.")
+            break
+        except Exception as e:
+            print(f"[ai] senaryo denemesi {attempt + 1}/3 başarısız: {type(e).__name__}: {e}")
+            if attempt == 2:
+                raise
+            time.sleep(3 * (attempt + 1))
     suffix = re.sub(r"[^a-z0-9_]", "_", str(data.get("slug_suffix", "yeni_hikaye")).lower()).strip("_")
     data["slug_suffix"] = suffix[:36] or "yeni_hikaye"
     return data

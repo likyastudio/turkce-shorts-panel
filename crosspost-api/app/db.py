@@ -51,6 +51,9 @@ def _rows(cur, is_pg: bool) -> list[dict[str, Any]]:
 
 
 def init_db() -> None:
+    # Cloud Run'da sessizce geçici SQLite'a düşmek planları kaybettirir; açıkça dur.
+    if os.getenv("K_SERVICE") and not _is_pg():
+        raise RuntimeError("DATABASE_URL (PostgreSQL) tanımlı değil; Cloud Run'da SQLite kullanılamaz.")
     with get_conn() as (conn, _p, is_pg):
         cur = conn.cursor()
         if is_pg:
@@ -99,6 +102,7 @@ def init_db() -> None:
                     status          TEXT NOT NULL DEFAULT 'Planlandı',
                     yt_uploaded     INTEGER NOT NULL DEFAULT 0,
                     yt_video_url    TEXT,
+                    yt_sync_started_at TEXT,
                     error_message   TEXT,
                     created_at      TEXT NOT NULL,
                     updated_at      TEXT NOT NULL
@@ -187,7 +191,7 @@ def get_accounts_by_ids(ids: list[int]) -> list[dict[str, Any]]:
         cur = conn.cursor()
         ph = ",".join([p] * len(ids))
         cur.execute(
-            f"SELECT id, platform, account_name, external_id, access_token, refresh_token, expires_at FROM social_accounts WHERE id IN ({ph})",
+            f"SELECT id, platform, brand, account_name, external_id, access_token, refresh_token, expires_at FROM social_accounts WHERE id IN ({ph})",
             tuple(ids),
         )
         return _rows(cur, is_pg)
@@ -335,8 +339,8 @@ def list_scheduled_posts(status: Optional[str] = None, brand: Optional[str] = No
             conds.append(f"brand={p}")
             vals.append(brand)
         where = f"WHERE {' AND '.join(conds)}" if conds else ""
-        cur.execute(f"SELECT {_SCHED_COLS} FROM scheduled_posts {where} ORDER BY scheduled_at ASC LIMIT 200", tuple(vals))
-        return [_norm_sched_row(r) for r in _rows(cur, is_pg)]
+        cur.execute(f"SELECT {_SCHED_COLS} FROM scheduled_posts {where} ORDER BY scheduled_at DESC LIMIT 500", tuple(vals))
+        return [_norm_sched_row(r) for r in reversed(_rows(cur, is_pg))]
 
 
 def get_scheduled_post(post_id: int) -> Optional[dict[str, Any]]:
@@ -345,6 +349,103 @@ def get_scheduled_post(post_id: int) -> Optional[dict[str, Any]]:
         cur.execute(f"SELECT {_SCHED_COLS} FROM scheduled_posts WHERE id={p}", (post_id,))
         rows = _rows(cur, is_pg)
         return _norm_sched_row(rows[0]) if rows else None
+
+
+SYNC_STALE_MINUTES = 20  # yarım kalan YouTube yüklemesi bu süreden sonra yeniden denenebilir
+
+
+def _ago(minutes: int) -> str:
+    from datetime import timedelta
+    return (datetime.now(timezone.utc) - timedelta(minutes=minutes)).isoformat()
+
+
+def claim_scheduled_post(post_id: int, statuses: tuple[str, ...] = ("Planlandı",)) -> bool:
+    """Gönderiyi tek bir çalıştırıcıya ayırır (atomik). Aynı anda gelen ikinci istek False alır."""
+    now = _now()
+    with get_conn() as (conn, p, _is_pg):
+        cur = conn.cursor()
+        ph = ",".join([p] * len(statuses))
+        cur.execute(
+            f"UPDATE scheduled_posts SET status='Yayınlanıyor', error_message=NULL, updated_at={p} "
+            f"WHERE id={p} AND status IN ({ph}) AND (yt_sync_started_at IS NULL OR yt_sync_started_at < {p})",
+            (now, post_id, *statuses, _ago(SYNC_STALE_MINUTES)),
+        )
+        return cur.rowcount == 1
+
+
+def claim_yt_sync(post_id: int) -> bool:
+    """YouTube ön-yüklemesini tek çalıştırıcıya ayırır (atomik)."""
+    now = _now()
+    with get_conn() as (conn, p, is_pg):
+        cur = conn.cursor()
+        flag = "FALSE" if is_pg else "0"
+        cur.execute(
+            f"UPDATE scheduled_posts SET yt_sync_started_at={p} "
+            f"WHERE id={p} AND status='Planlandı' AND yt_uploaded={flag} AND scheduled_at > {p} "
+            f"AND (yt_sync_started_at IS NULL OR yt_sync_started_at < {p})",
+            (now, post_id, now, _ago(SYNC_STALE_MINUTES)),
+        )
+        return cur.rowcount == 1
+
+
+def release_yt_sync(post_id: int, error_message: Optional[str] = None) -> None:
+    with get_conn() as (conn, p, _is_pg):
+        cur = conn.cursor()
+        cur.execute(
+            f"UPDATE scheduled_posts SET yt_sync_started_at=NULL, error_message=COALESCE({p}, error_message) WHERE id={p}",
+            (error_message, post_id),
+        )
+
+
+def fail_stale_publishing(minutes: int = 30) -> int:
+    """Sunucu kapanınca 'Yayınlanıyor'da kalan gönderileri Hata'ya alır. Çift yayın olmasın diye
+    otomatik tekrar denenmez; kullanıcı kanalı kontrol edip karar verir."""
+    with get_conn() as (conn, p, _is_pg):
+        cur = conn.cursor()
+        cur.execute(
+            f"UPDATE scheduled_posts SET status='Hata', error_message={p}, updated_at={p} "
+            f"WHERE status='Yayınlanıyor' AND updated_at < {p}",
+            ("Yayın yarım kaldı. Kanalda yayınlanıp yayınlanmadığını kontrol edip tekrar deneyin.", _now(), _ago(minutes)),
+        )
+        return cur.rowcount
+
+
+def get_published_account_ids(post: dict[str, Any]) -> set[int]:
+    """Bu plan oluşturulduktan sonra videonun başarıyla gönderildiği hesaplar."""
+    with get_conn() as (conn, p, _is_pg):
+        cur = conn.cursor()
+        cur.execute(
+            f"SELECT account_id FROM publish_logs WHERE video_id={p} AND status IN ('Yayında','YT Planlandı') "
+            f"AND account_id IS NOT NULL AND created_at >= {p}",
+            (post["video_id"], post["created_at"]),
+        )
+        return {int(r[0]) for r in cur.fetchall()}
+
+
+def get_publish_logs_by_ids(ids: list[int]) -> list[dict[str, Any]]:
+    if not ids:
+        return []
+    with get_conn() as (conn, p, is_pg):
+        cur = conn.cursor()
+        ph = ",".join([p] * len(ids))
+        cur.execute(f"SELECT id, status, error_message, platform_post_url FROM publish_logs WHERE id IN ({ph})", tuple(ids))
+        return _rows(cur, is_pg)
+
+
+def edit_scheduled_post(post_id: int, fields: dict[str, Any]) -> bool:
+    """Yalnızca henüz yayınlanmamış (Planlandı/Hata) gönderinin metnini/saatini değiştirir."""
+    allowed = {k: v for k, v in fields.items() if k in ("title", "description", "ig_caption", "scheduled_at", "status")}
+    if not allowed:
+        return False
+    with get_conn() as (conn, p, _is_pg):
+        cur = conn.cursor()
+        sets = ", ".join(f"{k}={p}" for k in allowed)
+        cur.execute(
+            f"UPDATE scheduled_posts SET {sets}, error_message=NULL, updated_at={p} "
+            f"WHERE id={p} AND status IN ('Planlandı','Hata') AND (yt_sync_started_at IS NULL OR yt_sync_started_at < {p})",
+            (*allowed.values(), _now(), post_id, _ago(SYNC_STALE_MINUTES)),
+        )
+        return cur.rowcount == 1
 
 
 def get_due_scheduled_posts(now_iso: Optional[str] = None) -> list[dict[str, Any]]:
@@ -393,7 +494,7 @@ def mark_scheduled_yt_uploaded(post_id: int, yt_video_url: str, error_message: O
         cur = conn.cursor()
         flag = True if is_pg else 1
         cur.execute(
-            f"UPDATE scheduled_posts SET yt_uploaded={p}, yt_video_url={p}, error_message={p}, updated_at={p} WHERE id={p}",
+            f"UPDATE scheduled_posts SET yt_uploaded={p}, yt_video_url={p}, yt_sync_started_at=NULL, error_message={p}, updated_at={p} WHERE id={p}",
             (flag, yt_video_url, error_message, now, post_id),
         )
 

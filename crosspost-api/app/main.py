@@ -11,13 +11,16 @@ import os
 import re
 import time
 from typing import Optional
-from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, Header, HTTPException, Response, UploadFile
+from datetime import datetime, timedelta, timezone
+
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, Header, HTTPException, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app import db
 from app.oauth import router as oauth_router
+from app.security import verify_api_key
 from app.services import covers as covers_svc
 from app.services import scheduler as sched_svc
 from app.services.instagram import publish_to_instagram
@@ -30,7 +33,7 @@ ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "*").split(",
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -42,12 +45,6 @@ def _startup():
     db.init_db()
 
 
-def verify_api_key(x_api_key: Optional[str] = Header(default=None)):
-    expected = os.getenv("API_SECRET_KEY", "").strip()
-    if expected and x_api_key != expected:
-        raise HTTPException(status_code=401, detail="Geçersiz X-API-Key.")
-
-
 class ManualAccountIn(BaseModel):
     platform: str = Field(pattern="^(YT|IG)$")
     account_name: str
@@ -55,6 +52,7 @@ class ManualAccountIn(BaseModel):
     access_token: str
     refresh_token: Optional[str] = None
     expires_at: Optional[str] = None
+    brand: str = "akilalmaz"
 
 
 class PublishRequest(BaseModel):
@@ -194,6 +192,7 @@ def add_account_manual(body: ManualAccountIn):
         access_token=body.access_token,
         refresh_token=body.refresh_token,
         expires_at=body.expires_at,
+        brand=re.sub(r"[^a-z0-9_\-]", "", body.brand.strip().lower()) or "akilalmaz",
     )
     return {"account": acc}
 
@@ -238,8 +237,9 @@ async def trigger_publish(req: PublishRequest, background_tasks: BackgroundTasks
                 "id": None, "platform": "IG", "account_name": "Instagram", "external_id": req.ig_user_id,
                 "access_token": req.ig_access_token,
             })
+        # Kanal seçilmeden "tüm markaların tüm kanallarına" yayınlamak yanlış kanala gönderir; reddet.
         if not accounts:
-            accounts = db.list_accounts(include_tokens=True)
+            raise HTTPException(status_code=400, detail="Yayınlanacak kanal seçilmedi (account_ids gerekli).")
 
     if not accounts:
         raise HTTPException(status_code=400, detail="Bağlı hedef kanal bulunamadı. Ayarlar'dan YouTube veya Instagram bağlayın.")
@@ -257,7 +257,7 @@ async def trigger_publish(req: PublishRequest, background_tasks: BackgroundTasks
 
     background_tasks.add_task(process_cross_post, req, targets)
     return {
-        "message": "Paylaşım kuyruğa alındı",
+        "message": "Paylaşım başlatıldı",
         "video_id": req.video_id,
         "status": "Bekliyor",
         "logs": [{"id": lid, "platform": a["platform"], "account_name": a.get("account_name"), "status": "Bekliyor"} for lid, a in targets],
@@ -409,11 +409,18 @@ async def _sync_scheduled_post_to_youtube(post: dict):
     if db.count_yt_uploads_today() >= YT_DAILY_PRESYNC_LIMIT:
         return  # Safely wait until next day's quota window; scheduler/tick will pick it up
 
+    if not db.claim_yt_sync(post_id):
+        return  # Başka bir istek bu videoyu zaten yüklüyor (çift yükleme önlenir)
+
     local_path = None
     try:
+        already = db.get_published_account_ids(post)
         local_path = await asyncio.to_thread(download_video_to_tmp, post["video_url"], f"ytsched_{post['video_id']}")
-        last_url = None
+        last_url = post.get("yt_video_url")
+        failed: list[str] = []
         for acc in yt_accs:
+            if acc.get("id") in already:
+                continue  # Önceki denemede bu kanala yüklenmişti
             log_id = db.create_publish_log(
                 video_id=post["video_id"],
                 platform="YT",
@@ -447,11 +454,13 @@ async def _sync_scheduled_post_to_youtube(post: dict):
                 db.update_publish_log(log_id, res.get("status", "YT Planlandı"), platform_post_url=last_url)
             except Exception as e:
                 db.update_publish_log(log_id, "Hata", error_message=str(e)[:500])
-                raise
-        if last_url:
-            db.mark_scheduled_yt_uploaded(post_id, last_url)
+                failed.append(f"{acc.get('account_name')}: {e}")
+        if failed:
+            db.release_yt_sync(post_id, ("YT ön-planlama uyarısı: " + " | ".join(failed))[:400])
+        else:
+            db.mark_scheduled_yt_uploaded(post_id, last_url or "")
     except Exception as e:
-        db.update_scheduled_post(post_id, "Planlandı", f"YT ön-planlama uyarısı: {e}"[:400])
+        db.release_yt_sync(post_id, f"YT ön-planlama uyarısı: {e}"[:400])
     finally:
         if local_path and os.path.exists(local_path):
             try:
@@ -460,13 +469,15 @@ async def _sync_scheduled_post_to_youtube(post: dict):
                 pass
 
 
-async def _execute_scheduled_post(post: dict):
+async def _execute_scheduled_post(post: dict, manual: bool = False) -> bool:
     """Runs a due scheduled post through the cross-post pipeline.
     If already natively scheduled on YouTube (yt_uploaded=True), skips YT to avoid duplicates
     and only publishes to Instagram (if connected for this brand)."""
     post_id = post["id"]
-    db.update_scheduled_post(post_id, "Yayınlanıyor")
+    if not db.claim_scheduled_post(post_id, ("Planlandı", "Hata") if manual else ("Planlandı",)):
+        return False  # Başka bir istek bu gönderiyi zaten yayınlıyor
     try:
+        post = db.get_scheduled_post(post_id) or post  # bekleme sırasında değişmiş olabilir
         acc_ids = post.get("account_ids") or []
         post_brand = post.get("brand") or "akilalmaz"
         accounts = db.get_accounts_by_ids(acc_ids) if acc_ids else db.list_accounts(include_tokens=True, brand=post_brand)
@@ -476,11 +487,18 @@ async def _execute_scheduled_post(post: dict):
             accounts = [a for a in accounts if a.get("platform") != "YT"]
             if not accounts:
                 db.update_scheduled_post(post_id, "Yayında", None)
-                return
+                return True
 
         if not accounts:
             db.update_scheduled_post(post_id, "Hata", "Bağlı YouTube veya Instagram kanalı bulunamadı.")
-            return
+            return True
+
+        # Kısmen başarılı önceki denemelerde yayınlanan hesaplara ikinci kez gönderme
+        done = db.get_published_account_ids(post)
+        accounts = [a for a in accounts if a.get("id") not in done]
+        if not accounts:
+            db.update_scheduled_post(post_id, "Yayında", None)
+            return True
 
         req = PublishRequest(
             video_id=post["video_id"],
@@ -505,7 +523,7 @@ async def _execute_scheduled_post(post: dict):
 
         await process_cross_post(req, targets)
 
-        logs = db.list_publish_logs(video_id=req.video_id)[: len(targets)]
+        logs = db.get_publish_logs_by_ids([lid for lid, _ in targets])
         errs = [l["error_message"] for l in logs if l.get("status") == "Hata" and l.get("error_message")]
         if errs and len(errs) == len(targets):
             db.update_scheduled_post(post_id, "Hata", " | ".join(errs)[:400])
@@ -513,6 +531,21 @@ async def _execute_scheduled_post(post: dict):
             db.update_scheduled_post(post_id, "Yayında", ("Kısmi hata: " + " | ".join(errs))[:400] if errs else None)
     except Exception as e:
         db.update_scheduled_post(post_id, "Hata", str(e)[:400])
+    return True
+
+
+def _parse_schedule_time(value: str) -> str:
+    """Saati doğrular, UTC'ye çevirir. Saat dilimi yazılmamışsa Türkiye saati (+03:00) kabul edilir."""
+    try:
+        dt = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Yayın saati anlaşılamadı.")
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone(timedelta(hours=3)))
+    dt = dt.astimezone(timezone.utc)
+    if dt < datetime.now(timezone.utc) - timedelta(minutes=2):
+        raise HTTPException(status_code=400, detail="Geçmiş bir saate plan yapılamaz.")
+    return dt.isoformat()
 
 
 BRANDS = ("akilalmaz", "kadimanadolu", "likyastudios", "foodballstv")
@@ -550,11 +583,14 @@ def create_schedule(req: SchedulePostRequest, background_tasks: BackgroundTasks)
     existing = db.list_scheduled_posts(brand=brand)
     occupied = [p["scheduled_at"] for p in existing if p["status"] in ("Planlandı", "Yayınlanıyor")]
 
+    if any(p["video_id"] == req.video_id and p["status"] in ("Planlandı", "Yayınlanıyor") for p in existing):
+        raise HTTPException(status_code=409, detail="Bu video bu marka için zaten planlı. Yayın Planı'ndan düzenleyebilirsiniz.")
+
     if req.auto_next_slot or not req.scheduled_at:
         slot = sched_svc.next_weekly_slot(occupied_iso_list=occupied)
         sched_iso = slot["scheduled_at_utc"]
     else:
-        sched_iso = req.scheduled_at
+        sched_iso = _parse_schedule_time(req.scheduled_at)
 
     row = db.create_scheduled_post(
         brand=brand,
@@ -630,11 +666,50 @@ async def sync_schedule_to_youtube_now(post_id: int, background_tasks: Backgroun
     return {"ok": True, "message": "YouTube Studio'ya 'Planlandı' olarak yükleme başlatıldı.", "id": post_id}
 
 
+class EditScheduleRequest(BaseModel):
+    title: Optional[str] = Field(default=None, min_length=1, max_length=300)
+    description: Optional[str] = Field(default=None, max_length=5000)
+    ig_caption: Optional[str] = Field(default=None, max_length=2200)
+    scheduled_at: Optional[str] = None
+
+
+@app.patch("/api/schedule/{post_id}", dependencies=[Depends(verify_api_key)])
+def edit_schedule(post_id: int, body: EditScheduleRequest):
+    """Planlı gönderinin başlığını, açıklamalarını veya saatini değiştirir."""
+    post = db.get_scheduled_post(post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Planlanmış gönderi bulunamadı.")
+    if post["status"] not in ("Planlandı", "Hata"):
+        raise HTTPException(status_code=409, detail="Yayınlanmış veya yayınlanmakta olan gönderi düzenlenemez.")
+
+    fields = {}
+    for k in ("title", "description", "ig_caption"):
+        v = getattr(body, k)
+        if v is not None and v != (post.get(k) or ""):
+            fields[k] = v
+    if body.scheduled_at:
+        new_at = _parse_schedule_time(body.scheduled_at)
+        if datetime.fromisoformat(new_at) != datetime.fromisoformat(post["scheduled_at"].replace("Z", "+00:00")):
+            fields["scheduled_at"] = new_at
+            fields["status"] = "Planlandı"
+
+    if post.get("yt_uploaded") and set(fields) & {"title", "description", "scheduled_at"}:
+        raise HTTPException(
+            status_code=409,
+            detail="Bu video YouTube'a planlı olarak yüklendi. Başlık, açıklama ve saati YouTube Studio'dan değiştirin; burada yalnızca Instagram metni değişir.",
+        )
+    if fields and not db.edit_scheduled_post(post_id, fields):
+        raise HTTPException(status_code=409, detail="Gönderi şu anda yükleniyor. Biraz sonra tekrar deneyin.")
+    return {"ok": True, "post": _enrich_sched(db.get_scheduled_post(post_id))}
+
+
 @app.delete("/api/schedule/{post_id}", dependencies=[Depends(verify_api_key)])
 def remove_schedule(post_id: int):
-    if not db.delete_scheduled_post(post_id):
+    post = db.get_scheduled_post(post_id)
+    if not post or not db.delete_scheduled_post(post_id):
         raise HTTPException(status_code=404, detail="Planlanmış gönderi bulunamadı.")
-    return {"ok": True, "deleted": post_id}
+    # YouTube'a yüklenen planlı video buradan silinemez (izin kapsamı yok); arayüz kullanıcıyı uyarır.
+    return {"ok": True, "deleted": post_id, "yt_video_url": post.get("yt_video_url") if post["status"] == "Planlandı" else None}
 
 
 @app.post("/api/schedule/{post_id}/run-now", dependencies=[Depends(verify_api_key)])
@@ -642,7 +717,9 @@ async def run_schedule_now(post_id: int, background_tasks: BackgroundTasks):
     post = db.get_scheduled_post(post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Planlanmış gönderi bulunamadı.")
-    background_tasks.add_task(_execute_scheduled_post, post)
+    if post["status"] not in ("Planlandı", "Hata"):
+        raise HTTPException(status_code=409, detail="Bu gönderi zaten yayınlandı veya yayınlanıyor.")
+    background_tasks.add_task(_execute_scheduled_post, post, True)
     return {"ok": True, "message": "Hemen yayınlanmak üzere başlatıldı.", "id": post_id}
 
 
@@ -653,6 +730,10 @@ async def reschedule_schedule_post(post_id: int, background_tasks: BackgroundTas
     post = db.get_scheduled_post(post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Planlanmış gönderi bulunamadı.")
+    if post["status"] == "Yayınlanıyor":
+        raise HTTPException(status_code=409, detail="Gönderi şu anda yayınlanıyor.")
+    if post["status"] == "Planlandı" and post.get("yt_uploaded"):
+        raise HTTPException(status_code=409, detail="Video YouTube'da planlı. Saatini YouTube Studio'dan değiştirin.")
     brand = (post.get("brand") or "akilalmaz").strip().lower()
     brand_accs = db.list_accounts(include_tokens=False, brand=brand)
     if not brand_accs:
@@ -670,27 +751,34 @@ async def reschedule_schedule_post(post_id: int, background_tasks: BackgroundTas
 
 
 @app.post("/api/scheduler/tick", dependencies=[Depends(verify_api_key)])
-async def scheduler_tick(background_tasks: BackgroundTasks):
+async def scheduler_tick():
     """1. Triggers due scheduled posts (skipping YT if already natively scheduled).
-    2. Pre-uploads upcoming un-synced scheduled posts to YouTube Studio (within safe daily quota)."""
+    2. Pre-uploads upcoming un-synced scheduled posts to YouTube Studio (within safe daily quota).
+    İş, yanıt dönmeden bitirilir: Cloud Run yanıttan sonra işlemciyi kıstığı için arka plan işi yarım kalabiliyordu."""
+    deadline = time.monotonic() + 200  # Cloud Run 300 sn sınırından önce yeni iş başlatmayı bırak
+    stale = db.fail_stale_publishing()
     due = db.get_due_scheduled_posts()
+    triggered = []
     for post in due:
-        background_tasks.add_task(_execute_scheduled_post, post)
+        if time.monotonic() > deadline:
+            break  # kalanlar sonraki çağrıda
+        if await _execute_scheduled_post(post) is not False:
+            triggered.append(post["id"])
 
-    # Auto pre-sync upcoming posts to YouTube Studio within daily quota
     remaining_quota = max(0, YT_DAILY_PRESYNC_LIMIT - db.count_yt_uploads_today())
     presync_ids = []
-    if remaining_quota > 0:
-        pending = db.get_pending_yt_presync_posts(limit=remaining_quota)
-        for post in pending:
-            background_tasks.add_task(_sync_scheduled_post_to_youtube, post)
-            presync_ids.append(post["id"])
+    for post in db.get_pending_yt_presync_posts(limit=remaining_quota) if remaining_quota else []:
+        if time.monotonic() > deadline:
+            break
+        await _sync_scheduled_post_to_youtube(post)
+        presync_ids.append(post["id"])
 
     return {
         "ok": True,
         "due_count": len(due),
-        "triggered_ids": [p["id"] for p in due],
+        "triggered_ids": triggered,
         "yt_presync_ids": presync_ids,
+        "stale_failed": stale,
     }
 
 
@@ -705,7 +793,8 @@ async def ai_generate_story(req: GenerateStoryRequest):
         )
         return {"ok": True, "story": story}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Senaryo üretimi başarısız: {e}")
+        print(f"[ai] generate-story hata: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=502, detail=f"Senaryo üretimi başarısız: {e}")
 
 
 @app.post("/api/schedule/sync-covers", dependencies=[Depends(verify_api_key)])
@@ -714,7 +803,7 @@ async def sync_covers_to_schedule():
     available = set(covers_svc.list_covers())
     public_base = os.getenv("PUBLIC_API_BASE", "").rstrip("/")
     posts = db.list_scheduled_posts()
-    yt_accs = [a for a in db.list_accounts(include_tokens=True) if a.get("platform") == "YT"]
+    all_yt = [a for a in db.list_accounts(include_tokens=True) if a.get("platform") == "YT"]
 
     linked = []
     yt_applied = []
@@ -730,6 +819,9 @@ async def sync_covers_to_schedule():
             linked.append(vid)
 
         yt_url = p.get("yt_video_url") or ""
+        # Kapak, videonun yüklendiği kanalın hesabıyla uygulanmalı (başka markanın hesabıyla değil)
+        ids = p.get("account_ids") or []
+        yt_accs = [a for a in all_yt if (a["id"] in ids if ids else (a.get("brand") or "akilalmaz") == p.get("brand"))]
         if p.get("yt_uploaded") and "/shorts/" in yt_url and yt_accs:
             yt_id = yt_url.rsplit("/", 1)[-1]
             acc = yt_accs[0]
@@ -772,7 +864,11 @@ async def upload_media_mp4(
 
     safe_brand = re.sub(r"[^a-z0-9_\-]", "", (brand or "akilalmaz").strip().lower()) or "akilalmaz"
     raw_id = video_id.strip() or os.path.splitext(file.filename or "video")[0]
-    safe_id = re.sub(r"[^a-zA-Z0-9_\-]", "_", raw_id).strip("_")[:64] or f"vid_{int(time.time())}"
+    safe_id = re.sub(r"[^a-zA-Z0-9_\-]", "_", raw_id).strip("_")[:52] or "vid"
+    if not video_id.strip():
+        safe_id = f"{safe_id}_{int(time.time())}"  # aynı adlı iki dosya birbirini ezmesin
+    if not (file.filename or "").lower().endswith(".mp4"):
+        raise HTTPException(status_code=400, detail="Yalnızca .mp4 dosyası yüklenebilir.")
     fname = f"{safe_id}.mp4"
     tmp_path = os.path.join(tempfile.gettempdir(), f"up_{safe_brand}_{int(time.time())}_{fname}")
 
@@ -783,8 +879,12 @@ async def upload_media_mp4(
                 chunk = await file.read(1024 * 1024)
                 if not chunk:
                     break
+                if size_bytes == 0 and chunk[4:8] != b"ftyp":
+                    raise HTTPException(status_code=400, detail="Dosya geçerli bir MP4 değil.")
                 out.write(chunk)
                 size_bytes += len(chunk)
+        if size_bytes == 0:
+            raise HTTPException(status_code=400, detail="Dosya boş.")
 
         bucket_name = os.getenv("GCS_BUCKET_NAME", "likya-temp-videos-likyastudios")
         blob_name = f"uploads/{safe_brand}/{fname}"
@@ -794,6 +894,9 @@ async def upload_media_mp4(
             blob = bucket.blob(blob_name)
             await asyncio.to_thread(blob.upload_from_filename, tmp_path, content_type="video/mp4")
         except Exception as e:
+            if os.getenv("K_SERVICE"):
+                # Cloud Run diski geçicidir; video kaybolmasın diye hatayı gizleme
+                raise HTTPException(status_code=502, detail=f"Video depoya yüklenemedi: {e}")
             # Local fallback for tests/dev
             fallback_dir = os.path.join("/tmp/uploads", safe_brand)
             os.makedirs(fallback_dir, exist_ok=True)
@@ -820,8 +923,9 @@ async def upload_media_mp4(
 
 
 @app.get("/api/media/{brand}/{filename}")
-def stream_media_mp4(brand: str, filename: str):
-    """Public MP4 stream from GCS uploads/{brand}/{filename} for panel preview, YouTube, and Instagram."""
+def stream_media_mp4(brand: str, filename: str, request: Request):
+    """Public MP4 stream from GCS uploads/{brand}/{filename} for panel preview, YouTube, and Instagram.
+    iPhone/Safari önizlemesi için Range isteklerini destekler."""
     from google.cloud import storage as gcs_storage
 
     safe_brand = re.sub(r"[^a-z0-9_\-]", "", brand.lower())
@@ -831,31 +935,49 @@ def stream_media_mp4(brand: str, filename: str):
 
     local_fallback = os.path.join("/tmp/uploads", safe_brand, safe_file)
     if os.path.exists(local_fallback):
-        def _iter_file():
-            with open(local_fallback, "rb") as f:
-                while chunk := f.read(1024 * 512):
-                    yield chunk
-        return StreamingResponse(_iter_file(), media_type="video/mp4", headers={"Access-Control-Allow-Origin": "*"})
+        size = os.path.getsize(local_fallback)
 
-    bucket_name = os.getenv("GCS_BUCKET_NAME", "likya-temp-videos-likyastudios")
-    client = gcs_storage.Client()
-    blob = client.bucket(bucket_name).blob(f"uploads/{safe_brand}/{safe_file}")
-    if not blob.exists():
-        raise HTTPException(status_code=404, detail="Video dosyası bulunamadı.")
+        def _open():
+            return open(local_fallback, "rb")
+    else:
+        bucket_name = os.getenv("GCS_BUCKET_NAME", "likya-temp-videos-likyastudios")
+        blob = gcs_storage.Client().bucket(bucket_name).get_blob(f"uploads/{safe_brand}/{safe_file}")
+        if blob is None:
+            raise HTTPException(status_code=404, detail="Video dosyası bulunamadı.")
+        size = blob.size
 
-    def _iter_gcs():
-        with blob.open("rb") as f:
-            while chunk := f.read(1024 * 512):
+        def _open():
+            return blob.open("rb")
+
+    start, end, code = 0, size - 1, 200
+    m = re.fullmatch(r"bytes=(\d*)-(\d*)", (request.headers.get("range") or "").strip())
+    if m and (m.group(1) or m.group(2)):
+        if m.group(1):
+            start = int(m.group(1))
+            end = min(int(m.group(2)), size - 1) if m.group(2) else size - 1
+        else:
+            start = max(0, size - int(m.group(2)))
+        if start >= size or start > end:
+            raise HTTPException(status_code=416, detail="Geçersiz aralık.", headers={"Content-Range": f"bytes */{size}"})
+        code = 206
+
+    def _iter():
+        left = end - start + 1
+        with _open() as f:
+            f.seek(start)
+            while left > 0 and (chunk := f.read(min(left, 512 * 1024))):
+                left -= len(chunk)
                 yield chunk
 
-    return StreamingResponse(
-        _iter_gcs(),
-        media_type="video/mp4",
-        headers={
-            "Cache-Control": "public, max-age=3600",
-            "Access-Control-Allow-Origin": "*",
-        },
-    )
+    headers = {
+        "Accept-Ranges": "bytes",
+        "Content-Length": str(end - start + 1),
+        "Cache-Control": "public, max-age=3600",
+        "Access-Control-Allow-Origin": "*",
+    }
+    if code == 206:
+        headers["Content-Range"] = f"bytes {start}-{end}/{size}"
+    return StreamingResponse(_iter(), status_code=code, media_type="video/mp4", headers=headers)
 
 
 _ANALYTICS_CACHE: dict[str, tuple[float, dict]] = {}
@@ -949,7 +1071,7 @@ async def get_analytics(brand: Optional[str] = None, refresh: bool = False):
         accs = [a for a in accs if (a.get("brand") or "akilalmaz").lower() == b_filt]
 
     # Map YT video_id -> internal scheduled post metadata (slug, brand, label_tr, cover_url)
-    sched_posts = db.list_scheduled_posts()
+    sched_posts = [_enrich_sched(r) for r in db.list_scheduled_posts()]
     sched_by_yt: dict[str, dict] = {}
     for p in sched_posts:
         u = p.get("yt_video_url") or ""

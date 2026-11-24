@@ -61,3 +61,20 @@ def read_state(state: str, platform: str) -> dict:
     if data.get("p") != platform or int(data.get("e", 0)) < time.time():
         raise bad
     return data
+
+
+def verify_scheduler(x_api_key: Optional[str] = Header(default=None), authorization: Optional[str] = Header(default=None)):
+    """API anahtarı ya da Cloud Scheduler'ın Google imzalı kimliği (OIDC). Sunucuda/görevde anahtar saklamaya gerek kalmaz."""
+    email = os.getenv("SCHEDULER_SA_EMAIL", "").strip()
+    audience = os.getenv("PUBLIC_API_BASE", "").rstrip("/")
+    if email and audience and (authorization or "").startswith("Bearer ") and not x_api_key:
+        from google.auth.transport.requests import Request as GoogleRequest
+        from google.oauth2 import id_token
+        try:
+            info = id_token.verify_oauth2_token(authorization[7:], GoogleRequest(), audience=audience)
+        except Exception:
+            raise HTTPException(status_code=401, detail="Zamanlayıcı kimliği doğrulanamadı.")
+        if info.get("email") == email and info.get("email_verified"):
+            return
+        raise HTTPException(status_code=401, detail="Zamanlayıcı kimliği yetkili değil.")
+    verify_api_key(x_api_key)

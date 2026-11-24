@@ -274,3 +274,20 @@ def test_media_range(tmp_path):
     assert client.get(u, headers={"Range": "bytes=50-"}).status_code == 416
     bad = client.post("/api/media/upload", headers=HDR, files={"file": ("a.mp4", b"not a video", "video/mp4")})
     assert bad.status_code == 400
+
+
+def test_scheduler_oidc():
+    env = {"SCHEDULER_SA_EMAIL": "s@x.iam", "PUBLIC_API_BASE": "https://api.example"}
+    h = {"Authorization": "Bearer t"}
+    v = "google.oauth2.id_token.verify_oauth2_token"
+    run = lambda: client.post("/api/scheduler/tick", headers=h).status_code
+    with patch("app.main.db.get_due_scheduled_posts", return_value=[]), patch("app.main.db.get_pending_yt_presync_posts", return_value=[]):
+        assert run() == 401  # ayar yoksa kapalı
+        with patch.dict(os.environ, env):
+            assert run() == 401  # sahte token
+            with patch(v, return_value={"email": "other@x", "email_verified": True}):
+                assert run() == 401
+            with patch(v, return_value={"email": "s@x.iam", "email_verified": True}) as m:
+                assert run() == 200
+                assert m.call_args.kwargs["audience"] == "https://api.example"
+            assert client.get("/api/accounts", headers=h).status_code == 401  # yalnız tick

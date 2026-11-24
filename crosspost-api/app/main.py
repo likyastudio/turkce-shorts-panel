@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 
 from app import db
 from app.oauth import router as oauth_router
-from app.security import verify_api_key
+from app.security import verify_api_key, verify_scheduler
 from app.services import covers as covers_svc
 from app.services import scheduler as sched_svc
 from app.services.instagram import publish_to_instagram
@@ -750,7 +750,7 @@ async def reschedule_schedule_post(post_id: int, background_tasks: BackgroundTas
     return {"ok": True, "post": _enrich_sched(updated), "channels": [a["account_name"] for a in brand_accs]}
 
 
-@app.post("/api/scheduler/tick", dependencies=[Depends(verify_api_key)])
+@app.post("/api/scheduler/tick", dependencies=[Depends(verify_scheduler)])
 async def scheduler_tick():
     """1. Triggers due scheduled posts (skipping YT if already natively scheduled).
     2. Pre-uploads upcoming un-synced scheduled posts to YouTube Studio (within safe daily quota).

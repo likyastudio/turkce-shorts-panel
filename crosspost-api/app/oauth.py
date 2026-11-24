@@ -162,12 +162,16 @@ def instagram_oauth_callback(state: str = "", code: Optional[str] = None, error:
     ).json()
 
     candidate_pages: list[dict] = list(pages.get("data", []))
+    direct_ig_nodes: list[dict] = []
 
-    # Fallback / supplement: pages owned or managed via Meta Business Portfolios
+    # Fallback / supplement 1: pages & Instagram accounts owned or managed via Meta Business Portfolios
     biz = requests.get(
         f"{IG_GRAPH_BASE_URL}/me/businesses",
         params={
-            "fields": f"id,name,owned_pages{{{page_fields}}},client_pages{{{page_fields}}}",
+            "fields": (
+                f"id,name,owned_pages{{{page_fields}}},client_pages{{{page_fields}}},"
+                "owned_instagram_accounts{id,username},instagram_accounts{id,username}"
+            ),
             "limit": 50,
             "access_token": access,
         },
@@ -176,24 +180,57 @@ def instagram_oauth_callback(state: str = "", code: Optional[str] = None, error:
     for b in biz.get("data", []):
         candidate_pages.extend((b.get("owned_pages") or {}).get("data", []))
         candidate_pages.extend((b.get("client_pages") or {}).get("data", []))
+        direct_ig_nodes.extend((b.get("owned_instagram_accounts") or {}).get("data", []))
+        direct_ig_nodes.extend((b.get("instagram_accounts") or {}).get("data", []))
 
-    ig_ids = {
-        (pg.get("instagram_business_account") or pg.get("connected_instagram_account") or {}).get("id")
-        for pg in candidate_pages
-    } - {None}
-    # Birden çok Instagram hesabı gelirse hangisinin seçilen marka olduğu bilinemez; atanmamış bırak.
-    new_brand = st["b"] if len(ig_ids) == 1 else "atanmadi"
-
-    seen_ig_ids: set[str] = set()
+    discovered: dict[str, str] = {}
     page_names: list[str] = []
+
+    def _collect_ig(ig_id: str, username: str | None, fallback_name: str = "instagram") -> None:
+        if not ig_id or ig_id in discovered:
+            return
+        discovered[str(ig_id)] = "@" + (username or fallback_name).lstrip("@")
+
     for pg in candidate_pages:
         if pg.get("name") and pg["name"] not in page_names:
             page_names.append(pg["name"])
         ig = pg.get("instagram_business_account") or pg.get("connected_instagram_account")
-        if ig and ig.get("id") and ig["id"] not in seen_ig_ids:
-            uname = "@" + ig.get("username", pg.get("name", "instagram"))
-            db.upsert_account("IG", uname, ig["id"], access, None, expires_at, brand=new_brand)
-            seen_ig_ids.add(ig["id"])
+        if ig and ig.get("id"):
+            _collect_ig(str(ig["id"]), ig.get("username"), pg.get("name", "instagram"))
+
+    for ig in direct_ig_nodes:
+        if ig and ig.get("id"):
+            _collect_ig(str(ig["id"]), ig.get("username"))
+
+    # Fallback / supplement 2: inspect granular_scopes target_ids directly granted in the Meta OAuth dialog
+    try:
+        dbg = requests.get(
+            f"{IG_GRAPH_BASE_URL}/debug_token",
+            params={"input_token": access, "access_token": f"{aid}|{asec}"},
+            timeout=20,
+        ).json()
+        for gs in (dbg.get("data") or {}).get("granular_scopes") or []:
+            if gs.get("scope") in ("instagram_basic", "instagram_content_publish"):
+                for tid in gs.get("target_ids") or []:
+                    tid_str = str(tid)
+                    if tid_str in discovered:
+                        continue
+                    prof = requests.get(
+                        f"{IG_GRAPH_BASE_URL}/{tid_str}",
+                        params={"fields": "id,username,name", "access_token": access},
+                        timeout=15,
+                    ).json()
+                    if prof.get("id"):
+                        _collect_ig(str(prof["id"]), prof.get("username") or prof.get("name"), tid_str)
+    except Exception:
+        pass
+
+    # Birden çok Instagram hesabı gelirse hangisinin seçilen marka olduğu bilinemez; atanmamış bırak.
+    new_brand = st["b"] if len(discovered) == 1 else "atanmadi"
+    for ig_id, uname in discovered.items():
+        db.upsert_account("IG", uname, ig_id, access, None, expires_at, brand=new_brand)
+
+    seen_ig_ids = set(discovered.keys())
 
     if not seen_ig_ids:
         diag_parts = []

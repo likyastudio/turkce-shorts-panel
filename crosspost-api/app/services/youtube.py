@@ -151,3 +151,101 @@ def publish_to_youtube(
         "thumbnail_error": thumb_err,
         "url": f"https://youtube.com/shorts/{yt_id}",
     }
+
+
+def fetch_youtube_analytics(
+    access_token: str,
+    refresh_token: Optional[str],
+    client_id: str,
+    client_secret: str,
+    max_videos: int = 35,
+    on_token_refresh: Optional[Callable[[str, Optional[str]], None]] = None,
+) -> dict:
+    """Fetches channel summary and per-video live views/likes/comments using YouTube Data API v3."""
+    creds = Credentials(
+        token=access_token,
+        refresh_token=refresh_token,
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=client_id,
+        client_secret=client_secret,
+    )
+    if creds.expired and creds.refresh_token:
+        creds.refresh(GoogleAuthRequest())
+        if on_token_refresh:
+            exp = creds.expiry.isoformat() if creds.expiry else None
+            on_token_refresh(creds.token, exp)
+
+    youtube = build("youtube", "v3", credentials=creds, cache_discovery=False)
+
+    ch_resp = youtube.channels().list(part="snippet,statistics,contentDetails", mine=True).execute()
+    ch_items = ch_resp.get("items") or []
+    if not ch_items:
+        return {"platform": "YT", "channel": None, "videos": []}
+
+    ch = ch_items[0]
+    ch_snip = ch.get("snippet") or {}
+    ch_stats = ch.get("statistics") or {}
+    uploads_pl = (ch.get("contentDetails") or {}).get("relatedPlaylists", {}).get("uploads")
+    ch_thumbs = ch_snip.get("thumbnails") or {}
+    ch_thumb = (ch_thumbs.get("medium") or ch_thumbs.get("default") or {}).get("url")
+
+    channel_info = {
+        "id": ch.get("id"),
+        "title": (ch_snip.get("title") or "").strip(),
+        "custom_url": ch_snip.get("customUrl") or "",
+        "thumbnail": ch_thumb,
+        "subscribers": int(ch_stats.get("subscriberCount") or 0),
+        "total_views": int(ch_stats.get("viewCount") or 0),
+        "video_count": int(ch_stats.get("videoCount") or 0),
+    }
+
+    video_ids: list[str] = []
+    if uploads_pl:
+        pl_resp = youtube.playlistItems().list(
+            part="contentDetails",
+            playlistId=uploads_pl,
+            maxResults=min(50, max(1, max_videos)),
+        ).execute()
+        for it in pl_resp.get("items") or []:
+            vid = (it.get("contentDetails") or {}).get("videoId")
+            if vid:
+                video_ids.append(vid)
+
+    videos: list[dict] = []
+    if video_ids:
+        v_resp = youtube.videos().list(
+            part="snippet,statistics,status,contentDetails",
+            id=",".join(video_ids[:50]),
+        ).execute()
+        for item in v_resp.get("items") or []:
+            vid = item.get("id")
+            sn = item.get("snippet") or {}
+            st = item.get("statistics") or {}
+            status = item.get("status") or {}
+            thumbs = sn.get("thumbnails") or {}
+            thumb = (thumbs.get("high") or thumbs.get("medium") or thumbs.get("default") or {}).get("url")
+            privacy = status.get("privacyStatus") or "public"
+            pub_at = status.get("publishAt")
+            is_scheduled = privacy == "private" and bool(pub_at)
+            views = int(st.get("viewCount") or 0)
+            likes = int(st.get("likeCount") or 0)
+            comments = int(st.get("commentCount") or 0)
+            videos.append({
+                "platform": "YT",
+                "video_id": vid,
+                "title": sn.get("title") or "",
+                "thumbnail": thumb,
+                "url": f"https://youtube.com/shorts/{vid}",
+                "published_at": sn.get("publishedAt"),
+                "publish_at": pub_at,
+                "privacy_status": privacy,
+                "state": "Planlandı" if is_scheduled else ("Yayında" if privacy == "public" else privacy),
+                "views": views,
+                "likes": likes,
+                "comments": comments,
+                "engagement_rate": round(((likes + comments) / views) * 100, 2) if views > 0 else 0.0,
+                "duration": (item.get("contentDetails") or {}).get("duration") or "",
+            })
+
+    return {"platform": "YT", "channel": channel_info, "videos": videos}
+

@@ -22,7 +22,7 @@ from app.services import covers as covers_svc
 from app.services import scheduler as sched_svc
 from app.services.instagram import publish_to_instagram
 from app.services.storage import download_video_to_tmp, upload_to_gcs_and_get_signed_url
-from app.services.youtube import apply_youtube_thumbnail, publish_to_youtube
+from app.services.youtube import apply_youtube_thumbnail, fetch_youtube_analytics, publish_to_youtube
 
 app = FastAPI(title="Likya Studios Cross-Posting API", version="1.0.0")
 
@@ -833,5 +833,187 @@ def stream_media_mp4(brand: str, filename: str):
             "Access-Control-Allow-Origin": "*",
         },
     )
+
+
+_ANALYTICS_CACHE: dict[str, tuple[float, dict]] = {}
+
+
+def _fetch_ig_analytics(acc: dict) -> dict:
+    """Fetches Instagram Business/Creator profile and recent media metrics via Meta Graph API."""
+    import requests as _req
+
+    ig_id = acc.get("external_id")
+    token = acc.get("access_token")
+    base = os.getenv("IG_GRAPH_BASE_URL", "https://graph.facebook.com/v21.0").rstrip("/")
+    prof = _req.get(
+        f"{base}/{ig_id}",
+        params={"fields": "id,username,followers_count,media_count,profile_picture_url", "access_token": token},
+        timeout=20,
+    ).json()
+    channel = {
+        "id": ig_id,
+        "title": "@" + prof.get("username", acc.get("account_name", "instagram").lstrip("@")),
+        "custom_url": f"https://instagram.com/{prof.get('username', '')}",
+        "thumbnail": prof.get("profile_picture_url"),
+        "subscribers": int(prof.get("followers_count") or 0),
+        "total_views": 0,
+        "video_count": int(prof.get("media_count") or 0),
+    }
+    media_resp = _req.get(
+        f"{base}/{ig_id}/media",
+        params={
+            "fields": "id,caption,media_type,permalink,timestamp,like_count,comments_count,thumbnail_url,media_url",
+            "limit": 25,
+            "access_token": token,
+        },
+        timeout=20,
+    ).json()
+    videos = []
+    for m in media_resp.get("data") or []:
+        views = 0
+        try:
+            ins = _req.get(
+                f"{base}/{m['id']}/insights",
+                params={"metric": "views,reach", "access_token": token},
+                timeout=10,
+            ).json()
+            for item in ins.get("data") or []:
+                if item.get("name") == "views":
+                    vals = item.get("values") or []
+                    if vals:
+                        views = int(vals[0].get("value") or 0)
+        except Exception:
+            pass
+        likes = int(m.get("like_count") or 0)
+        comments = int(m.get("comments_count") or 0)
+        cap = (m.get("caption") or "").strip()
+        title = cap.splitlines()[0][:90] if cap else "Instagram Reels"
+        channel["total_views"] += views
+        videos.append({
+            "platform": "IG",
+            "video_id": m.get("id"),
+            "title": title,
+            "thumbnail": m.get("thumbnail_url") or m.get("media_url"),
+            "url": m.get("permalink") or "",
+            "published_at": m.get("timestamp"),
+            "publish_at": None,
+            "privacy_status": "public",
+            "state": "Yayında",
+            "views": views,
+            "likes": likes,
+            "comments": comments,
+            "engagement_rate": round(((likes + comments) / views) * 100, 2) if views > 0 else 0.0,
+            "duration": "",
+        })
+    return {"platform": "IG", "channel": channel, "videos": videos}
+
+
+@app.get("/api/analytics", dependencies=[Depends(verify_api_key)])
+async def get_analytics(brand: Optional[str] = None, refresh: bool = False):
+    """Live YouTube & Instagram analytics for all connected channels and their published/scheduled videos."""
+    from datetime import datetime, timezone
+
+    cache_key = (brand or "all").strip().lower()
+    now_ts = time.time()
+    if not refresh and cache_key in _ANALYTICS_CACHE:
+        ts, cached = _ANALYTICS_CACHE[cache_key]
+        if now_ts - ts < 60:
+            return cached
+
+    accs = db.list_accounts(include_tokens=True)
+    if brand and brand.strip().lower() not in ("", "all"):
+        b_filt = brand.strip().lower()
+        accs = [a for a in accs if (a.get("brand") or "akilalmaz").lower() == b_filt]
+
+    # Map YT video_id -> internal scheduled post metadata (slug, brand, label_tr, cover_url)
+    sched_posts = db.list_scheduled_posts()
+    sched_by_yt: dict[str, dict] = {}
+    for p in sched_posts:
+        u = p.get("yt_video_url") or ""
+        if "/shorts/" in u:
+            sched_by_yt[u.rsplit("/", 1)[-1].split("?")[0]] = p
+
+    channels: list[dict] = []
+    videos: list[dict] = []
+    errors: list[dict] = []
+
+    for acc in accs:
+        plat = acc.get("platform")
+        acc_brand = acc.get("brand") or "akilalmaz"
+        acc_id = acc.get("id")
+        try:
+            if plat == "YT":
+                cid = acc.get("client_id") or os.getenv("YT_CLIENT_ID", "")
+                csec = acc.get("client_secret") or os.getenv("YT_CLIENT_SECRET", "")
+                on_refresh = (lambda tok, exp, aid=acc_id: db.update_account_token(aid, tok, exp)) if acc_id else None
+                res = await asyncio.to_thread(
+                    fetch_youtube_analytics,
+                    access_token=acc["access_token"],
+                    refresh_token=acc.get("refresh_token"),
+                    client_id=cid,
+                    client_secret=csec,
+                    max_videos=35,
+                    on_token_refresh=on_refresh,
+                )
+            elif plat == "IG":
+                res = await asyncio.to_thread(_fetch_ig_analytics, acc)
+            else:
+                continue
+
+            ch = res.get("channel")
+            if ch:
+                ch["platform"] = plat
+                ch["brand"] = acc_brand
+                ch["account_id"] = acc_id
+                channels.append(ch)
+            for v in res.get("videos") or []:
+                v["brand"] = acc_brand
+                v["account_name"] = (ch or {}).get("title") or acc.get("account_name") or ""
+                sp = sched_by_yt.get(v.get("video_id") or "")
+                if sp:
+                    v["slug"] = sp.get("video_id")
+                    v["label_tr"] = sp.get("label_tr")
+                    if sp.get("cover_url"):
+                        v["cover_url"] = sp.get("cover_url")
+                videos.append(v)
+        except Exception as e:
+            errors.append({
+                "account_id": acc_id,
+                "platform": plat,
+                "brand": acc_brand,
+                "account_name": acc.get("account_name"),
+                "error": str(e)[:300],
+            })
+
+    # Sort: Yayında first by views desc (then published_at desc), then Planlandı by publish_at asc
+    videos.sort(key=lambda x: (0 if x.get("state") == "Yayında" else 1, -int(x.get("views") or 0), x.get("publish_at") or ""))
+
+    pub_videos = [v for v in videos if v.get("state") == "Yayında"]
+    sched_videos = [v for v in videos if v.get("state") == "Planlandı"]
+    total_views = sum(int(v.get("views") or 0) for v in videos)
+    total_likes = sum(int(v.get("likes") or 0) for v in videos)
+    total_comments = sum(int(v.get("comments") or 0) for v in videos)
+    total_subs = sum(int(c.get("subscribers") or 0) for c in channels)
+
+    payload = {
+        "ok": True,
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
+        "summary": {
+            "total_views": total_views,
+            "total_likes": total_likes,
+            "total_comments": total_comments,
+            "total_subscribers": total_subs,
+            "published_count": len(pub_videos),
+            "scheduled_count": len(sched_videos),
+            "avg_views": round(total_views / len(pub_videos), 1) if pub_videos else 0.0,
+            "engagement_rate": round(((total_likes + total_comments) / total_views) * 100, 2) if total_views > 0 else 0.0,
+        },
+        "channels": channels,
+        "videos": videos,
+        "errors": errors,
+    }
+    _ANALYTICS_CACHE[cache_key] = (now_ts, payload)
+    return payload
+
 
 

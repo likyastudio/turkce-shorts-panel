@@ -408,6 +408,24 @@ def update_scheduled_post(post_id: int, status: str, error_message: Optional[str
         )
 
 
+def reschedule_post(post_id: int, scheduled_at_iso: str, account_ids: Optional[list[int]] = None) -> Optional[dict[str, Any]]:
+    import json
+    now = _now()
+    with get_conn() as (conn, p, _is_pg):
+        cur = conn.cursor()
+        if account_ids is not None:
+            cur.execute(
+                f"UPDATE scheduled_posts SET scheduled_at={p}, status='Planlandı', error_message=NULL, account_ids_json={p}, updated_at={p} WHERE id={p}",
+                (scheduled_at_iso, json.dumps(account_ids), now, post_id),
+            )
+        else:
+            cur.execute(
+                f"UPDATE scheduled_posts SET scheduled_at={p}, status='Planlandı', error_message=NULL, updated_at={p} WHERE id={p}",
+                (scheduled_at_iso, now, post_id),
+            )
+    return get_scheduled_post(post_id)
+
+
 def delete_scheduled_post(post_id: int) -> bool:
     with get_conn() as (conn, p, _is_pg):
         cur = conn.cursor()

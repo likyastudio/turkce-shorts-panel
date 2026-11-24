@@ -1715,6 +1715,16 @@ async function runScheduleNow(id) {
   }
 }
 
+async function reschedulePost(id) {
+  try {
+    const res = await apiFetch(`/api/schedule/${id}/reschedule`, { method: 'POST' });
+    toast(`Sıradaki slota planlandı: ${res.post?.label_tr || ''}`, 'ok');
+    await load(true);
+  } catch (e) {
+    toast('Yeniden planlama hatası: ' + e.message, 'err');
+  }
+}
+
 function syncUploadChannelSelection(brand) {
   document.querySelectorAll('input[name="u_acc_id"]').forEach(cb => {
     cb.checked = (cb.dataset.brand || 'akilalmaz') === brand;
@@ -2122,6 +2132,7 @@ function renderSchedule(el) {
                     <button class="btn sm primary" ${!apiUrl || isGen ? 'disabled' : ''} onclick="openScheduleCoverModal(${Number(p.id)})">
                       ${isGen ? '<span class="spinner"></span> Kapak Üretiliyor…' : '🎨 Kapak Üret / Yenile'}
                     </button>
+                    ${p.status === 'Hata' ? `<button class="btn sm ink-btn" onclick="reschedulePost(${Number(p.id)})">🔁 Sıradaki Slota Planla</button>` : ''}
                     ${!p.yt_uploaded && p.status === 'Planlandı' ? `<button class="btn sm ink-btn" onclick="syncPostToYouTube(${Number(p.id)})">YT'ye Planla</button>` : ''}
                     ${p.status === 'Planlandı' || p.status === 'Hata' ? `<button class="btn sm" onclick="runScheduleNow(${Number(p.id)})">Şimdi Yayınla</button>` : ''}
                     <button class="btn sm danger" onclick="cancelSchedule(${Number(p.id)})">Sil</button>

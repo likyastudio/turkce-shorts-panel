@@ -646,6 +646,29 @@ async def run_schedule_now(post_id: int, background_tasks: BackgroundTasks):
     return {"ok": True, "message": "Hemen yayınlanmak üzere başlatıldı.", "id": post_id}
 
 
+@app.post("/api/schedule/{post_id}/reschedule", dependencies=[Depends(verify_api_key)])
+async def reschedule_schedule_post(post_id: int, background_tasks: BackgroundTasks, sync_youtube_now: bool = True):
+    """Moves a failed/past scheduled post to the next open weekly slot (06:01-06:07 TR) for its brand,
+    resets status to 'Planlandı', clears account_ids so current brand channels are used, and triggers YT presync."""
+    post = db.get_scheduled_post(post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Planlanmış gönderi bulunamadı.")
+    brand = (post.get("brand") or "akilalmaz").strip().lower()
+    brand_accs = db.list_accounts(include_tokens=False, brand=brand)
+    if not brand_accs:
+        raise HTTPException(
+            status_code=400,
+            detail=f"'{brand}' markasına atanmış YouTube veya Instagram kanalı yok. Önce VI. Ayarlar'dan kanalın markasını seçin.",
+        )
+    existing = db.list_scheduled_posts(brand=brand)
+    occupied = [p["scheduled_at"] for p in existing if p["id"] != post_id and p["status"] in ("Planlandı", "Yayınlanıyor")]
+    slot = sched_svc.next_weekly_slot(occupied_iso_list=occupied)
+    updated = db.reschedule_post(post_id, slot["scheduled_at_utc"], account_ids=[])
+    if sync_youtube_now and updated and not updated.get("yt_uploaded"):
+        background_tasks.add_task(_sync_scheduled_post_to_youtube, updated)
+    return {"ok": True, "post": _enrich_sched(updated), "channels": [a["account_name"] for a in brand_accs]}
+
+
 @app.post("/api/scheduler/tick", dependencies=[Depends(verify_api_key)])
 async def scheduler_tick(background_tasks: BackgroundTasks):
     """1. Triggers due scheduled posts (skipping YT if already natively scheduled).

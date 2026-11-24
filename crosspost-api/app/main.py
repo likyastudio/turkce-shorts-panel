@@ -968,6 +968,7 @@ async def get_analytics(brand: Optional[str] = None, refresh: bool = False):
                 channels.append(ch)
             for v in res.get("videos") or []:
                 v["brand"] = acc_brand
+                v["account_id"] = acc_id
                 v["account_name"] = (ch or {}).get("title") or acc.get("account_name") or ""
                 sp = sched_by_yt.get(v.get("video_id") or "")
                 if sp:
@@ -983,6 +984,65 @@ async def get_analytics(brand: Optional[str] = None, refresh: bool = False):
                 "brand": acc_brand,
                 "account_name": acc.get("account_name"),
                 "error": str(e)[:300],
+            })
+
+    # Include queued/scheduled posts for every connected YT & IG channel (especially Instagram,
+    # which has no native future-scheduled media endpoint, and YT posts awaiting presync quota).
+    existing_yt_ids_by_acc: dict[int, set[str]] = {}
+    for v in videos:
+        aid = v.get("account_id")
+        if aid is not None:
+            existing_yt_ids_by_acc.setdefault(aid, set()).add(v.get("video_id") or "")
+            if v.get("slug"):
+                existing_yt_ids_by_acc[aid].add(v["slug"])
+
+    ch_title_by_acc = {c.get("account_id"): c.get("title") for c in channels if c.get("account_id") is not None}
+    for sp in sched_posts:
+        if sp.get("status") not in ("Planlandı", "Yayınlanıyor"):
+            continue
+        sp_brand = (sp.get("brand") or "akilalmaz").lower()
+        sp_acc_ids = sp.get("account_ids") or []
+        yt_vid_id = ""
+        u = sp.get("yt_video_url") or ""
+        if "/shorts/" in u:
+            yt_vid_id = u.rsplit("/", 1)[-1].split("?")[0]
+
+        for acc in accs:
+            aid = acc.get("id")
+            plat = acc.get("platform")
+            acc_brand = (acc.get("brand") or "akilalmaz").lower()
+            if sp_acc_ids:
+                if aid not in sp_acc_ids:
+                    continue
+            else:
+                if acc_brand != sp_brand:
+                    continue
+
+            seen_for_acc = existing_yt_ids_by_acc.get(aid, set())
+            if plat == "YT" and ((yt_vid_id and yt_vid_id in seen_for_acc) or (sp.get("video_id") in seen_for_acc)):
+                continue
+
+            videos.append({
+                "platform": plat,
+                "brand": acc_brand,
+                "account_id": aid,
+                "account_name": ch_title_by_acc.get(aid) or acc.get("account_name") or "",
+                "video_id": yt_vid_id if (plat == "YT" and yt_vid_id) else f"sched_{sp.get('id')}_{plat}",
+                "slug": sp.get("video_id"),
+                "title": sp.get("title") or sp.get("video_id") or "Planlı Video",
+                "thumbnail": sp.get("cover_url") or "",
+                "cover_url": sp.get("cover_url") or "",
+                "url": sp.get("yt_video_url") if plat == "YT" else "",
+                "published_at": None,
+                "publish_at": sp.get("scheduled_at"),
+                "label_tr": sp.get("label_tr"),
+                "privacy_status": "scheduled",
+                "state": "Planlandı",
+                "views": 0,
+                "likes": 0,
+                "comments": 0,
+                "engagement_rate": 0.0,
+                "duration": "",
             })
 
     # Sort: Yayında first by views desc (then published_at desc), then Planlandı by publish_at asc

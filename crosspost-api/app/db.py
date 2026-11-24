@@ -415,7 +415,7 @@ def reschedule_post(post_id: int, scheduled_at_iso: str, account_ids: Optional[l
         cur = conn.cursor()
         if account_ids is not None:
             cur.execute(
-                f"UPDATE scheduled_posts SET scheduled_at={p}, status='Planlandı', error_message=NULL, account_ids_json={p}, updated_at={p} WHERE id={p}",
+                f"UPDATE scheduled_posts SET scheduled_at={p}, status='Planlandı', error_message=NULL, account_ids={p}, updated_at={p} WHERE id={p}",
                 (scheduled_at_iso, json.dumps(account_ids), now, post_id),
             )
         else:

@@ -2375,7 +2375,7 @@ function renderScheduleCard(p, platformScope, apiUrl) {
           const cls = p.yt_uploaded || p.status === 'Yayında' ? 'b-ok' : 'b-mut';
           return `<span class="badge ${cls}">▶️ ${esc(a.account_name)} · ${st}</span>`;
         }
-        const st = p.status;
+        const st = p.status === 'Planlandı' ? 'Saatinde panelden gönderilecek' : p.status;
         const cls = badge(p.status);
         return `<span class="badge ${cls}">📸 ${esc(a.account_name)} · ${st}</span>`;
       }).join('')}</div>`
@@ -2523,6 +2523,7 @@ function renderSchedule(el) {
             </div>
             <button class="btn sm primary" ${!apiUrl?'disabled':''} onclick="openUploadModal('${activeBrand}', 'IG')">➕ Instagram'a Planla / Yayınla</button>
           </div>
+          ${igPosts.some(p => p.status === 'Planlandı') ? `<div class="panel-sub" style="margin-bottom:10px">Instagram dışarıdan planlamaya izin vermiyor. Bu videolar <b>Instagram uygulamasındaki planlanmış içeriklerde görünmez</b>; saati gelince panel otomatik paylaşır.</div>` : ''}
           ${igPosts.length
             ? `<div class="sched-list">${igPosts.map(p => renderScheduleCard(p, 'IG', apiUrl)).join('')}</div>`
             : `<div class="ph">Bu marka için Instagram Reels kuyruğunda henüz video yok.<br><button class="btn sm primary" style="margin-top:10px" ${!apiUrl?'disabled':''} onclick="openUploadModal('${activeBrand}', 'IG')">➕ İlk Instagram Reels'ini Planla / Yayınla</button></div>`}

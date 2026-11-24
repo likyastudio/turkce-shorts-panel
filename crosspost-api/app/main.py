@@ -448,6 +448,7 @@ async def _sync_scheduled_post_to_youtube(post: dict):
                     client_secret=csec,
                     publish_at=post["scheduled_at"],
                     cover_url=cov_url,
+                    brand=post_brand,
                     on_token_refresh=on_refresh,
                 )
                 last_url = res.get("url")

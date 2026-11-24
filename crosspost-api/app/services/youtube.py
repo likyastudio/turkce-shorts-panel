@@ -77,6 +77,72 @@ def _normalize_publish_at(publish_at: Optional[str]) -> Optional[str]:
     return dt_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+import re
+
+_TR_CHARS_RE = re.compile(r"[çğıöşüÇĞİÖŞÜ]")
+_TR_WORDS_RE = re.compile(
+    r"\b(ve|bir|icin|nasil|tarih|gercek|anadolu|ilginc|hikaye|kesfet|turkiye|savas|sehir|neden|kim|bu)\b",
+    re.IGNORECASE,
+)
+
+BRAND_DEFAULT_TAGS: dict[str, list[str]] = {
+    "akilalmaz": ["shorts", "akılalmaz", "ilginç bilgiler", "absürt tarih", "gerçek hikayeler", "kısa animasyon", "keşfet"],
+    "kadimanadolu": ["shorts", "kadim anadolu", "anadolu tarihi", "tarih", "arkeoloji", "türkiye tarihi", "belgesel", "keşfet"],
+    "likyastudios": ["shorts", "likya studios", "yapay zeka", "animasyon", "kısa film", "keşfet"],
+    "foodballstv": ["shorts", "foodballstv", "food animation", "cute food", "3d animation", "funny shorts", "viral"],
+}
+
+
+def _detect_video_language(title: str, description: str, brand: Optional[str] = None) -> str:
+    """Detects 'tr' vs 'en' from title/description with brand fallback."""
+    sample = f"{title or ''} {description or ''}"
+    if _TR_CHARS_RE.search(sample):
+        return "tr"
+    if len(_TR_WORDS_RE.findall(sample)) >= 2:
+        return "tr"
+    b = (brand or "").strip().lower()
+    if b == "foodballstv":
+        return "en"
+    if re.search(r"\b(the|and|with|from|this|that|what|why|how|when|food|story|history)\b", sample, re.IGNORECASE):
+        return "en"
+    return "tr"
+
+
+def _build_youtube_tags(
+    title: str,
+    description: str,
+    brand: Optional[str] = None,
+    extra_tags: Optional[list[str]] = None,
+) -> list[str]:
+    """Builds a deduplicated YouTube tags list from hashtags + brand defaults within YouTube's 500-char limit."""
+    raw_tags: list[str] = []
+    if extra_tags:
+        raw_tags.extend(extra_tags)
+    for m in re.findall(r"#([\wçğıöşüÇĞİÖŞÜ]+)", f"{title or ''} {description or ''}"):
+        raw_tags.append(m)
+    b = (brand or "").strip().lower()
+    raw_tags.extend(BRAND_DEFAULT_TAGS.get(b, ["shorts", "likya studios"]))
+
+    seen: set[str] = set()
+    tags: list[str] = []
+    total_len = 0
+    for t in raw_tags:
+        cleaned = re.sub(r"[<>\"']", "", str(t or "")).strip()
+        if not cleaned or len(cleaned) > 45:
+            continue
+        key = cleaned.lower()
+        if key in seen:
+            continue
+        # YouTube counts quotes around multi-word tags + commas toward the 500-char limit; keep safe margin at 420
+        add_len = len(cleaned) + (3 if " " in cleaned else 1)
+        if total_len + add_len > 420:
+            break
+        seen.add(key)
+        tags.append(cleaned)
+        total_len += add_len
+    return tags
+
+
 def publish_to_youtube(
     local_file_path: str,
     title: str,
@@ -89,12 +155,19 @@ def publish_to_youtube(
     privacy_status: str = "public",
     publish_at: Optional[str] = None,
     cover_url: Optional[str] = None,
+    brand: Optional[str] = None,
+    language: Optional[str] = None,
+    tags: Optional[list[str]] = None,
+    contains_synthetic_media: bool = True,
+    has_paid_product_placement: bool = False,
     on_token_refresh: Optional[Callable[[str, Optional[str]], None]] = None,
 ) -> dict:
     """Uploads an MP4 to YouTube Shorts via resumable upload.
-    If publish_at is a future ISO timestamp, uploads as private + publishAt so it appears
-    as 'Planlandı (Scheduled)' immediately inside YouTube Studio.
-    If cover_url is given, attempts thumbnails.set safely (non-fatal if channel lacks verification).
+    - Sets status.containsSyntheticMedia=True (Altered/Synthetic AI content = Yes)
+    - Sets paidProductPlacementDetails.hasPaidProductPlacement=False (No paid promotion)
+    - Auto-fills snippet.tags from hashtags + brand defaults
+    - Auto-detects snippet.defaultLanguage & snippet.defaultAudioLanguage ('tr' or 'en')
+    - If publish_at is a future ISO timestamp, uploads as private + publishAt ('Planlandı')
     """
     creds = Credentials(
         token=access_token,
@@ -112,29 +185,56 @@ def publish_to_youtube(
     youtube = build("youtube", "v3", credentials=creds, cache_discovery=False)
     desc = description if "#shorts" in description.lower() else f"{description}\n\n#Shorts"
     norm_publish_at = _normalize_publish_at(publish_at)
+    lang = (language or _detect_video_language(title, desc, brand)).strip().lower()
+    final_tags = _build_youtube_tags(title, desc, brand, tags)
 
     status_obj = {
         "privacyStatus": "private" if norm_publish_at else privacy_status,
         "selfDeclaredMadeForKids": False,
+        "containsSyntheticMedia": bool(contains_synthetic_media),
     }
     if norm_publish_at:
         status_obj["publishAt"] = norm_publish_at
 
+    snippet_obj = {
+        "title": title[:100],
+        "description": desc[:5000],
+        "categoryId": category_id,
+        "defaultLanguage": lang,
+        "defaultAudioLanguage": lang,
+    }
+    if final_tags:
+        snippet_obj["tags"] = final_tags
+
     body = {
-        "snippet": {
-            "title": title[:100],
-            "description": desc[:5000],
-            "categoryId": category_id,
-        },
+        "snippet": snippet_obj,
         "status": status_obj,
+        "paidProductPlacementDetails": {
+            "hasPaidProductPlacement": bool(has_paid_product_placement),
+        },
     }
 
     media = MediaFileUpload(local_file_path, chunksize=4 * 1024 * 1024, resumable=True, mimetype="video/mp4")
-    req = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
-
-    response = None
-    while response is None:
-        _status, response = req.next_chunk()
+    try:
+        req = youtube.videos().insert(
+            part="snippet,status,paidProductPlacementDetails",
+            body=body,
+            media_body=media,
+        )
+        response = None
+        while response is None:
+            _status, response = req.next_chunk()
+    except Exception as e:
+        # Safe fallback if discovery doc rejects paidProductPlacementDetails part
+        if "paidProductPlacementDetails" in str(e):
+            body.pop("paidProductPlacementDetails", None)
+            media = MediaFileUpload(local_file_path, chunksize=4 * 1024 * 1024, resumable=True, mimetype="video/mp4")
+            req = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
+            response = None
+            while response is None:
+                _status, response = req.next_chunk()
+        else:
+            raise
 
     yt_id = response.get("id")
     if not yt_id:
@@ -147,6 +247,10 @@ def publish_to_youtube(
         "status": "YT Planlandı" if norm_publish_at else "Yayında",
         "video_id": yt_id,
         "publish_at": norm_publish_at,
+        "language": lang,
+        "tags_count": len(final_tags),
+        "contains_synthetic_media": bool(contains_synthetic_media),
+        "has_paid_product_placement": bool(has_paid_product_placement),
         "thumbnail_applied": thumb_ok,
         "thumbnail_error": thumb_err,
         "url": f"https://youtube.com/shorts/{yt_id}",

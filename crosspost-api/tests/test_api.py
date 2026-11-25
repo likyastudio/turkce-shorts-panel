@@ -301,7 +301,7 @@ def test_google_login():
     ch = hashlib.sha256(ver.encode()).hexdigest()
     body = {"redirect_to": "https://studio.likyastudios.live/", "challenge": ch}
     assert client.post("/api/auth/google/start", json=body).status_code == 503
-    with patch.dict(os.environ, {"YT_CLIENT_ID": "cid", "ALLOWED_LOGIN_EMAILS": "Ben@Example.com, iki@example.com"}):
+    with patch.dict(os.environ, {"YT_CLIENT_ID": "cid", "ALLOWED_LOGIN_EMAILS": "Ben@Example.com/iki@example.com"}):
         assert client.post("/api/auth/google/start", json={**body, "redirect_to": "https://evil.example/"}).status_code == 400
         url = client.post("/api/auth/google/start", json=body).json()["url"]
         q = parse_qs(urlparse(url).query)

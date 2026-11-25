@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import time
 from typing import Optional
 from urllib.parse import urlparse
@@ -24,7 +25,7 @@ LOGIN_CODE_TTL_SECONDS = 120
 
 def allowed_emails() -> set[str]:
     """Panele girebilen Google hesapları. Liste yalnız sunucu ayarında durur (depo herkese açık)."""
-    return {e.strip().lower() for e in os.getenv("ALLOWED_LOGIN_EMAILS", "").split(",") if e.strip()}
+    return {e.strip().lower() for e in re.split(r"[\s,;/]+", os.getenv("ALLOWED_LOGIN_EMAILS", "")) if e.strip()}
 
 
 def make_token(kind: str, data: dict, ttl: int) -> str:

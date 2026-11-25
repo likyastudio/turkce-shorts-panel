@@ -321,6 +321,57 @@ async def generate_cover_endpoint(req: GenerateCoverRequest):
         raise HTTPException(status_code=500, detail=f"Kapak üretimi başarısız: {e}")
 
 
+MAX_COVER_UPLOAD_BYTES = 15 * 1024 * 1024
+
+
+@app.post("/api/covers/upload", dependencies=[Depends(verify_api_key)])
+async def upload_cover_endpoint(
+    key: str = Form(...),
+    file: UploadFile = File(...),
+):
+    """Uploads a ready-made cover (our own branded kapak.jpg/png) to GCS covers/{key}.png.
+    Same storage as /api/covers/generate, so YouTube thumbnails.set and the Instagram
+    cover_url (.jpg) use it. If a scheduled post with video_id == key exists, its cover is
+    linked and, when already uploaded to YouTube, the thumbnail is applied right away."""
+    import io
+    from PIL import Image
+
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="Kapak dosyası boş.")
+    if len(data) > MAX_COVER_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Kapak dosyası 15 MB'tan büyük.")
+    try:
+        im = Image.open(io.BytesIO(data))
+        im.load()
+        im = im.convert("RGB")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Kapak dosyası geçerli bir görsel değil (JPG/PNG/WebP).")
+    buf = io.BytesIO()
+    im.save(buf, format="PNG", optimize=True)
+    png_bytes = buf.getvalue()
+
+    safe_key = await asyncio.to_thread(covers_svc.save_cover, key, png_bytes)
+    public_base = os.getenv("PUBLIC_API_BASE", "").rstrip("/")
+    clean_url = f"{public_base}/api/covers/{safe_key}.png" if public_base else f"/api/covers/{safe_key}.png"
+    sync = {"linked_covers": [], "yt_thumbnails_applied": [], "yt_thumbnail_errors": []}
+    try:
+        sync = await _sync_covers(only_video_id=safe_key)
+    except Exception as e:
+        print(f"[covers] upload sync warning for {safe_key}: {e}")
+    return {
+        "ok": True,
+        "key": safe_key,
+        "image_url": f"{clean_url}?v={int(time.time())}",
+        "width": im.width,
+        "height": im.height,
+        "size_bytes": len(png_bytes),
+        "linked_posts": sync.get("linked_covers", []),
+        "yt_thumbnails_applied": sync.get("yt_thumbnails_applied", []),
+        "yt_thumbnail_errors": sync.get("yt_thumbnail_errors", []),
+    }
+
+
 @app.get("/api/covers", dependencies=[Depends(verify_api_key)])
 def list_covers_endpoint():
     """Returns map of available covers {key: url}."""
@@ -342,7 +393,7 @@ def get_cover_image_endpoint(key: str):
         content=png_bytes,
         media_type="image/png",
         headers={
-            "Cache-Control": "public, max-age=3600",
+            "Cache-Control": "public, max-age=300",
             "Access-Control-Allow-Origin": "*",
         },
     )
@@ -364,7 +415,7 @@ def get_cover_jpeg_endpoint(key: str):
         content=buf.getvalue(),
         media_type="image/jpeg",
         headers={
-            "Cache-Control": "public, max-age=3600",
+            "Cache-Control": "public, max-age=300",
             "Access-Control-Allow-Origin": "*",
         },
     )
@@ -824,9 +875,15 @@ async def ai_generate_story(req: GenerateStoryRequest):
 @app.post("/api/schedule/sync-covers", dependencies=[Depends(verify_api_key)])
 async def sync_covers_to_schedule():
     """Links all existing GCS covers to scheduled_posts and applies thumbnails.set to already-uploaded YT videos."""
+    return await _sync_covers(only_video_id=None)
+
+
+async def _sync_covers(only_video_id: Optional[str] = None) -> dict:
     available = set(covers_svc.list_covers())
     public_base = os.getenv("PUBLIC_API_BASE", "").rstrip("/")
     posts = db.list_scheduled_posts()
+    if only_video_id:
+        posts = [p for p in posts if p["video_id"] == only_video_id]
     all_yt = [a for a in db.list_accounts(include_tokens=True) if a.get("platform") == "YT"]
 
     linked = []

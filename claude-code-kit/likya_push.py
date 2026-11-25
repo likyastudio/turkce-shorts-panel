@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Likya Studios Multi-Brand Claude Code Publisher CLI.
-Uploads a locally rendered MP4 to Likya Cloud Run + GCS, optionally generates a 9:16
-Vertex AI cover thumbnail, schedules it into the brand's weekly 06:01-06:07 TR slot,
+Uploads a locally rendered MP4 to Likya Cloud Run + GCS, uploads our own designed cover
+(--cover-file, preferred) or generates a 9:16 Vertex AI cover thumbnail (--cover-prompt), schedules it into the brand's weekly 06:01-06:07 TR slot,
 and immediately pre-schedules it in YouTube Studio (publishAt + custom thumbnail).
 
 Usage:
@@ -12,6 +12,7 @@ Usage:
     --title "Göbeklitepe'nin Gizli Sırrı! #shorts" \
     --desc "12 bin yıllık tapınak hakkında kimsenin bilmediği gerçek..." \
     --ig "12 bin yıllık sır! Kaydet & paylaş 👇 #reels #tarih #kadimanadolu" \
+    --cover-file out/kapak.jpg \
     --cover-prompt "Dramatic 9:16 editorial illustration of ancient Gobeklitepe stone pillars at golden sunset, cinematic lighting, no text"
 """
 from __future__ import annotations
@@ -46,7 +47,8 @@ def main() -> None:
     p.add_argument("--desc", default="", help="YouTube Shorts açıklaması")
     p.add_argument("--ig", default="", help="Instagram Reels açıklaması (boşsa YT açıklaması kullanılır)")
     p.add_argument("--video-id", default="", help="Özel video slug (opsiyonel)")
-    p.add_argument("--cover-prompt", default="", help="Vertex AI 9:16 kapak promptu (verilirse otomatik kapak üretir)")
+    p.add_argument("--cover-file", default="", help="Kendi tasarım kapağımız (kapak.jpg/png, 1080x1920). Verilirse stüdyoya bu yüklenir; öncelikli.")
+    p.add_argument("--cover-prompt", default="", help="Yedek: Vertex AI 9:16 kapak promptu (kapak dosyası yoksa veya yüklenemezse kullanılır)")
     p.add_argument("--scheduled-at", default="", help="Özel ISO tarih/saat (örn. 2026-11-26T06:04:00+03:00). Boşsa 06:01-06:07 TR otomatik seçilir.")
     p.add_argument("--no-yt-sync", action="store_true", help="YouTube Studio ön-yüklemesini atla")
     p.add_argument("--api-key", default="", help="X-API-Key (opsiyonel, LIKYA_API_KEY env'den okunur)")
@@ -75,7 +77,28 @@ def main() -> None:
     print(f"  ✓ Yüklendi ({up['size_mb']} MB): {video_url}")
 
     cover_url = None
-    if args.cover_prompt.strip():
+    if args.cover_file.strip():
+        cov = Path(args.cover_file)
+        if not cov.is_file():
+            sys.exit(f"HATA: Kapak dosyası bulunamadı: {cov}")
+        print(f"[2/3] Kendi kapağımız yükleniyor ({cov.name} → {vid})...")
+        mime = "image/png" if cov.suffix.lower() == ".png" else "image/jpeg"
+        with cov.open("rb") as f:
+            r_cov = requests.post(
+                f"{API_URL}/api/covers/upload",
+                headers=hdr,
+                data={"key": vid},
+                files={"file": (cov.name, f, mime)},
+                timeout=120,
+            )
+        if r_cov.status_code == 404 or r_cov.status_code == 405:
+            print("  ! Stüdyo API'sinde /api/covers/upload henüz yok (yeni sürüm yayına alınmamış).")
+        else:
+            r_cov.raise_for_status()
+            cover_url = r_cov.json()["image_url"].split("?")[0]
+            print(f"  ✓ Kapak yüklendi: {cover_url}")
+
+    if cover_url is None and args.cover_prompt.strip():
         print(f"[2/3] Vertex AI 9:16 kapak üretiliyor ({vid})...")
         r_cov = requests.post(
             f"{API_URL}/api/covers/generate",
@@ -84,10 +107,10 @@ def main() -> None:
             timeout=120,
         )
         r_cov.raise_for_status()
-        cover_url = r_cov.json()["image_url"]
+        cover_url = r_cov.json()["image_url"].split("?")[0]
         print(f"  ✓ Kapak hazır: {cover_url}")
-    else:
-        print("[2/3] Kapak promptu verilmedi, atlandı.")
+    elif cover_url is None:
+        print("[2/3] Kapak verilmedi, atlandı.")
 
     print(f"[3/3] {args.brand} yayın kuyruğuna planlanıyor...")
     payload = {

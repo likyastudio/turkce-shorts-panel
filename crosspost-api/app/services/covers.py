@@ -5,6 +5,7 @@ using Google GenAI (gemini-2.5-flash-image) on Vertex AI.
 from __future__ import annotations
 import os
 import re
+import time
 from typing import Optional
 from google import genai
 from google.genai import types
@@ -17,6 +18,7 @@ GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME", "likya-temp-videos-likyastudios")
 
 LOCAL_CACHE_DIR = "/tmp/covers"
 os.makedirs(LOCAL_CACHE_DIR, exist_ok=True)
+LOCAL_CACHE_TTL_S = int(os.getenv("COVER_CACHE_TTL_S", "120"))
 
 
 def _safe_key(key: str) -> str:
@@ -72,7 +74,9 @@ def get_cover(key: str) -> Optional[bytes]:
     """Retrieves PNG bytes for given key from local cache or GCS."""
     safe = _safe_key(key)
     local_path = os.path.join(LOCAL_CACHE_DIR, f"{safe}.png")
-    if os.path.exists(local_path):
+    # Short-lived cache: a cover can be replaced (upload) on another Cloud Run instance,
+    # so a stale local copy must not be served for long.
+    if os.path.exists(local_path) and time.time() - os.path.getmtime(local_path) < LOCAL_CACHE_TTL_S:
         with open(local_path, "rb") as f:
             return f.read()
             
@@ -87,7 +91,10 @@ def get_cover(key: str) -> Optional[bytes]:
             return data
     except Exception as e:
         print(f"[covers] GCS download error for {safe}: {e}")
-        
+
+    if os.path.exists(local_path):
+        with open(local_path, "rb") as f:
+            return f.read()
     return None
 
 

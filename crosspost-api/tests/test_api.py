@@ -125,6 +125,47 @@ def test_covers_endpoints():
         assert "brand_logo" in r_list.json()["covers"]
 
 
+def test_cover_upload_endpoint():
+    import io
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.new("RGB", (1080, 1920), (10, 20, 60)).save(buf, format="JPEG")
+    jpg = buf.getvalue()
+
+    # Missing API key
+    assert client.post("/api/covers/upload", data={"key": "k"}, files={"file": ("kapak.jpg", jpg, "image/jpeg")}).status_code == 401
+
+    # Not an image
+    r_bad = client.post("/api/covers/upload", headers=HDR, data={"key": "k"},
+                        files={"file": ("kapak.jpg", b"not an image", "image/jpeg")})
+    assert r_bad.status_code == 400
+
+    db.create_scheduled_post(
+        brand="likyastudios", video_id="036-test-kapak", video_url="https://x/036.mp4",
+        title="t", description="d", ig_caption="i", cover_url=None,
+        scheduled_at_iso="2030-01-01T03:01:00+00:00",
+    )
+    saved = {}
+
+    def fake_save(key, data):
+        saved["data"] = data
+        return "036-test-kapak"
+
+    with patch("app.services.covers.save_cover", side_effect=fake_save), \
+         patch("app.services.covers.list_covers", return_value=["036-test-kapak"]):
+        r = client.post("/api/covers/upload", headers=HDR, data={"key": "036-test-kapak"},
+                        files={"file": ("kapak.jpg", jpg, "image/jpeg")})
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert data["key"] == "036-test-kapak"
+    assert (data["width"], data["height"]) == (1080, 1920)
+    assert "036-test-kapak" in data["linked_posts"]
+    assert saved["data"].startswith(b"\x89PNG")
+    post = [p for p in db.list_scheduled_posts() if p["video_id"] == "036-test-kapak"][0]
+    assert post["cover_url"].endswith("/api/covers/036-test-kapak.png")
+
+
 def test_weekly_slots_and_scheduler():
     from datetime import date
     from app.services.scheduler import weekly_slot_for_date

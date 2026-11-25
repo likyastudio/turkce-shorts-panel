@@ -5,6 +5,7 @@ using Google GenAI (gemini-2.5-flash-image) on Vertex AI.
 from __future__ import annotations
 import os
 import re
+import time
 from typing import Optional
 from google import genai
 from google.genai import types
@@ -16,6 +17,9 @@ VERTEX_IMAGE_MODEL = os.getenv("VERTEX_IMAGE_MODEL", "gemini-2.5-flash-image")
 GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME", "likya-temp-videos-likyastudios")
 
 LOCAL_CACHE_DIR = "/tmp/covers"
+# Yerel önbellek bu kadar saniye taze sayılır; sonra GCS'den yeniden okunur
+# (kapak değiştirildiğinde diğer Cloud Run örnekleri eski görseli sonsuza dek vermesin).
+LOCAL_CACHE_TTL_S = int(os.getenv("COVER_CACHE_TTL_S", "300"))
 os.makedirs(LOCAL_CACHE_DIR, exist_ok=True)
 
 
@@ -72,10 +76,10 @@ def get_cover(key: str) -> Optional[bytes]:
     """Retrieves PNG bytes for given key from local cache or GCS."""
     safe = _safe_key(key)
     local_path = os.path.join(LOCAL_CACHE_DIR, f"{safe}.png")
-    if os.path.exists(local_path):
+    if os.path.exists(local_path) and time.time() - os.path.getmtime(local_path) < LOCAL_CACHE_TTL_S:
         with open(local_path, "rb") as f:
             return f.read()
-            
+
     try:
         storage_client = storage.Client()
         bucket = storage_client.bucket(GCS_BUCKET_NAME)
@@ -87,8 +91,30 @@ def get_cover(key: str) -> Optional[bytes]:
             return data
     except Exception as e:
         print(f"[covers] GCS download error for {safe}: {e}")
-        
+
+    # GCS'ye ulaşılamazsa eski de olsa yerel kopyayı ver
+    if os.path.exists(local_path):
+        with open(local_path, "rb") as f:
+            return f.read()
     return None
+
+
+def normalize_uploaded_cover(raw: bytes, max_side: int = 2560) -> bytes:
+    """Validates an uploaded image (JPEG/PNG/WebP) and returns it as sRGB PNG bytes."""
+    import io
+    from PIL import Image
+
+    try:
+        im = Image.open(io.BytesIO(raw))
+        im.load()
+    except Exception as e:
+        raise ValueError(f"Geçerli bir görsel değil: {e}")
+    im = im.convert("RGB")
+    if max(im.size) > max_side:
+        im.thumbnail((max_side, max_side), Image.LANCZOS)
+    buf = io.BytesIO()
+    im.save(buf, format="PNG", optimize=True)
+    return buf.getvalue()
 
 
 def list_covers() -> list[str]:

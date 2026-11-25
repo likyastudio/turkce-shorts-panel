@@ -543,5 +543,33 @@
   "width": 1080,
   "height": 1920,
   "duration": 52.502
+ },
+ {
+  "slug": "v21_kendi_kendine_savas",
+  "title": "Kendi Kendine Savaşan 100.000 Kişilik Ordu",
+  "status": "Hazır",
+  "script": "Yüz bin kişilik dev bir ordu, düşman tek bir kurşun bile atmadan karanlıkta kendi kendini yendi!\nŞaka yapmıyorum, Osmanlı ordusu iki gün sonra geldiğinde savaş çoktan bitmişti!\nBin yedi yüz seksen sekizde Avusturya ordusu, Osmanlı ile karşılaşmak için Karanşebeş yakınlarında kamp kurdu.\nGece keşfe çıkan süvariler nehir kıyısında birkaç fıçı içki buldu ve piyadelerle paylaşmak istemedi!\nTartışma büyüdü, karanlıkta yanlışlıkla bir el silah patladı.\nBirileri panikle \"Türkler geldi!\" diye bağırınca yüz bin kişilik dev kampta kıyamet koptu!\nOrdu farklı diller konuşan askerlerden oluşuyordu.\nAlman subaylar \"Halt! Dur!\" diye bağırdı... ama diğer askerler bunu \"Allah! Allah!\" saldırısı sandı!\nKaranlıkta kendi süvarilerini düşman sanıp top ateşi açtılar; imparator bile atından düşüp dereye yuvarlandı!\nİki gün sonra Osmanlı ordusu kasabaya ulaştığında kimse yoktu, şehri tek kurşun sıkmadan aldı!\nVe askeri tarih bu akılalmaz geceyi hâlâ şöyle anlatır:",
+  "meta": {
+   "youtube": {
+    "title": "Osmanlı Gelmeden Karanlıkta Kendi Kendini Yenen 100.000 Kişilik Ordu! ⚔️😂 #shorts",
+    "description": "1788 Karanşebeş gecesinde 100.000 kişilik Avusturya ordusu, birkaç fıçı içki yüzünden çıkan tartışmada karanlıkta kendi askerlerini düşman sanıp birbirine girdi! Alman subayların 'Halt! Dur!' bağırışı 'Allah!' saldırısı sanılınca kıyamet koptu. İki gün sonra gelen Osmanlı ordusu kasabayı tek kurşun atmadan aldı!\n\n👇 Tarihin en absürt yenilgisi bu olabilir mi? Yorumlara yaz!\n\n#shorts #tarih #osmanlı #ilginçbilgiler #karanşebeş #gerçekhikaye #animasyon #keşfet"
+   },
+   "instagram": {
+    "caption": "100.000 kişilik dev ordu, düşman gelmeden KARANLIKTA KENDİ KENDİNİ YENDİ! ⚔️🛢️😂\n\n1788'de Avusturya ordusu Karanşebeş'te kamp kurdu. Süvariler birkaç fıçı içki bulup piyadelerle paylaşmayınca tartışma çıktı, yanlışlıkla bir el silah patladı.\n\nAlman subaylar 'Halt! Dur!' diye bağırınca farklı diller konuşan askerler bunu 'Allah!' saldırısı sandı! Kendi süvarilerine top açtılar, imparator bile atından dereye düştü. İki gün sonra gelen Osmanlı ordusu şehri tek kurşun sıkmadan aldı!\n\nTarih seven arkadaşına gönder 👇\n\n#reels #keşfet #tarih #osmanlı #ilginçbilgiler #gerçekhikayeler #animasyon #komiktarih"
+   },
+   "cover_title": "100.000 ASKER KENDİNİ YENDİ!",
+   "flow_prompt": "Full-bleed vertical 9:16 cartoon comedy illustration, stylized 2D inked characters with thick dark outlines under a starry moonlit 1788 European camp night beside a river bridge and glowing campfires, two panicked Austrian soldiers colliding with a wooden barrel and brass bugle while a smiling Ottoman scout watches from a distant hill with a spyglass, vibrant colors, no text."
+  },
+  "words": 134,
+  "frames": 1619,
+  "voice": "files/v21_kendi_kendine_savas/work/voice.mp3",
+  "qa": "files/v21_kendi_kendine_savas/out/qa_sheet.jpg",
+  "video": "files/v21_kendi_kendine_savas/out/Video21-Kendi-Kendine-Savasan-Ordu.mp4",
+  "fileName": "Video21-Kendi-Kendine-Savasan-Ordu.mp4",
+  "sizeMB": 6.8,
+  "updated": "2026-11-25T21:37:04.505647+00:00",
+  "width": 1080,
+  "height": 1920,
+  "duration": 53.949
  }
 ]

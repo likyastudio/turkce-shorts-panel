@@ -2,6 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
+<link rel="icon" href="brand/favicon.ico">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -582,7 +583,7 @@
   .locked header.topbar, .locked #app, .locked #net-warn, .locked #modal-root { display: none; }
   #login .panel { width: min(420px, 100%); text-align: center; padding: 34px 28px; }
   #login h1 { margin: 14px 0 6px; font-size: 25px; letter-spacing: -0.03em; }
-  #login .brand-star { margin: 0 auto; width: 46px; height: 46px; font-size: 21px; }
+  #login .brand-star { margin: 0 auto; width: 84px; height: 84px; }
   #login .btn { width: 100%; margin-top: 20px; min-height: 46px; font-size: 15px; background: #fff; color: #1f1f1f; border-color: #747775; }
   #login-msg { margin-top: 14px; min-height: 20px; font-size: 13.5px; font-weight: 600; color: var(--err); }
 </style>
@@ -590,7 +591,7 @@
 <body class="locked">
 <section id="login" aria-labelledby="login-title">
   <div class="panel">
-    <div class="brand-star" aria-hidden="true">★</div>
+    <img class="brand-star" src="brand/logo-192.png" alt="" width="32" height="32">
     <h1 id="login-title">Likya <span class="serif" style="color:var(--coral)">Studio</span></h1>
     <div class="panel-sub">Bu panel özeldir. İzin verilen Google hesabıyla girin.</div>
     <button class="btn" id="login-btn" onclick="startLogin()">
@@ -603,7 +604,7 @@
 
 <header class="topbar">
   <div class="brand">
-    <div class="brand-star" aria-hidden="true">★</div>
+    <img class="brand-star" src="brand/logo-192.png" alt="" width="32" height="32">
     <div class="brand-text">
       <h1>AKILALMAZ <span class="serif" style="font-size:18px;color:var(--coral)">Atelier</span></h1>
       <div class="sub" id="sum">Yükleniyor…</div>

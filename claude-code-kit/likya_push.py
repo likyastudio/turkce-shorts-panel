@@ -12,10 +12,18 @@ Usage:
     --title "Göbeklitepe'nin Gizli Sırrı! #shorts" \
     --desc "12 bin yıllık tapınak hakkında kimsenin bilmediği gerçek..." \
     --ig "12 bin yıllık sır! Kaydet & paylaş 👇 #reels #tarih #kadimanadolu" \
-    --cover-prompt "Dramatic 9:16 editorial illustration of ancient Gobeklitepe stone pillars at golden sunset, cinematic lighting, no text"
+    --cover-prompt "Dramatic 9:16 editorial illustration of ancient Gobeklitepe stone pillars at golden sunset, cinematic lighting, no text" \
+    --cover-top "12 BİN YIL ÖNCE" --cover-bottom "KİM YAPTI?" \
+    --cover-ref out/kare.jpg
+
+Kapak yazısı (--cover-top / --cover-bottom) verilirse Vertex yazısız arka plan üretir, sunucu
+Kadim Anadolu kapak stiliyle (Montserrat, beyaz + sarı, 1080x1920) yazıyı basar.
+--cover-ref videodan bir kare verir; sahne o kareden yeniden çizilir.
+--cover-file hazır bir kapak görselini (ör. CapCut çıktısı) doğrudan yükler.
 """
 from __future__ import annotations
 import argparse
+import base64
 import os
 import sys
 from pathlib import Path
@@ -47,6 +55,10 @@ def main() -> None:
     p.add_argument("--ig", default="", help="Instagram Reels açıklaması (boşsa YT açıklaması kullanılır)")
     p.add_argument("--video-id", default="", help="Özel video slug (opsiyonel)")
     p.add_argument("--cover-prompt", default="", help="Vertex AI 9:16 kapak promptu (verilirse otomatik kapak üretir)")
+    p.add_argument("--cover-top", default="", help="Kapak 1. satırı (beyaz)")
+    p.add_argument("--cover-bottom", default="", help="Kapak 2. satırı (sarı, büyük)")
+    p.add_argument("--cover-ref", default="", help="Videodan referans kare (.jpg/.png), sahne buna göre çizilir")
+    p.add_argument("--cover-file", default="", help="Hazır kapak görseli; verilirse Vertex çağrılmaz")
     p.add_argument("--scheduled-at", default="", help="Özel ISO tarih/saat (örn. 2026-11-26T06:04:00+03:00). Boşsa 06:01-06:07 TR otomatik seçilir.")
     p.add_argument("--no-yt-sync", action="store_true", help="YouTube Studio ön-yüklemesini atla")
     p.add_argument("--api-key", default="", help="X-API-Key (opsiyonel, LIKYA_API_KEY env'den okunur)")
@@ -75,16 +87,32 @@ def main() -> None:
     print(f"  ✓ Yüklendi ({up['size_mb']} MB): {video_url}")
 
     cover_url = None
-    if args.cover_prompt.strip():
+    if args.cover_file.strip():
+        cf = Path(args.cover_file)
+        if not cf.is_file():
+            sys.exit(f"HATA: Kapak dosyası bulunamadı: {cf}")
+        print(f"[2/3] Hazır kapak yükleniyor ({cf.name})...")
+        with cf.open("rb") as f:
+            r_cov = requests.post(f"{API_URL}/api/covers/upload", headers=hdr, data={"key": vid},
+                                  files={"file": (cf.name, f, "image/jpeg")}, timeout=120)
+        r_cov.raise_for_status()
+        cover_url = r_cov.json()["image_url"]
+        print(f"  ✓ Kapak hazır: {cover_url}")
+    elif args.cover_prompt.strip():
         print(f"[2/3] Vertex AI 9:16 kapak üretiliyor ({vid})...")
+        body = {"key": vid, "prompt": args.cover_prompt.strip(), "aspect_ratio": "9:16", "brand": args.brand}
+        if args.cover_top.strip() or args.cover_bottom.strip():
+            body.update(headline_top=args.cover_top.strip(), headline_bottom=args.cover_bottom.strip())
+        if args.cover_ref.strip():
+            body["reference_image_b64"] = base64.b64encode(Path(args.cover_ref).read_bytes()).decode()
         r_cov = requests.post(
             f"{API_URL}/api/covers/generate",
             headers={**hdr, "Content-Type": "application/json"},
-            json={"key": vid, "prompt": args.cover_prompt.strip(), "aspect_ratio": "9:16"},
-            timeout=120,
+            json=body,
+            timeout=180,
         )
         r_cov.raise_for_status()
-        cover_url = r_cov.json()["image_url"]
+        cover_url = r_cov.json()["image_url"].split("?", 1)[0]
         print(f"  ✓ Kapak hazır: {cover_url}")
     else:
         print("[2/3] Kapak promptu verilmedi, atlandı.")

@@ -335,3 +335,120 @@ def test_google_login():
         assert client.get("/api/accounts", headers=HDR).status_code == 200  # otomasyon anahtarı çalışır
     with patch.dict(os.environ, {"ALLOWED_LOGIN_EMAILS": "iki@example.com"}):
         assert get(tok) == 401  # listeden çıkan hesap hemen kapanır
+
+
+def _jpeg(w=768, h=1344, color=(120, 80, 40)):
+    import io
+    from PIL import Image
+    buf = io.BytesIO()
+    Image.new("RGB", (w, h), color).save(buf, format="JPEG")
+    return buf.getvalue()
+
+
+def test_cover_headline_overlay_retext_and_upload(tmp_path):
+    import io
+    from PIL import Image
+    from app.services import cover_compose
+
+    saved = {}
+    bgs = {}
+
+    def fake_save(key, data):
+        saved[key] = data
+        return key
+
+    with patch("app.services.covers.generate_cover_image", return_value=_jpeg()) as m_gen, \
+         patch("app.services.covers.save_cover", side_effect=fake_save), \
+         patch("app.services.covers.save_background", side_effect=lambda k, d: bgs.__setitem__(k, d)):
+        r = client.post("/api/covers/generate", headers=HDR, json={
+            "key": "caldiran_test",
+            "prompt": "Ottoman cannons at Chaldiran",
+            "headline_top": "Yavuz Şah İsmail'i",
+            "headline_bottom": "nasıl yakaladı?",
+            "brand": "kadimanadolu",
+        })
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["overlay"] is True
+        # Model yazı yazmasın diye koruma prompta eklendi
+        assert cover_compose.BACKGROUND_GUARD in m_gen.call_args.kwargs["prompt"]
+        im = Image.open(io.BytesIO(saved["caldiran_test"]))
+        assert im.size == (1080, 1920)
+        assert "caldiran_test" in bgs
+
+    # Başlık yoksa eski davranış: ham görsel, koruma eklenmez
+    with patch("app.services.covers.generate_cover_image", return_value=_jpeg()) as m_gen, \
+         patch("app.services.covers.save_cover", side_effect=fake_save):
+        r = client.post("/api/covers/generate", headers=HDR, json={"key": "raw_k", "prompt": "p"})
+        assert r.status_code == 200 and r.json()["overlay"] is False
+        assert cover_compose.BACKGROUND_GUARD not in m_gen.call_args.kwargs["prompt"]
+
+    # Yazıyı Vertex'e gitmeden değiştir
+    with patch("app.services.covers.get_background", return_value=bgs["caldiran_test"]), \
+         patch("app.services.covers.save_cover", side_effect=fake_save):
+        r = client.post("/api/covers/caldiran_test/retext", headers=HDR,
+                        json={"headline_top": "Şah İsmail", "headline_bottom": "tek günde"})
+        assert r.status_code == 200, r.text
+    with patch("app.services.covers.get_background", return_value=None):
+        assert client.post("/api/covers/yok/retext", headers=HDR, json={"headline_top": "x"}).status_code == 404
+
+    # Hazır kapak yükleme
+    with patch("app.services.covers.save_cover", side_effect=fake_save):
+        r = client.post("/api/covers/upload", headers=HDR, data={"key": "elle_k"},
+                        files={"file": ("k.jpg", _jpeg(1080, 1920), "image/jpeg")})
+        assert r.status_code == 200, r.text
+        assert saved["elle_k"][:4] == b"\x89PNG"
+    assert client.post("/api/covers/upload", data={"key": "x"},
+                       files={"file": ("k.jpg", b"x", "image/jpeg")}).status_code == 401
+
+
+def test_cover_applies_youtube_thumbnail_for_uploaded_post():
+    post = {"video_id": "yt_cov_vid", "brand": "kadimanadolu", "yt_uploaded": True,
+            "yt_video_url": "https://youtube.com/shorts/ABC123", "account_ids": []}
+    acc = {"id": 99, "platform": "YT", "brand": "kadimanadolu", "access_token": "t"}
+    with patch("app.services.covers.generate_cover_image", return_value=_jpeg()), \
+         patch("app.services.covers.save_cover", side_effect=lambda k, d: k), \
+         patch("app.services.covers.save_background"), \
+         patch("app.db.list_scheduled_posts", return_value=[post]), \
+         patch("app.db.list_accounts", return_value=[acc]), \
+         patch("app.main.apply_youtube_thumbnail", return_value={"ok": True}) as m_yt:
+        r = client.post("/api/covers/generate", headers=HDR, json={
+            "key": "yt_cov_vid", "prompt": "battle", "headline_top": "A", "headline_bottom": "B"})
+        assert r.status_code == 200, r.text
+        assert r.json()["youtube"] == [{"video_id": "yt_cov_vid", "yt_id": "ABC123", "ok": True, "error": None}]
+        kw = m_yt.call_args.kwargs
+        assert kw["yt_video_id"] == "ABC123" and kw["image_bytes"]
+
+
+def test_cover_retries_softened_prompt_when_vertex_returns_nothing():
+    from app.services import covers as covers_svc
+    calls = []
+
+    def fake_gen(prompt, aspect_ratio, reference_image=None):
+        calls.append(prompt)
+        if len(calls) == 1:
+            raise covers_svc.EmptyImageError("blocked")
+        return _jpeg()
+
+    with patch("app.services.covers.generate_cover_image", side_effect=fake_gen), \
+         patch("app.services.covers.save_cover", side_effect=lambda k, d: k), \
+         patch("app.services.covers.save_background"):
+        r = client.post("/api/covers/generate", headers=HDR, json={
+            "key": "retry_k", "prompt": "battle", "headline_bottom": "X"})
+        assert r.status_code == 200, r.text
+    assert len(calls) == 2 and covers_svc.SOFTEN_SUFFIX in calls[1]
+
+
+def test_compose_trims_letterbox_bars():
+    import io
+    from PIL import Image, ImageDraw
+    from app.services.cover_compose import compose_cover
+    im = Image.new("RGB", (768, 1344), (200, 150, 90))
+    d = ImageDraw.Draw(im)
+    d.rectangle([0, 0, 767, 99], fill=(0, 0, 0))
+    d.rectangle([0, 1244, 767, 1343], fill=(0, 0, 0))
+    buf = io.BytesIO(); im.save(buf, format="PNG")
+    out = Image.open(io.BytesIO(compose_cover(buf.getvalue(), "", "", "kadimanadolu")))
+    assert out.size == (1080, 1920)
+    # Alt kenarda siyah bant kalmamalı (vinyet koyulaştırır ama simsiyah yapmaz)
+    assert max(out.crop((300, 1915, 780, 1920)).convert("L").getextrema()) > 28

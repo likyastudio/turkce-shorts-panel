@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field
 from app import db
 from app.oauth import auth_router, router as oauth_router
 from app.security import verify_api_key, verify_scheduler
+from app.services import cover_compose
 from app.services import covers as covers_svc
 from app.services import scheduler as sched_svc
 from app.services.instagram import publish_to_instagram
@@ -284,41 +285,198 @@ class GenerateCoverRequest(BaseModel):
     key: str
     prompt: str
     aspect_ratio: str = "9:16"  # "9:16", "1:1", "16:9"
+    # Kapak yazısı: verilirse model yazı yazmaz, yazı sunucuda sabit marka stiliyle basılır (1080x1920).
+    headline_top: Optional[str] = Field(default=None, max_length=60)
+    headline_bottom: Optional[str] = Field(default=None, max_length=60)
+    brand: Optional[str] = None
+    # Videodan bir kare (base64 JPEG/PNG). Verilirse sahne o kareden yeniden çizilir.
+    reference_image_b64: Optional[str] = Field(default=None, max_length=8_000_000)
+    # Planlı kayıt YouTube'a yüklenmişse kapağı hemen thumbnails.set ile uygula.
+    apply_youtube: bool = True
+
+
+class RetextCoverRequest(BaseModel):
+    headline_top: Optional[str] = Field(default=None, max_length=60)
+    headline_bottom: Optional[str] = Field(default=None, max_length=60)
+    brand: Optional[str] = None
+    apply_youtube: bool = True
+
+
+def _cover_public_url(safe_key: str) -> str:
+    public_base = os.getenv("PUBLIC_API_BASE", "").rstrip("/")
+    return f"{public_base}/api/covers/{safe_key}.png" if public_base else f"/api/covers/{safe_key}.png"
+
+
+def _posts_for_cover(safe_key: str) -> list[dict]:
+    return [p for p in db.list_scheduled_posts() if covers_svc._safe_key(p["video_id"]) == safe_key]
+
+
+async def _apply_cover_to_youtube(post: dict, image_bytes: bytes, cov_url: str) -> Optional[dict]:
+    """Applies the cover to the post's already-uploaded YouTube video with the right brand channel."""
+    yt_url = post.get("yt_video_url") or ""
+    if not (post.get("yt_uploaded") and "/shorts/" in yt_url):
+        return None
+    all_yt = [a for a in db.list_accounts(include_tokens=True) if a.get("platform") == "YT"]
+    ids = post.get("account_ids") or []
+    yt_accs = [a for a in all_yt if (a["id"] in ids if ids else (a.get("brand") or "akilalmaz") == post.get("brand"))]
+    yt_id = yt_url.rsplit("/", 1)[-1]
+    if not yt_accs:
+        return {"video_id": post["video_id"], "yt_id": yt_id, "ok": False, "error": "Bu markaya bağlı YouTube kanalı yok."}
+    acc = yt_accs[0]
+    acc_id = acc.get("id")
+    on_refresh = (lambda tok, exp, aid=acc_id: db.update_account_token(aid, tok, exp)) if acc_id else None
+    res = await asyncio.to_thread(
+        apply_youtube_thumbnail,
+        yt_video_id=yt_id,
+        cover_url=cov_url,
+        access_token=acc["access_token"],
+        refresh_token=acc.get("refresh_token"),
+        client_id=acc.get("client_id") or os.getenv("YT_CLIENT_ID", ""),
+        client_secret=acc.get("client_secret") or os.getenv("YT_CLIENT_SECRET", ""),
+        on_token_refresh=on_refresh,
+        image_bytes=image_bytes,
+    )
+    return {"video_id": post["video_id"], "yt_id": yt_id, "ok": bool(res.get("ok")), "error": res.get("error")}
+
+
+async def _store_and_link_cover(key: str, img_bytes: bytes, apply_youtube: bool, extra: dict) -> dict:
+    """Saves the final cover, links it to matching scheduled posts and pushes it to YouTube."""
+    safe_key = covers_svc.save_cover(key, img_bytes)
+    clean_url = _cover_public_url(safe_key)
+    try:
+        db.update_scheduled_cover_url(key, clean_url)
+        if safe_key != key:
+            db.update_scheduled_cover_url(safe_key, clean_url)
+    except Exception:
+        pass
+    youtube = []
+    if apply_youtube:
+        try:
+            for post in _posts_for_cover(safe_key):
+                post["cover_url"] = clean_url
+                r = await _apply_cover_to_youtube(post, img_bytes, clean_url)
+                if r:
+                    youtube.append(r)
+        except Exception as e:
+            youtube.append({"video_id": key, "ok": False, "error": f"{type(e).__name__}: {e}"[:300]})
+    return {
+        "ok": True,
+        "key": safe_key,
+        "image_url": f"{clean_url}?v={int(time.time())}",
+        "size_bytes": len(img_bytes),
+        "youtube": youtube,
+        **extra,
+    }
+
+
+def _has_headline(top: Optional[str], bottom: Optional[str]) -> bool:
+    return bool((top or "").strip() or (bottom or "").strip())
 
 
 @app.post("/api/covers/generate", dependencies=[Depends(verify_api_key)])
 async def generate_cover_endpoint(req: GenerateCoverRequest):
-    """Generates an image via Vertex AI and saves it to GCS covers/{key}.png."""
+    """Generates an image via Vertex AI and saves it to GCS covers/{key}.png.
+
+    headline_top/headline_bottom verilirse: Vertex yazısız arka plan üretir, sunucu 1080x1920'ye
+    büyütüp markanın sabit kapak yazı stilini basar, kapak YouTube'a da uygulanır.
+    """
     if not req.prompt or not req.prompt.strip():
         raise HTTPException(status_code=400, detail="Prompt gereklidir.")
     valid_ratios = {"9:16", "1:1", "16:9", "4:3", "3:4"}
     if req.aspect_ratio not in valid_ratios:
         raise HTTPException(status_code=400, detail=f"Desteklenmeyen en-boy oranı: {req.aspect_ratio}")
 
-    try:
-        png_bytes = await asyncio.to_thread(
-            covers_svc.generate_cover_image,
-            prompt=req.prompt.strip(),
-            aspect_ratio=req.aspect_ratio,
-        )
-        safe_key = covers_svc.save_cover(req.key, png_bytes)
-        public_base = os.getenv("PUBLIC_API_BASE", "").rstrip("/")
-        ts = int(time.time())
-        clean_url = f"{public_base}/api/covers/{safe_key}.png" if public_base else f"/api/covers/{safe_key}.png"
-        img_url = f"{clean_url}?v={ts}"
+    ref_bytes = None
+    if req.reference_image_b64:
+        import base64
         try:
-            db.update_scheduled_cover_url(safe_key, clean_url)
+            raw = req.reference_image_b64.split(",", 1)[-1]
+            ref_bytes = base64.b64decode(raw, validate=False)
         except Exception:
-            pass
-        return {
-            "ok": True,
-            "key": safe_key,
+            raise HTTPException(status_code=400, detail="reference_image_b64 çözülemedi.")
+
+    overlay = req.aspect_ratio == "9:16" and _has_headline(req.headline_top, req.headline_bottom)
+    prompt = req.prompt.strip()
+    if overlay:
+        prompt += cover_compose.BACKGROUND_GUARD
+
+    try:
+        try:
+            bg_bytes = await asyncio.to_thread(
+                covers_svc.generate_cover_image,
+                prompt=prompt,
+                aspect_ratio=req.aspect_ratio,
+                reference_image=ref_bytes,
+            )
+        except covers_svc.EmptyImageError:
+            # Savaş sahneleri bazen güvenlik filtresine takılıyor: şiddetsiz anlatımla bir kez daha dene.
+            bg_bytes = await asyncio.to_thread(
+                covers_svc.generate_cover_image,
+                prompt=prompt + covers_svc.SOFTEN_SUFFIX,
+                aspect_ratio=req.aspect_ratio,
+                reference_image=ref_bytes,
+            )
+        final = bg_bytes
+        if overlay:
+            covers_svc.save_background(req.key, bg_bytes)
+            brand = req.brand or _brand_for_key(req.key)
+            final = await asyncio.to_thread(
+                cover_compose.compose_cover, bg_bytes, req.headline_top or "", req.headline_bottom or "", brand,
+            )
+        result = await _store_and_link_cover(req.key, final, req.apply_youtube, {
             "aspect_ratio": req.aspect_ratio,
-            "image_url": img_url,
-            "size_bytes": len(png_bytes),
-        }
+            "overlay": overlay,
+        })
+        return result
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Kapak üretimi başarısız: {e}")
+
+
+def _brand_for_key(key: str) -> str:
+    safe = covers_svc._safe_key(key)
+    try:
+        for p in db.list_scheduled_posts():
+            if covers_svc._safe_key(p["video_id"]) == safe:
+                return p.get("brand") or "kadimanadolu"
+    except Exception:
+        pass
+    return "kadimanadolu"
+
+
+@app.post("/api/covers/{key}/retext", dependencies=[Depends(verify_api_key)])
+async def retext_cover_endpoint(key: str, req: RetextCoverRequest):
+    """Kapak yazısını, Vertex'i yeniden çağırmadan, kayıtlı yazısız arka plan üzerinde değiştirir."""
+    bg = covers_svc.get_background(key)
+    if not bg:
+        raise HTTPException(status_code=404, detail="Bu kapak için kayıtlı yazısız arka plan yok, önce kapak üretin.")
+    if not _has_headline(req.headline_top, req.headline_bottom):
+        raise HTTPException(status_code=400, detail="En az bir başlık satırı gerekli.")
+    brand = req.brand or _brand_for_key(key)
+    final = await asyncio.to_thread(cover_compose.compose_cover, bg, req.headline_top or "", req.headline_bottom or "", brand)
+    return await _store_and_link_cover(key, final, req.apply_youtube, {"aspect_ratio": "9:16", "overlay": True})
+
+
+@app.post("/api/covers/upload", dependencies=[Depends(verify_api_key)])
+async def upload_cover_endpoint(
+    key: str = Form(...),
+    file: UploadFile = File(...),
+    apply_youtube: bool = Form(True),
+):
+    """Hazır bir kapak görselini (ör. CapCut çıktısı) yükler, kayda bağlar ve YouTube'a uygular."""
+    import io
+    from PIL import Image
+    raw = await file.read()
+    if len(raw) > 15_000_000:
+        raise HTTPException(status_code=413, detail="Kapak 15 MB'tan büyük olamaz.")
+    try:
+        im = Image.open(io.BytesIO(raw)).convert("RGB")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Geçerli bir görsel değil.")
+    buf = io.BytesIO()
+    im.save(buf, format="PNG", optimize=True)
+    return await _store_and_link_cover(key, buf.getvalue(), apply_youtube, {"aspect_ratio": f"{im.width}x{im.height}", "overlay": False})
 
 
 @app.get("/api/covers", dependencies=[Depends(verify_api_key)])

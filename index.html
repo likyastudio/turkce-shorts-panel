@@ -2,6 +2,8 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AKILALMAZ — Likya Editorial Studio (OpenDesign Atelier Zero)</title>
 <meta name="description" content="AKILALMAZ YouTube Shorts ve Instagram Reels üretim, Vertex AI kapak stüdyosu ve 7/24 otonom yayın kontrol merkezi.">
@@ -573,9 +575,31 @@
     input[type=text], input[type=password], input[type=number], input[type=datetime-local], textarea, select { font-size: 16px; }
   }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+
+  /* Google girişi */
+  #login { display: none; min-height: 100vh; place-items: center; padding: 20px; }
+  .locked #login { display: grid; }
+  .locked header.topbar, .locked #app, .locked #net-warn, .locked #modal-root { display: none; }
+  #login .panel { width: min(420px, 100%); text-align: center; padding: 34px 28px; }
+  #login h1 { margin: 14px 0 6px; font-size: 25px; letter-spacing: -0.03em; }
+  #login .brand-star { margin: 0 auto; width: 46px; height: 46px; font-size: 21px; }
+  #login .btn { width: 100%; margin-top: 20px; min-height: 46px; font-size: 15px; background: #fff; color: #1f1f1f; border-color: #747775; }
+  #login-msg { margin-top: 14px; min-height: 20px; font-size: 13.5px; font-weight: 600; color: var(--err); }
 </style>
 </head>
-<body>
+<body class="locked">
+<section id="login" aria-labelledby="login-title">
+  <div class="panel">
+    <div class="brand-star" aria-hidden="true">★</div>
+    <h1 id="login-title">Likya <span class="serif" style="color:var(--coral)">Studio</span></h1>
+    <div class="panel-sub">Bu panel özeldir. İzin verilen Google hesabıyla girin.</div>
+    <button class="btn" id="login-btn" onclick="startLogin()">
+      <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.7 1.2 9.2 3.6l6.9-6.9C35.9 2.4 30.5 0 24 0 14.6 0 6.5 5.4 2.6 13.2l8 6.2C12.5 13.7 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M47 24.6c0-1.6-.2-3.1-.4-4.6H24v9.1h12.9c-.6 3-2.3 5.5-4.8 7.2l7.7 6C44.4 38 47 31.800 47 24.600z"/><path fill="#FBBC05" d="M10.500 28.600c-.5-1.500-.8-3-.8-4.600s.3-3.100.8-4.600l-8-6.200C.9 16.500 0 20.100 0 24s.9 7.500 2.600 10.800l7.900-6.200z"/><path fill="#34A853" d="M24 48c6.500 0 11.900-2.100 15.900-5.800l-7.700-6c-2.200 1.500-4.900 2.300-8.200 2.300-6.300 0-11.600-4.200-13.500-9.900l-7.900 6.200C6.500 42.600 14.600 48 24 48z"/></svg>
+      Google ile giriş yap
+    </button>
+    <div id="login-msg" role="alert"></div>
+  </div>
+</section>
 
 <header class="topbar">
   <div class="brand">
@@ -598,6 +622,7 @@
   <div class="top-actions">
     <button id="btn-theme" class="btn sm ghost" onclick="toggleTheme()" title="Tema değiştir">🌙 Koyu</button>
     <label class="tg"><input type="checkbox" id="auto" checked> Oto</label>
+    <button class="btn sm ghost" onclick="endSession('')">Çıkış</button>
     <button class="icon-btn" onclick="load(true)" title="Şimdi Yenile" aria-label="Yenile">⟳</button>
   </div>
 </header>
@@ -758,14 +783,12 @@ function toggleTheme() {
 }
 applyTheme(localStorage.getItem('likya_theme') || 'light');
 
-const getCfg = () => ({
-  apiUrl: (localStorage.getItem('likya_api_url') || '').replace(/\/$/, ''),
-  apiKey: localStorage.getItem('likya_api_key') || '',
-});
-const setCfg = (url, key) => {
-  localStorage.setItem('likya_api_url', (url || '').trim().replace(/\/$/, ''));
-  localStorage.setItem('likya_api_key', (key || '').trim());
-};
+const IS_LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
+const API_BASE = (IS_LOCAL && localStorage.getItem('likya_api_url')) || 'https://likya-crosspost-api-64i7umkgnq-ew.a.run.app';
+const getCfg = () => ({ apiUrl: API_BASE, session: localStorage.getItem('likya_session') || '' });
+// Eski giriş yöntemi: API anahtarı artık tarayıcıda saklanmaz
+localStorage.removeItem('likya_api_key');
+if (!IS_LOCAL) localStorage.removeItem('likya_api_url');
 
 const getCoverHeadline = key => localStorage.getItem('likya_cov_hl_' + key) || '';
 const setCoverHeadline = (key, val) => localStorage.setItem('likya_cov_hl_' + key, val || '');
@@ -780,16 +803,15 @@ function toast(msg, type = 'info') {
 }
 
 async function apiFetch(path, opts = {}) {
-  const { apiUrl, apiKey } = getCfg();
-  if (!apiUrl) throw new Error('Önce Ayarlar sekmesinden Cloud Run API URL girin.');
-  const headers = { ...(opts.headers || {}) };
-  if (apiKey) headers['X-API-Key'] = apiKey;
+  const { apiUrl, session } = getCfg();
+  const headers = { ...(opts.headers || {}), 'X-Session': session };
   const r = await fetch(apiUrl + path, { ...opts, headers });
   const data = await r.json().catch(() => ({}));
   if (!r.ok) {
     const d = data.detail;
     const text = Array.isArray(d) ? d.map(x => x.msg).join(' · ') : d;
-    const err = new Error(r.status === 401 ? 'API anahtarı geçersiz veya boş. Ayarlar sekmesinden kontrol edin.' : (text || `HTTP ${r.status}`));
+    if (r.status === 401) endSession('Oturumunuzun süresi doldu. Yeniden giriş yapın.');
+    const err = new Error(r.status === 401 ? 'Oturum süresi doldu.' : (text || `HTTP ${r.status}`));
     err.status = r.status;
     throw err;
   }
@@ -833,6 +855,7 @@ async function syncBackend() {
       soft('/api/covers', { covers: {} }),
       soft('/api/schedule', { posts: scheduledPosts, next_slot: nextSlot, next_by_brand: nextByBrand, rule: schedRule, yt_quota_today: ytQuotaToday }),
     ]);
+    if (!getCfg().session) { syncError = ''; return; } // bu sırada oturum kapandı
     syncError = firstErr;
     accounts = accRes.accounts || [];
     pubByVideo = stRes.by_video || {};
@@ -1192,12 +1215,14 @@ async function fetchAnalytics(forceRefresh = false) {
     const qs = new URLSearchParams();
     if (analyticsBrandFilter && analyticsBrandFilter !== 'all') qs.set('brand', analyticsBrandFilter);
     if (forceRefresh) qs.set('refresh', 'true');
-    analyticsData = await apiFetch('/api/analytics' + (qs.toString() ? '?' + qs.toString() : ''));
+    const res = await apiFetch('/api/analytics' + (qs.toString() ? '?' + qs.toString() : ''));
+    if (!getCfg().session) return;
+    analyticsData = res;
   } catch (e) {
     analyticsError = e.message || String(e);
   } finally {
     analyticsLoading = false;
-    if (view === 'reports') renderAll(true);
+    if (view === 'reports' && getCfg().session) renderAll(true);
   }
 }
 
@@ -1233,6 +1258,7 @@ async function loadInner(force) {
     const data = await rv.json();
     if (rk && rk.ok) kit = await rk.json();
     await syncBackend();
+    if (!getCfg().session) return;
     renderNetWarn();
     const ns = JSON.stringify([
       data.map(v => [v.slug, v.status, v.updated, v.frames, !!v.meta]),
@@ -1257,6 +1283,7 @@ async function loadInner(force) {
 }
 
 function renderAll(force) {
+  if (!getCfg().session) return;
   const app = document.getElementById('app');
   if (view === 'covers') { renderCoverStudio(app); return; }
   if (view === 'schedule') { renderSchedule(app); return; }
@@ -1990,7 +2017,7 @@ function openUploadModal(defaultBrand, platformMode = 'ALL') {
 
 function submitUploadAndSchedule() { return once('upload', submitUploadInner); }
 async function submitUploadInner() {
-  const { apiUrl, apiKey } = getCfg();
+  const { apiUrl, session } = getCfg();
   const msg = document.getElementById('u_msg');
   const btn = document.getElementById('u_btn');
   const mode = btn?.dataset.mode || 'schedule';
@@ -2032,10 +2059,11 @@ async function submitUploadInner() {
     fd.append('brand', brand);
     const upResp = await fetch(apiUrl + '/api/media/upload', {
       method: 'POST',
-      headers: apiKey ? { 'X-API-Key': apiKey } : {},
+      headers: { 'X-Session': session },
       body: fd,
     });
     const upData = await upResp.json().catch(() => ({}));
+    if (upResp.status === 401) endSession('Oturumunuzun süresi doldu. Yeniden giriş yapın.');
     if (!upResp.ok) throw new Error(upData.detail || `Yükleme hatası (${upResp.status})`);
 
     let coverUrl = undefined;
@@ -2610,7 +2638,7 @@ async function changeAccountBrand(id, brand) {
 }
 
 function renderSettings(el) {
-  const { apiUrl, apiKey } = getCfg();
+  const { apiUrl } = getCfg();
   const stBadge = apiHealth?.ok
     ? `<span class="badge b-ok"><span class="dot"></span> Bağlı · ${esc(apiHealth.db).toUpperCase()} · ${esc(apiHealth.gcs_bucket)}</span>`
     : apiUrl
@@ -2630,13 +2658,10 @@ function renderSettings(el) {
 
       <div class="grid2">
         <div class="panel">
-          <h3 style="margin:0 0 14px;font-size:16px">Cloud Run Backend Bağlantısı</h3>
-          <div class="fld"><label for="cfg_url">Cloud Run API URL</label><input id="cfg_url" type="text" placeholder="https://likya-crosspost-api-xxxx-ew.a.run.app" value="${esc(apiUrl)}"></div>
-          <div class="fld"><label for="cfg_key">X-API-Key (API_SECRET_KEY)</label><input id="cfg_key" type="password" placeholder="••••••••" value="${esc(apiKey)}"></div>
-          <div class="row" style="margin-top:14px">
-            <button class="btn primary" onclick="saveSettings()">Kaydet & Test Et</button>
-          </div>
-          <div class="panel-sub" style="margin-top:14px">Ayarlar yalnızca tarayıcınızın yerel depolamasında (<code class="mono">localStorage</code>) saklanır.</div>
+          <h3 style="margin:0 0 14px;font-size:16px">Google Girişi</h3>
+          <div class="name-row"><div><b>${esc(localStorage.getItem('likya_email') || '')}</b><div class="panel-sub">Bu tarayıcıda oturum açık (en fazla 14 gün)</div></div><span class="badge b-ok">Açık</span></div>
+          <div class="row" style="margin-top:14px"><button class="btn" onclick="endSession('')">Çıkış Yap</button></div>
+          <div class="panel-sub" style="margin-top:14px">Panele yalnızca izin verilen Google hesapları girebilir.</div>
         </div>
 
         <div class="panel">
@@ -2667,12 +2692,6 @@ function renderSettings(el) {
     </div>`;
 }
 
-async function saveSettings() {
-  setCfg(document.getElementById('cfg_url').value, document.getElementById('cfg_key').value);
-  await load(true);
-  if (syncError) toast(syncError, 'err');
-  else toast(apiHealth?.ok ? 'Bağlantı ve API anahtarı doğrulandı!' : 'Ayarlar kaydedildi', apiHealth?.ok ? 'ok' : 'info');
-}
 async function delAccount(id) {
   const a = accounts.find(x => x.id === id);
   if (!confirm(`"${a?.account_name || 'Kanal'}" bağlantısı kaldırılsın mı? Bu kanala planlı yayınlar gönderilemez.`)) return;
@@ -2845,19 +2864,100 @@ function renderReports(el) {
     </div>`;
 }
 
-if (location.hash.includes('connected=')) toast('Kanal bağlandı. Markasını aşağıdan kontrol edin.', 'ok');
-if (location.hash.includes('cancelled=')) toast('Kanal bağlama iptal edildi.', 'info');
-if (/connected=|cancelled=/.test(location.hash)) history.replaceState(null, '', location.pathname + '#settings');
-if (location.hash.startsWith('#settings')) view = 'settings';
-else if (location.hash.startsWith('#covers')) view = 'covers';
-else if (location.hash.startsWith('#schedule')) view = 'schedule';
-else if (location.hash.startsWith('#reports')) { view = 'reports'; fetchAnalytics(false); }
-document.querySelectorAll('.seg-nav button').forEach(b => b.classList.toggle('nav-on', b.id === 'btn-' + view));
-load(true);
-setInterval(() => {
-  const activePoll = Object.values(pubByVideo).flat().some(l => l.status === 'Bekliyor' || l.status === 'Yükleniyor');
-  if (activePoll || (document.getElementById('auto').checked && !document.hidden && (view === 'videos' || view === 'schedule'))) load(false);
-}, 6000);
+/* Google girişi */
+const b64hex = buf => [...new Uint8Array(buf)].map(x => x.toString(16).padStart(2, '0')).join('');
+function loginMsg(text) { document.getElementById('login-msg').textContent = text || ''; }
+
+async function startLogin() {
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true;
+  loginMsg('');
+  try {
+    const verifier = b64hex(crypto.getRandomValues(new Uint8Array(32)));
+    sessionStorage.setItem('likya_verifier', verifier);
+    const challenge = b64hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
+    const r = await fetch(API_BASE + '/api/auth/google/start', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ redirect_to: location.origin + location.pathname, challenge }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(typeof d.detail === 'string' ? d.detail : 'Giriş başlatılamadı.');
+    if (!String(d.url).startsWith('https://accounts.google.com/')) throw new Error('Giriş adresi geçersiz.');
+    location.href = d.url;
+  } catch (e) {
+    loginMsg(e instanceof TypeError ? 'Sunucuya ulaşılamadı. Biraz sonra yeniden deneyin.' : e.message);
+    btn.disabled = false;
+  }
+}
+
+function endSession(msg) {
+  localStorage.removeItem('likya_session');
+  localStorage.removeItem('likya_email');
+  // Özel bilgiler ekranda ve bellekte kalmasın
+  scheduledPosts = []; accounts = []; pubByVideo = {}; analyticsData = null; savedCovers = {}; videos = []; sig = '';
+  closeModal();
+  document.getElementById('app').innerHTML = '';
+  document.body.classList.add('locked');
+  document.getElementById('login-btn').disabled = false;
+  loginMsg(msg);
+}
+
+let started = false;
+function startPanel() {
+  document.body.classList.remove('locked');
+  if (view === 'reports') fetchAnalytics(false);
+  document.querySelectorAll('.seg-nav button').forEach(b => b.classList.toggle('nav-on', b.id === 'btn-' + view));
+  load(true);
+  if (started) return;
+  started = true;
+  setInterval(() => {
+    if (document.body.classList.contains('locked')) return;
+    const activePoll = Object.values(pubByVideo).flat().some(l => l.status === 'Bekliyor' || l.status === 'Yükleniyor');
+    if (activePoll || (document.getElementById('auto').checked && !document.hidden && (view === 'videos' || view === 'schedule'))) load(false);
+  }, 6000);
+}
+
+async function boot() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  const code = h.get('login_code'), err = h.get('login_error');
+  if (code || err) history.replaceState(null, '', location.pathname);
+  if (err) {
+    endSession({
+      denied: 'Bu Google hesabının panele girme izni yok.',
+      cancelled: 'Giriş iptal edildi.',
+    }[err] || 'Google girişi doğrulanamadı. Yeniden deneyin.');
+    return;
+  }
+  if (code) {
+    const verifier = sessionStorage.getItem('likya_verifier') || '';
+    sessionStorage.removeItem('likya_verifier');
+    try {
+      const r = await fetch(API_BASE + '/api/auth/google/exchange', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, verifier }),
+      });
+      if (!r.ok) throw new Error();
+      const d = await r.json();
+      localStorage.setItem('likya_session', d.session);
+      localStorage.setItem('likya_email', d.email);
+    } catch {
+      endSession('Giriş tamamlanamadı. Yeniden deneyin.');
+      return;
+    }
+  }
+  if (!getCfg().session) return;
+  if (location.hash.includes('connected=')) toast('Kanal bağlandı. Markasını aşağıdan kontrol edin.', 'ok');
+  if (location.hash.includes('cancelled=')) toast('Kanal bağlama iptal edildi.', 'info');
+  if (/connected=|cancelled=/.test(location.hash)) history.replaceState(null, '', location.pathname + '#settings');
+  if (location.hash.startsWith('#settings')) view = 'settings';
+  else if (location.hash.startsWith('#covers')) view = 'covers';
+  else if (location.hash.startsWith('#schedule')) view = 'schedule';
+  else if (location.hash.startsWith('#reports')) view = 'reports';
+  startPanel();
+}
+// Bir sekmede çıkış yapılınca diğer sekmeler de kapanır
+window.addEventListener('storage', e => { if (e.key === 'likya_session' && !e.newValue) endSession(''); });
+boot();
 </script>
 </body>
 </html>

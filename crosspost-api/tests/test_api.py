@@ -291,3 +291,47 @@ def test_scheduler_oidc():
                 assert run() == 200
                 assert m.call_args.kwargs["audience"] == "https://api.example"
             assert client.get("/api/accounts", headers=h).status_code == 401  # yalnız tick
+
+
+def test_google_login():
+    import hashlib
+    from urllib.parse import parse_qs, urlparse
+    from app import security
+    ver = "v" * 43
+    ch = hashlib.sha256(ver.encode()).hexdigest()
+    body = {"redirect_to": "https://studio.likyastudios.live/", "challenge": ch}
+    assert client.post("/api/auth/google/start", json=body).status_code == 503
+    with patch.dict(os.environ, {"YT_CLIENT_ID": "cid", "ALLOWED_LOGIN_EMAILS": "Ben@Example.com, iki@example.com"}):
+        assert client.post("/api/auth/google/start", json={**body, "redirect_to": "https://evil.example/"}).status_code == 400
+        url = client.post("/api/auth/google/start", json=body).json()["url"]
+        q = parse_qs(urlparse(url).query)
+        assert q["scope"] == ["openid email"]
+        state = q["state"][0]
+
+        def back(info, code="c"):
+            with patch("app.oauth.requests.post") as rp, patch("google.oauth2.id_token.verify_oauth2_token", return_value=info) as vt:
+                rp.return_value.json.return_value = {"id_token": "t"}
+                r = client.get("/api/oauth/youtube/callback", params={"code": code, "state": state}, follow_redirects=False)
+                assert vt.call_args.kwargs["audience"] == "cid"
+            return r.headers["location"].split("#")[1]
+
+        assert back({"email": "yabanci@example.com", "email_verified": True}) == "login_error=denied"
+        assert back({"email": "ben@example.com", "email_verified": False}) == "login_error=denied"
+        code = back({"email": "BEN@example.com", "email_verified": True}).split("login_code=")[1]
+        ex = lambda c, v: client.post("/api/auth/google/exchange", json={"code": c, "verifier": v})
+        assert ex(code, "x" * 43).status_code == 401  # başka tarayıcı kullanamaz
+        res = ex(code, ver)
+        assert res.status_code == 200 and res.json()["email"] == "ben@example.com"
+        tok = res.json()["session"]
+        get = lambda t: client.get("/api/accounts", headers={"X-Session": t}).status_code
+        assert get(tok) == 200
+        assert client.post("/api/scheduler/tick", headers={"X-Session": tok}).status_code == 200
+        for bad in (code, state, tok[:-1] + ("0" if tok[-1] != "0" else "1"), "x", security.make_token("session", {"m": "yabanci@example.com"}, 60), security.make_token("session", {"m": "ben@example.com"}, -1)):
+            assert get(bad) == 401
+        assert ex(tok, ver).status_code == 401
+        assert ex(security.make_token("login-code", {"m": "ben@example.com", "c": ch}, -1), ver).status_code == 401
+        assert client.get("/api/oauth/youtube/callback", params={"error": "access_denied", "state": state}, follow_redirects=False).headers["location"].endswith("#login_error=cancelled")
+        assert client.get("/api/oauth/instagram/callback", params={"code": "c", "state": state}, follow_redirects=False).status_code == 400
+        assert client.get("/api/accounts", headers=HDR).status_code == 200  # otomasyon anahtarı çalışır
+    with patch.dict(os.environ, {"ALLOWED_LOGIN_EMAILS": "iki@example.com"}):
+        assert get(tok) == 401  # listeden çıkan hesap hemen kapanır

@@ -18,7 +18,66 @@ def _secret() -> str:
     return os.getenv("API_SECRET_KEY", "").strip()
 
 
-def verify_api_key(x_api_key: Optional[str] = Header(default=None)):
+SESSION_TTL_SECONDS = 14 * 24 * 3600
+LOGIN_CODE_TTL_SECONDS = 120
+
+
+def allowed_emails() -> set[str]:
+    """Panele girebilen Google hesapları. Liste yalnız sunucu ayarında durur (depo herkese açık)."""
+    return {e.strip().lower() for e in os.getenv("ALLOWED_LOGIN_EMAILS", "").split(",") if e.strip()}
+
+
+def make_token(kind: str, data: dict, ttl: int) -> str:
+    payload = {**data, "k": kind, "e": int(time.time()) + ttl}
+    body = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+    return f"{body}.{_sign(body, kind)}"
+
+
+def read_token(token: str, kind: str) -> Optional[dict]:
+    if not _secret() or "." not in (token or ""):
+        return None
+    body, sig = token.rsplit(".", 1)
+    if not hmac.compare_digest(sig.encode(), _sign(body, kind).encode()):
+        return None
+    try:
+        data = json.loads(base64.urlsafe_b64decode(body + "=" * (-len(body) % 4)))
+    except ValueError:
+        return None
+    if data.get("k") != kind or int(data.get("e", 0)) < time.time():
+        return None
+    return data
+
+
+def session_email(token: Optional[str]) -> Optional[str]:
+    """Geçerli oturumun e-postası. Liste her istekte yeniden bakılır: listeden çıkan hesap hemen kapanır."""
+    data = read_token(token or "", "session")
+    email = (data or {}).get("m", "")
+    return email if email and email in allowed_emails() else None
+
+
+def make_login_code(email: str, challenge: str) -> str:
+    return make_token("login-code", {"m": email, "c": challenge}, LOGIN_CODE_TTL_SECONDS)
+
+
+def exchange_login_code(code: str, verifier: str) -> Optional[str]:
+    """Kod, yalnız girişi başlatan tarayıcıdaki gizli 'verifier' ile oturuma çevrilir (PKCE mantığı)."""
+    data = read_token(code, "login-code")
+    if not data or not hmac.compare_digest(
+        hashlib.sha256(verifier.encode()).hexdigest().encode(), str(data.get("c", "")).encode()
+    ):
+        return None
+    return data["m"] if data["m"] in allowed_emails() else None
+
+
+def verify_api_key(
+    x_api_key: Optional[str] = Header(default=None),
+    x_session: Optional[str] = Header(default=None),
+):
+    """Panel: Google oturumu (X-Session). Otomasyonlar: API anahtarı (X-API-Key)."""
+    if x_session and not x_api_key:
+        if session_email(x_session):
+            return
+        raise HTTPException(status_code=401, detail="Oturum geçersiz veya süresi dolmuş.")
     expected = _secret()
     if not expected:
         # Anahtar tanımsızsa herkese açmak yerine kapat (yerel geliştirme için açıkça izin verilebilir)
@@ -37,8 +96,8 @@ def is_allowed_return_url(url: str) -> bool:
     return u.scheme == "https" and u.hostname in hosts and not u.username
 
 
-def _sign(body: str) -> str:
-    return hmac.new(_secret().encode(), ("oauth-state:" + body).encode(), hashlib.sha256).hexdigest()
+def _sign(body: str, kind: str = "oauth-state") -> str:
+    return hmac.new(_secret().encode(), (kind + ":" + body).encode(), hashlib.sha256).hexdigest()
 
 
 def make_state(platform: str, redirect_to: str, brand: str) -> str:
@@ -47,7 +106,7 @@ def make_state(platform: str, redirect_to: str, brand: str) -> str:
     return f"{body}.{_sign(body)}"
 
 
-def read_state(state: str, platform: str) -> dict:
+def read_state(state: str, *platforms: str) -> dict:
     bad = HTTPException(status_code=400, detail="Bağlantı isteği geçersiz veya süresi dolmuş. Panelden yeniden deneyin.")
     if not _secret() or "." not in (state or ""):
         raise bad
@@ -58,12 +117,16 @@ def read_state(state: str, platform: str) -> dict:
         data = json.loads(base64.urlsafe_b64decode(body + "=" * (-len(body) % 4)))
     except ValueError:
         raise bad
-    if data.get("p") != platform or int(data.get("e", 0)) < time.time():
+    if data.get("p") not in platforms or int(data.get("e", 0)) < time.time():
         raise bad
     return data
 
 
-def verify_scheduler(x_api_key: Optional[str] = Header(default=None), authorization: Optional[str] = Header(default=None)):
+def verify_scheduler(
+    x_api_key: Optional[str] = Header(default=None),
+    authorization: Optional[str] = Header(default=None),
+    x_session: Optional[str] = Header(default=None),
+):
     """API anahtarı ya da Cloud Scheduler'ın Google imzalı kimliği (OIDC). Sunucuda/görevde anahtar saklamaya gerek kalmaz."""
     email = os.getenv("SCHEDULER_SA_EMAIL", "").strip()
     audience = os.getenv("PUBLIC_API_BASE", "").rstrip("/")
@@ -77,4 +140,4 @@ def verify_scheduler(x_api_key: Optional[str] = Header(default=None), authorizat
         if info.get("email") == email and info.get("email_verified"):
             return
         raise HTTPException(status_code=401, detail="Zamanlayıcı kimliği yetkili değil.")
-    verify_api_key(x_api_key)
+    verify_api_key(x_api_key, x_session)

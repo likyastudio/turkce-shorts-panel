@@ -8,11 +8,22 @@ import requests
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from app import db
-from app.security import is_allowed_return_url, make_state, read_state, verify_api_key
+from app.security import (
+    SESSION_TTL_SECONDS,
+    allowed_emails,
+    exchange_login_code,
+    is_allowed_return_url,
+    make_login_code,
+    make_state,
+    make_token,
+    read_state,
+    verify_api_key,
+)
 
 router = APIRouter(prefix="/api/oauth", tags=["oauth"])
+auth_router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 YT_CLIENT_ID = os.getenv("YT_CLIENT_ID", "")
 YT_CLIENT_SECRET = os.getenv("YT_CLIENT_SECRET", "")
@@ -37,6 +48,75 @@ def _new_state(platform: str, body: OAuthStartIn) -> str:
     return make_state(platform, back, brand)
 
 
+class LoginStartIn(BaseModel):
+    redirect_to: str = FRONTEND_URL
+    challenge: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class LoginExchangeIn(BaseModel):
+    code: str = Field(max_length=2000)
+    verifier: str = Field(min_length=32, max_length=200)
+
+
+@auth_router.post("/google/start")
+def google_login_start(body: LoginStartIn):
+    """Panel girişi. Google konsolunda kayıtlı mevcut dönüş adresini kullanır; YouTube izni istemez."""
+    cid = os.getenv("YT_CLIENT_ID", YT_CLIENT_ID)
+    if not cid or not allowed_emails():
+        raise HTTPException(status_code=503, detail="Google girişi sunucuda ayarlanmamış.")
+    back = body.redirect_to.split("#")[0]
+    if not is_allowed_return_url(back):
+        raise HTTPException(status_code=400, detail="Geri dönüş adresine izin verilmiyor.")
+    base = os.getenv("PUBLIC_API_BASE", PUBLIC_API_BASE).rstrip("/")
+    params = {
+        "client_id": cid,
+        "redirect_uri": f"{base}/api/oauth/youtube/callback",
+        "response_type": "code",
+        "scope": "openid email",
+        "prompt": "select_account",
+        "state": make_state("LOGIN", back, body.challenge),
+    }
+    return {"url": "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode(params)}
+
+
+def _finish_login(st: dict, code: Optional[str]):
+    back = st["r"]
+    if not code:
+        return RedirectResponse(f"{back}#login_error=cancelled")
+    cid = os.getenv("YT_CLIENT_ID", YT_CLIENT_ID)
+    base = os.getenv("PUBLIC_API_BASE", PUBLIC_API_BASE).rstrip("/")
+    try:
+        tok = requests.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": code,
+                "client_id": cid,
+                "client_secret": os.getenv("YT_CLIENT_SECRET", YT_CLIENT_SECRET),
+                "redirect_uri": f"{base}/api/oauth/youtube/callback",
+                "grant_type": "authorization_code",
+            },
+            timeout=20,
+        ).json()
+        from google.auth.transport.requests import Request as GoogleRequest
+        from google.oauth2 import id_token
+        info = id_token.verify_oauth2_token(tok["id_token"], GoogleRequest(), audience=cid)
+    except Exception as e:
+        print(f"[auth] Google girişi doğrulanamadı: {type(e).__name__}")
+        return RedirectResponse(f"{back}#login_error=failed")
+    email = str(info.get("email", "")).lower()
+    if info.get("email_verified") is not True or email not in allowed_emails():
+        return RedirectResponse(f"{back}#login_error=denied")
+    return RedirectResponse(f"{back}#login_code={make_login_code(email, st['b'])}")
+
+
+@auth_router.post("/google/exchange")
+def google_login_exchange(body: LoginExchangeIn):
+    email = exchange_login_code(body.code, body.verifier)
+    if not email:
+        raise HTTPException(status_code=401, detail="Giriş doğrulanamadı. Yeniden deneyin.")
+    return {"session": make_token("session", {"m": email}, SESSION_TTL_SECONDS), "email": email}
+
+
 @router.post("/youtube/start", dependencies=[Depends(verify_api_key)])
 def youtube_oauth_start(body: OAuthStartIn):
     """Yalnızca API anahtarı olan panel kanal bağlama başlatabilir; imzalı ve süreli 'state' üretir."""
@@ -58,7 +138,9 @@ def youtube_oauth_start(body: OAuthStartIn):
 
 @router.get("/youtube/callback")
 def youtube_oauth_callback(state: str = "", code: Optional[str] = None, error: Optional[str] = None):
-    st = read_state(state, "YT")
+    st = read_state(state, "YT", "LOGIN")
+    if st["p"] == "LOGIN":
+        return _finish_login(st, code)
     if error or not code:
         return RedirectResponse(f"{st['r']}#settings?cancelled=YT")
     cid = os.getenv("YT_CLIENT_ID", YT_CLIENT_ID)

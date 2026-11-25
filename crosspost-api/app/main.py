@@ -19,7 +19,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app import db
-from app.oauth import router as oauth_router
+from app.oauth import auth_router, router as oauth_router
 from app.security import verify_api_key, verify_scheduler
 from app.services import covers as covers_svc
 from app.services import scheduler as sched_svc
@@ -38,6 +38,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(oauth_router)
+app.include_router(auth_router)
 
 
 @app.on_event("startup")

@@ -993,19 +993,98 @@ def clear_schedule_errors_endpoint(brand: Optional[str] = None):
     return {"ok": True, "cleared": cleared, "brand": brand or "all"}
 
 
+_TR_NORM_MAP = str.maketrans("çğıöşüÇĞİÖŞÜ", "cgiosucgiosu")
+_STOPWORDS = {
+    "ve", "bir", "bu", "da", "de", "ile", "icin", "ama", "cok", "en", "mi", "mu", "ne",
+    "shorts", "short", "video", "tarih", "gercek", "hikaye", "adam", "olan", "yapan",
+}
+
+
+def _norm_tokens(text: str) -> set[str]:
+    t = (text or "").translate(_TR_NORM_MAP).lower()
+    t = re.sub(r"#\w+", " ", t)
+    words = re.findall(r"[a-z0-9]{2,}", t)
+    return {w for w in words if w not in _STOPWORDS}
+
+
+def _norm_plain(text: str) -> str:
+    t = (text or "").translate(_TR_NORM_MAP).lower()
+    t = re.sub(r"#\w+", " ", t)
+    return " ".join(re.findall(r"[a-z0-9]+", t))
+
+
+def _load_site_videos_catalog() -> list[dict]:
+    """Loads public videos.json from studio.likyastudios.live (or local repo fallback) so YouTube Studio
+    videos v1..v20+ can always be matched to their GCS cover keys even if absent from scheduled_posts."""
+    import requests as _req
+
+    site = os.getenv("SITE_BASE_URL", "https://studio.likyastudios.live").rstrip("/")
+    try:
+        r = _req.get(f"{site}/videos.json", timeout=10)
+        if r.ok:
+            data = r.json()
+            if isinstance(data, list):
+                return data
+    except Exception:
+        pass
+    try:
+        local_vj = os.path.join(os.path.dirname(__file__), "..", "..", "videos.json")
+        if os.path.exists(local_vj):
+            import json as _json
+            data = _json.loads(open(local_vj, encoding="utf-8").read())
+            if isinstance(data, list):
+                return data
+    except Exception:
+        pass
+    return []
+
+
+def _match_yt_title_to_cover(yt_title: str, catalog_entries: list[dict]) -> Optional[dict]:
+    """Matches a YouTube Studio video title to the best catalog entry {key, video_id, brand, titles}."""
+    yt_plain = _norm_plain(yt_title)
+    yt_toks = _norm_tokens(yt_title)
+    if not yt_plain:
+        return None
+
+    best_entry = None
+    best_score = 0.0
+    for entry in catalog_entries:
+        for cand in entry["titles"]:
+            cp = _norm_plain(cand)
+            if not cp:
+                continue
+            if cp == yt_plain or (len(cp) >= 12 and (cp in yt_plain or yt_plain in cp)):
+                return entry
+            ct = _norm_tokens(cand)
+            if not ct or not yt_toks:
+                continue
+            inter = yt_toks & ct
+            if len(inter) < 2:
+                continue
+            # Containment score relative to shorter title
+            score = len(inter) / min(len(yt_toks), len(ct))
+            # Bonus for more absolute shared tokens
+            weighted = score + min(len(inter), 6) * 0.05
+            if score >= 0.55 and weighted > best_score:
+                best_score = weighted
+                best_entry = entry
+    return best_entry
+
+
 @app.post("/api/schedule/sync-covers", dependencies=[Depends(verify_api_key)])
 async def sync_covers_to_schedule(brand: Optional[str] = None):
-    """Links all existing GCS covers to scheduled_posts and applies thumbnails.set to already-uploaded YT videos."""
+    """Links all existing GCS covers to scheduled_posts AND scans connected YouTube Studio channels
+    to apply thumbnails.set to every matching Short (including v1..v20+ even if not linked in DB)."""
     return await _sync_covers(only_video_id=None, brand=brand)
 
 
 async def _sync_covers(only_video_id: Optional[str] = None, brand: Optional[str] = None) -> dict:
     available = set(covers_svc.list_covers())
     public_base = os.getenv("PUBLIC_API_BASE", "").rstrip("/")
-    posts = db.list_scheduled_posts()
-    if brand and brand.strip().lower() not in ("", "all"):
-        b_filt = brand.strip().lower()
-        posts = [p for p in posts if (p.get("brand") or "akilalmaz").lower() == b_filt]
+    all_posts = db.list_scheduled_posts()
+    b_filt = (brand or "").strip().lower()
+    use_brand = bool(b_filt and b_filt != "all")
+    posts = [p for p in all_posts if (p.get("brand") or "akilalmaz").lower() == b_filt] if use_brand else list(all_posts)
     if only_video_id:
         target_safe = covers_svc._safe_key(only_video_id)
         posts = [
@@ -1026,8 +1105,12 @@ async def _sync_covers(only_video_id: Optional[str] = None, brand: Optional[str]
     linked = []
     yt_applied = []
     yt_errors = []
+    not_on_youtube = []
+    reconciled_from_studio = []
     seen_yt_pairs: set[tuple[str, int]] = set()
+    updated_safe_keys: set[str] = set()
 
+    # Pass 1: scheduled_posts & publish_logs
     for p in posts:
         vid = p["video_id"]
         safe_vid = covers_svc._safe_key(vid)
@@ -1044,7 +1127,6 @@ async def _sync_covers(only_video_id: Optional[str] = None, brand: Optional[str]
 
         cov_bytes = covers_svc.get_cover(safe_vid) if has_gcs_cover else None
 
-        # Collect target (yt_video_id, account) pairs for this post
         ids = p.get("account_ids") or []
         yt_accs = [a for a in all_yt if (a["id"] in ids if ids else (a.get("brand") or "akilalmaz") == (p.get("brand") or "akilalmaz"))]
         pairs: list[tuple[str, dict]] = []
@@ -1078,15 +1160,151 @@ async def _sync_covers(only_video_id: Optional[str] = None, brand: Optional[str]
                 on_token_refresh=on_refresh,
             )
             if res.get("ok"):
-                yt_applied.append({"video_id": vid, "yt_id": yt_id, "account": acc.get("account_name")})
+                yt_applied.append({"video_id": vid, "yt_id": yt_id, "account": acc.get("account_name"), "source": "schedule"})
+                updated_safe_keys.add(safe_vid)
             else:
                 yt_errors.append({"video_id": vid, "yt_id": yt_id, "account": acc.get("account_name"), "error": res.get("error")})
+
+    # Pass 2: Direct YouTube Studio scan — catches videos ALREADY in YouTube Studio (v7..v20, manually uploaded,
+    # or missing yt_video_url in DB) and matches them by title to available GCS covers!
+    studio_scanned = 0
+    target_yt_accs = [
+        a for a in all_yt
+        if (not use_brand or (a.get("brand") or "akilalmaz").lower() == b_filt)
+    ]
+    if target_yt_accs and available:
+        catalog_by_brand: dict[str, list[dict]] = {}
+        seen_cat_keys: set[tuple[str, str]] = set()
+        post_by_safe: dict[str, dict] = {}
+        for p in all_posts:
+            sk = covers_svc._safe_key(p["video_id"])
+            post_by_safe.setdefault(sk, p)
+            if sk not in available:
+                continue
+            if only_video_id and sk != covers_svc._safe_key(only_video_id):
+                continue
+            pb = (p.get("brand") or "akilalmaz").lower()
+            if (pb, sk) not in seen_cat_keys:
+                seen_cat_keys.add((pb, sk))
+                catalog_by_brand.setdefault(pb, []).append({
+                    "key": sk,
+                    "video_id": p["video_id"],
+                    "brand": pb,
+                    "titles": [p.get("title") or "", p["video_id"].replace("_", " ")],
+                })
+
+        # Enrich 'akilalmaz' catalog from public videos.json (v1..v20+)
+        site_vids = await asyncio.to_thread(_load_site_videos_catalog)
+        for v in site_vids:
+            slug = v.get("slug") or ""
+            sk = covers_svc._safe_key(slug)
+            if not sk or sk not in available:
+                continue
+            if only_video_id and sk != covers_svc._safe_key(only_video_id):
+                continue
+            titles = [
+                (v.get("meta") or {}).get("youtube", {}).get("title") or "",
+                v.get("title") or "",
+                slug.replace("_", " "),
+            ]
+            if ("akilalmaz", sk) in seen_cat_keys:
+                for entry in catalog_by_brand.get("akilalmaz", []):
+                    if entry["key"] == sk:
+                        entry["titles"].extend(t for t in titles if t and t not in entry["titles"])
+            else:
+                seen_cat_keys.add(("akilalmaz", sk))
+                catalog_by_brand.setdefault("akilalmaz", []).append({
+                    "key": sk,
+                    "video_id": slug,
+                    "brand": "akilalmaz",
+                    "titles": [t for t in titles if t],
+                })
+
+        for acc in target_yt_accs:
+            acc_brand = (acc.get("brand") or "akilalmaz").lower()
+            entries = catalog_by_brand.get(acc_brand, [])
+            if not entries:
+                continue
+            cid = acc.get("client_id") or os.getenv("YT_CLIENT_ID", "")
+            csec = acc.get("client_secret") or os.getenv("YT_CLIENT_SECRET", "")
+            acc_id = acc.get("id")
+            on_refresh = (lambda tok, exp, aid=acc_id: db.update_account_token(aid, tok, exp)) if acc_id else None
+            try:
+                ana = await asyncio.to_thread(
+                    fetch_youtube_analytics,
+                    access_token=acc["access_token"],
+                    refresh_token=acc.get("refresh_token"),
+                    client_id=cid,
+                    client_secret=csec,
+                    max_videos=50,
+                    on_token_refresh=on_refresh,
+                )
+            except Exception as e:
+                yt_errors.append({"video_id": acc_brand, "yt_id": "", "account": acc.get("account_name"), "error": f"Studio listesi alınamadı: {str(e)[:200]}"})
+                continue
+
+            studio_vids = ana.get("videos") or []
+            studio_scanned += len(studio_vids)
+            for sv in studio_vids:
+                yt_id = sv.get("video_id") or ""
+                if not yt_id:
+                    continue
+                pair_key = (yt_id, int(acc_id or 0))
+                if pair_key in seen_yt_pairs:
+                    continue
+                matched = _match_yt_title_to_cover(sv.get("title") or "", entries)
+                if not matched:
+                    continue
+
+                seen_yt_pairs.add(pair_key)
+                sk = matched["key"]
+                vid = matched["video_id"]
+                cov_url = f"{public_base}/api/covers/{sk}.png" if public_base else f"/api/covers/{sk}.png"
+                cov_bytes = covers_svc.get_cover(sk)
+
+                # Reconcile scheduled_posts row if it was missing yt_uploaded / yt_video_url
+                sp = post_by_safe.get(sk)
+                if sp and not sp.get("yt_uploaded"):
+                    try:
+                        db.mark_scheduled_yt_uploaded(sp["id"], f"https://youtube.com/shorts/{yt_id}")
+                        db.update_scheduled_cover_url_by_id(sp["id"], cov_url)
+                        reconciled_from_studio.append(vid)
+                    except Exception:
+                        pass
+
+                res = await asyncio.to_thread(
+                    apply_youtube_thumbnail,
+                    yt_video_id=yt_id,
+                    cover_url=cov_url,
+                    cover_bytes=cov_bytes,
+                    access_token=acc["access_token"],
+                    refresh_token=acc.get("refresh_token"),
+                    client_id=cid,
+                    client_secret=csec,
+                    on_token_refresh=on_refresh,
+                )
+                if res.get("ok"):
+                    yt_applied.append({"video_id": vid, "yt_id": yt_id, "account": acc.get("account_name"), "source": "studio_scan"})
+                    updated_safe_keys.add(sk)
+                else:
+                    yt_errors.append({"video_id": vid, "yt_id": yt_id, "account": acc.get("account_name"), "error": res.get("error")})
+                    if "uploadRateLimitExceeded" in str(res.get("error") or ""):
+                        break
+
+    # Report covers that are in scheduled_posts (with yt_uploaded=False) and were NOT found on YouTube Studio yet
+    for p in posts:
+        sk = covers_svc._safe_key(p["video_id"])
+        if sk in available and not p.get("yt_uploaded") and sk not in updated_safe_keys:
+            not_on_youtube.append(p["video_id"])
 
     return {
         "ok": True,
         "linked_covers": linked,
         "yt_thumbnails_applied": yt_applied,
         "yt_thumbnail_errors": yt_errors,
+        "reconciled_from_studio": reconciled_from_studio,
+        "studio_scanned": studio_scanned,
+        "not_on_youtube": not_on_youtube,
     }
 
 

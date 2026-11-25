@@ -1231,16 +1231,61 @@ async function syncAllCoversToYouTube(brandOverride = null) {
   renderAll(false);
   const b = brandOverride !== null ? brandOverride : (view === 'schedule' ? activeBrandFilter : 'all');
   const qs = b && b !== 'all' ? `?brand=${encodeURIComponent(b)}` : '';
+  toast('YouTube Studio taranıyor ve kapaklar güncelleniyor…', 'info');
   try {
     const res = await apiFetch('/api/schedule/sync-covers' + qs, { method: 'POST' });
-    const linked = (res.linked_covers || []).length;
-    const ytOk = (res.yt_thumbnails_applied || []).length;
+    const linked = res.linked_covers || [];
+    const ytOk = res.yt_thumbnails_applied || [];
     const ytErrs = res.yt_thumbnail_errors || [];
+    const reconciled = res.reconciled_from_studio || [];
+    const notOnYt = res.not_on_youtube || [];
+    const scanned = Number(res.studio_scanned || 0);
+
     const parts = [];
-    if (linked) parts.push(`${linked} cover_url bağlandı`);
-    if (ytOk) parts.push(`${ytOk} YouTube küçük resmi güncellendi`);
-    if (ytErrs.length) parts.push(`${ytErrs.length} YT uyarısı (${ytErrs[0].error || ''})`);
-    toast(parts.length ? parts.join(' · ') : 'Tüm kapaklar ve YouTube küçük resimleri zaten senkronize.', ytErrs.length && !ytOk ? 'err' : 'ok');
+    if (ytOk.length) parts.push(`✅ ${ytOk.length} YT küçük resmi güncellendi`);
+    if (reconciled.length) parts.push(`🔗 ${reconciled.length} video Studio ile eşleştirildi`);
+    if (linked.length) parts.push(`${linked.length} cover_url bağlandı`);
+    if (notOnYt.length) parts.push(`⏳ ${notOnYt.length} video henüz YT Studio'da değil`);
+    if (ytErrs.length) parts.push(`⚠️ ${ytErrs.length} YT hatası`);
+    toast(parts.length ? parts.join(' · ') : `Studio tarandı (${scanned} video), değişiklik gerekmedi.`, ytErrs.length && !ytOk.length ? 'err' : 'ok');
+
+    document.getElementById('modal-root').innerHTML = `
+      <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+        <div class="modal">
+          <div class="panel-head" style="margin-bottom:14px">
+            <div>
+              <h3 style="margin:0;font-size:18px;font-weight:800">🖼️ YouTube Studio <span class="serif">Kapak Senkron Raporu</span></h3>
+              <div class="panel-sub">Studio'da taranan: <b>${scanned}</b> video · Güncellenen: <b>${ytOk.length}</b> · Eşleştirilen: <b>${reconciled.length}</b> · Hata: <b>${ytErrs.length}</b></div>
+            </div>
+            <button class="btn ghost icon-btn" onclick="closeModal()" aria-label="Kapat">✕</button>
+          </div>
+          ${ytOk.length ? `
+            <div class="block" style="border-color:var(--ok);margin-bottom:12px">
+              <b style="color:var(--ok)">✅ YouTube Studio'da Güncellenen Kapaklar (${ytOk.length})</b>
+              <div class="panel-sub" style="margin-top:6px;display:flex;flex-direction:column;gap:4px;max-height:180px;overflow:auto">
+                ${ytOk.map(x => `<div>• <b>${esc(x.video_id)}</b> ${x.account ? `(${esc(x.account)})` : ''} ${x.yt_id ? `— <a href="https://studio.youtube.com/video/${esc(x.yt_id)}/edit" target="_blank" rel="noreferrer">Studio'da Aç ↗</a>` : ''}</div>`).join('')}
+              </div>
+            </div>` : ''}
+          ${notOnYt.length ? `
+            <div class="block" style="border-color:var(--warn);margin-bottom:12px">
+              <b>⏳ Kapağı Hazır Ama Henüz YouTube Studio'ya Yüklenmemiş (${notOnYt.length})</b>
+              <div class="panel-sub" style="margin-top:6px">Bu videolar henüz YouTube Studio'ya yüklenmediği için kapakları yükleme anında otomatik uygulanacaktır: <span class="mono">${esc(notOnYt.join(', '))}</span></div>
+              <div class="row" style="margin-top:10px">
+                <button class="btn sm primary" onclick="closeModal();syncAllPendingYouTube('${escJsAttr(b)}')">🚀 Şimdi YT Studio'ya Planla (${notOnYt.length})</button>
+              </div>
+            </div>` : ''}
+          ${ytErrs.length ? `
+            <div class="block" style="border-color:var(--err);margin-bottom:12px">
+              <b style="color:var(--err)">❌ YouTube API Uyarıları (${ytErrs.length})</b>
+              <div class="panel-sub" style="margin-top:6px;display:flex;flex-direction:column;gap:5px;max-height:180px;overflow:auto">
+                ${ytErrs.map(e => `<div>• <b>${esc(e.video_id || e.yt_id)}</b>: <span class="mono">${esc(e.error)}</span></div>`).join('')}
+              </div>
+            </div>` : ''}
+          ${!ytOk.length && !notOnYt.length && !ytErrs.length ? `
+            <div class="panel-sub" style="margin-bottom:12px">Bağlı YouTube kanalında (${scanned} video tarandı) güncellenecek eşleşen video bulunamadı. Eğer v7–v20 videoları henüz YouTube Studio'ya yüklenmediyse, önce <b>⚡ AKILALMAZ Videolarını Sırala</b> veya <b>🚀 Kuyruktakileri YT Studio'ya Planla</b> butonunu kullanın.</div>` : ''}
+          <div class="row"><button class="btn primary" onclick="closeModal()">Tamam</button></div>
+        </div>
+      </div>`;
     await load(true);
   } catch (e) {
     toast('Kapak senkron hatası: ' + (e.message || e), 'err');

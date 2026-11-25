@@ -29,7 +29,10 @@ def publish_to_instagram(
         "access_token": ig_access_token,
     }
     if cover_url:
-        payload["cover_url"] = cover_url
+        ig_cover = cover_url
+        if "/api/covers/" in ig_cover and ig_cover.lower().endswith(".png"):
+            ig_cover = ig_cover[:-4] + ".jpg"
+        payload["cover_url"] = ig_cover
     elif thumb_offset_ms is not None and thumb_offset_ms >= 0:
         payload["thumb_offset"] = str(int(thumb_offset_ms))
 

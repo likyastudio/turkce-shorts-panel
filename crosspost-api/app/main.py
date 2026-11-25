@@ -347,6 +347,28 @@ def get_cover_image_endpoint(key: str):
     )
 
 
+@app.get("/api/covers/{key}.jpg")
+def get_cover_jpeg_endpoint(key: str):
+    """Public sRGB JPEG stream required by Instagram Graph API Reels cover_url."""
+    import io
+    from PIL import Image
+
+    raw_bytes = covers_svc.get_cover(key)
+    if not raw_bytes:
+        raise HTTPException(status_code=404, detail="Kapak görseli bulunamadı.")
+    im = Image.open(io.BytesIO(raw_bytes)).convert("RGB")
+    buf = io.BytesIO()
+    im.save(buf, format="JPEG", quality=92, optimize=True)
+    return Response(
+        content=buf.getvalue(),
+        media_type="image/jpeg",
+        headers={
+            "Cache-Control": "public, max-age=3600",
+            "Access-Control-Allow-Origin": "*",
+        },
+    )
+
+
 YT_DAILY_PRESYNC_LIMIT = int(os.getenv("YT_DAILY_PRESYNC_LIMIT", "5"))
 
 

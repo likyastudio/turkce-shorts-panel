@@ -320,6 +320,54 @@ async def generate_cover_endpoint(req: GenerateCoverRequest):
         raise HTTPException(status_code=500, detail=f"Kapak üretimi başarısız: {e}")
 
 
+MAX_COVER_UPLOAD_BYTES = 15 * 1024 * 1024
+
+
+@app.post("/api/covers/upload", dependencies=[Depends(verify_api_key)])
+async def upload_cover_endpoint(
+    file: UploadFile = File(...),
+    key: str = Form(...),
+    apply_youtube: bool = Form(True),
+):
+    """Kendi hazırladığımız kapak görselini (JPEG/PNG/WebP) GCS covers/{key}.png olarak kaydeder.
+    key = planlı gönderinin video_id'si ise kapak o gönderiye bağlanır; video YouTube'a zaten
+    yüklüyse (apply_youtube=true) YouTube kapağı da hemen değiştirilir."""
+    raw = await file.read(MAX_COVER_UPLOAD_BYTES + 1)
+    if not raw:
+        raise HTTPException(status_code=400, detail="Dosya boş.")
+    if len(raw) > MAX_COVER_UPLOAD_BYTES:
+        raise HTTPException(status_code=400, detail="Kapak 15 MB'tan büyük olamaz.")
+    try:
+        png_bytes = await asyncio.to_thread(covers_svc.normalize_uploaded_cover, raw)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    safe_key = await asyncio.to_thread(covers_svc.save_cover, key, png_bytes)
+    public_base = os.getenv("PUBLIC_API_BASE", "").rstrip("/")
+    clean_url = f"{public_base}/api/covers/{safe_key}.png" if public_base else f"/api/covers/{safe_key}.png"
+    linked = 0
+    try:
+        linked = db.update_scheduled_cover_url(safe_key, clean_url)
+    except Exception:
+        pass
+
+    yt_applied, yt_errors = [], []
+    if apply_youtube:
+        posts = [p for p in db.list_scheduled_posts() if p["video_id"] == safe_key]
+        if posts:
+            yt_applied, yt_errors = await _apply_cover_to_youtube(posts, clean_url, image_bytes=png_bytes)
+
+    return {
+        "ok": True,
+        "key": safe_key,
+        "image_url": f"{clean_url}?v={int(time.time())}",
+        "size_bytes": len(png_bytes),
+        "linked_posts": linked,
+        "yt_thumbnails_applied": yt_applied,
+        "yt_thumbnail_errors": yt_errors,
+    }
+
+
 @app.get("/api/covers", dependencies=[Depends(verify_api_key)])
 def list_covers_endpoint():
     """Returns map of available covers {key: url}."""
@@ -820,6 +868,43 @@ async def ai_generate_story(req: GenerateStoryRequest):
         raise HTTPException(status_code=502, detail=f"Senaryo üretimi başarısız: {e}")
 
 
+async def _apply_cover_to_youtube(posts, cov_url, image_bytes=None, all_yt=None):
+    """YouTube'a zaten yüklenmiş gönderilere thumbnails.set uygular (her biri kendi kanal hesabıyla)."""
+    if all_yt is None:
+        all_yt = [a for a in db.list_accounts(include_tokens=True) if a.get("platform") == "YT"]
+    applied, errors = [], []
+    for p in posts:
+        vid = p["video_id"]
+        yt_url = p.get("yt_video_url") or ""
+        # Kapak, videonun yüklendiği kanalın hesabıyla uygulanmalı (başka markanın hesabıyla değil)
+        ids = p.get("account_ids") or []
+        yt_accs = [a for a in all_yt if (a["id"] in ids if ids else (a.get("brand") or "akilalmaz") == p.get("brand"))]
+        if not (p.get("yt_uploaded") and "/shorts/" in yt_url and yt_accs):
+            continue
+        yt_id = yt_url.rsplit("/", 1)[-1]
+        acc = yt_accs[0]
+        cid = acc.get("client_id") or os.getenv("YT_CLIENT_ID", "")
+        csec = acc.get("client_secret") or os.getenv("YT_CLIENT_SECRET", "")
+        acc_id = acc.get("id")
+        on_refresh = (lambda tok, exp, aid=acc_id: db.update_account_token(aid, tok, exp)) if acc_id else None
+        res = await asyncio.to_thread(
+            apply_youtube_thumbnail,
+            yt_video_id=yt_id,
+            cover_url=cov_url,
+            access_token=acc["access_token"],
+            refresh_token=acc.get("refresh_token"),
+            client_id=cid,
+            client_secret=csec,
+            on_token_refresh=on_refresh,
+            image_bytes=image_bytes,
+        )
+        if res.get("ok"):
+            applied.append({"video_id": vid, "yt_id": yt_id})
+        else:
+            errors.append({"video_id": vid, "yt_id": yt_id, "error": res.get("error")})
+    return applied, errors
+
+
 @app.post("/api/schedule/sync-covers", dependencies=[Depends(verify_api_key)])
 async def sync_covers_to_schedule():
     """Links all existing GCS covers to scheduled_posts and applies thumbnails.set to already-uploaded YT videos."""
@@ -840,32 +925,9 @@ async def sync_covers_to_schedule():
         if p.get("cover_url") != cov_url:
             db.update_scheduled_cover_url(vid, cov_url)
             linked.append(vid)
-
-        yt_url = p.get("yt_video_url") or ""
-        # Kapak, videonun yüklendiği kanalın hesabıyla uygulanmalı (başka markanın hesabıyla değil)
-        ids = p.get("account_ids") or []
-        yt_accs = [a for a in all_yt if (a["id"] in ids if ids else (a.get("brand") or "akilalmaz") == p.get("brand"))]
-        if p.get("yt_uploaded") and "/shorts/" in yt_url and yt_accs:
-            yt_id = yt_url.rsplit("/", 1)[-1]
-            acc = yt_accs[0]
-            cid = acc.get("client_id") or os.getenv("YT_CLIENT_ID", "")
-            csec = acc.get("client_secret") or os.getenv("YT_CLIENT_SECRET", "")
-            acc_id = acc.get("id")
-            on_refresh = (lambda tok, exp, aid=acc_id: db.update_account_token(aid, tok, exp)) if acc_id else None
-            res = await asyncio.to_thread(
-                apply_youtube_thumbnail,
-                yt_video_id=yt_id,
-                cover_url=cov_url,
-                access_token=acc["access_token"],
-                refresh_token=acc.get("refresh_token"),
-                client_id=cid,
-                client_secret=csec,
-                on_token_refresh=on_refresh,
-            )
-            if res.get("ok"):
-                yt_applied.append({"video_id": vid, "yt_id": yt_id})
-            else:
-                yt_errors.append({"video_id": vid, "yt_id": yt_id, "error": res.get("error")})
+        ok_list, err_list = await _apply_cover_to_youtube([p], cov_url, all_yt=all_yt)
+        yt_applied += ok_list
+        yt_errors += err_list
 
     return {
         "ok": True,

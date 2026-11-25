@@ -291,3 +291,35 @@ def test_scheduler_oidc():
                 assert run() == 200
                 assert m.call_args.kwargs["audience"] == "https://api.example"
             assert client.get("/api/accounts", headers=h).status_code == 401  # yalnız tick
+
+
+def test_cover_upload(tmp_path):
+    import io
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.new("RGB", (90, 160), (200, 30, 30)).save(buf, format="JPEG")
+    jpg = buf.getvalue()
+
+    # API key required
+    assert client.post("/api/covers/upload", data={"key": "x"}, files={"file": ("c.jpg", jpg, "image/jpeg")}).status_code == 401
+    # Not an image
+    r_bad = client.post("/api/covers/upload", headers=HDR, data={"key": "x"},
+                        files={"file": ("c.jpg", b"not an image", "image/jpeg")})
+    assert r_bad.status_code == 400
+
+    saved = {}
+
+    def fake_save(key, data):
+        saved["data"] = data
+        return key
+
+    with patch("app.services.covers.save_cover", side_effect=fake_save):
+        r = client.post("/api/covers/upload", headers=HDR, data={"key": "my_own_cover"},
+                        files={"file": ("c.jpg", jpg, "image/jpeg")})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["ok"] is True and body["key"] == "my_own_cover"
+    assert "/api/covers/my_own_cover.png" in body["image_url"]
+    assert saved["data"].startswith(b"\x89PNG")
+    assert Image.open(io.BytesIO(saved["data"])).size == (90, 160)

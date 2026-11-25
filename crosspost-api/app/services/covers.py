@@ -24,9 +24,31 @@ def _safe_key(key: str) -> str:
     return cleaned.strip("_") or "cover"
 
 
-def generate_cover_image(prompt: str, aspect_ratio: str = "9:16") -> bytes:
-    """Calls Vertex AI gemini-2.5-flash-image to generate an image."""
+class EmptyImageError(RuntimeError):
+    """Model görsel döndürmedi (çoğunlukla güvenlik filtresi: savaş/şiddet ifadeleri)."""
+
+
+# Güvenlik filtresine takılan savaş promptlarını yumuşatmak için ikinci deneme eki.
+SOFTEN_SUFFIX = (
+    " Depict it as a tasteful museum-quality historical reenactment painting: non-graphic, no blood, no gore,"
+    " no wounds, no killing shown, focus on scale, atmosphere, armor, banners, horses and landscape."
+)
+
+
+def generate_cover_image(prompt: str, aspect_ratio: str = "9:16", reference_image: Optional[bytes] = None) -> bytes:
+    """Calls Vertex AI gemini-2.5-flash-image to generate an image.
+
+    reference_image verilirse (ör. videodan bir kare) model sahneyi o kareden yola çıkarak yeniden çizer.
+    """
     client = genai.Client(vertexai=True, project=VERTEX_PROJECT_ID, location=VERTEX_LOCATION)
+    contents = prompt
+    if reference_image:
+        mime = "image/png" if reference_image[:8] == b"\x89PNG\r\n\x1a\n" else "image/jpeg"
+        contents = [
+            types.Part.from_bytes(data=reference_image, mime_type=mime),
+            "Use the attached frame from the video as the scene and composition reference, "
+            "and repaint it as a far more cinematic, detailed and dramatic image. " + prompt,
+        ]
     
     cfg = types.GenerateContentConfig(
         response_modalities=["IMAGE"],
@@ -35,14 +57,17 @@ def generate_cover_image(prompt: str, aspect_ratio: str = "9:16") -> bytes:
     
     response = client.models.generate_content(
         model=VERTEX_IMAGE_MODEL,
-        contents=prompt,
+        contents=contents,
         config=cfg,
     )
     
-    if not response.candidates or not response.candidates[0].content:
-        raise RuntimeError("Vertex AI görsel üretemedi (boş yanıt).")
-    
-    for part in response.candidates[0].content.parts:
+    cand = response.candidates[0] if response.candidates else None
+    parts = (cand.content.parts if cand and cand.content else None) or []
+    if not parts:
+        reason = getattr(cand, "finish_reason", None) if cand else getattr(response, "prompt_feedback", None)
+        raise EmptyImageError(f"Vertex AI görsel üretemedi (boş yanıt, sebep: {reason}).")
+
+    for part in parts:
         if getattr(part, "inline_data", None) and part.inline_data.data:
             return part.inline_data.data
             
@@ -69,13 +94,9 @@ def save_cover(key: str, data: bytes) -> str:
 
 
 def get_cover(key: str) -> Optional[bytes]:
-    """Retrieves PNG bytes for given key from local cache or GCS."""
+    """Retrieves PNG bytes for given key, GCS first (another instance may have regenerated it), local cache as fallback."""
     safe = _safe_key(key)
     local_path = os.path.join(LOCAL_CACHE_DIR, f"{safe}.png")
-    if os.path.exists(local_path):
-        with open(local_path, "rb") as f:
-            return f.read()
-            
     try:
         storage_client = storage.Client()
         bucket = storage_client.bucket(GCS_BUCKET_NAME)
@@ -87,7 +108,37 @@ def get_cover(key: str) -> Optional[bytes]:
             return data
     except Exception as e:
         print(f"[covers] GCS download error for {safe}: {e}")
-        
+
+    if os.path.exists(local_path):
+        with open(local_path, "rb") as f:
+            return f.read()
+    return None
+
+
+def save_background(key: str, data: bytes) -> None:
+    """Stores the text-free Vertex background so the headline can be changed later without regenerating."""
+    safe = _safe_key(key)
+    local_path = os.path.join(LOCAL_CACHE_DIR, f"bg__{safe}.img")
+    with open(local_path, "wb") as f:
+        f.write(data)
+    try:
+        storage.Client().bucket(GCS_BUCKET_NAME).blob(f"covers_bg/{safe}.png").upload_from_string(data, content_type="image/png")
+    except Exception as e:
+        print(f"[covers] GCS background upload warning (saved locally): {e}")
+
+
+def get_background(key: str) -> Optional[bytes]:
+    safe = _safe_key(key)
+    try:
+        blob = storage.Client().bucket(GCS_BUCKET_NAME).blob(f"covers_bg/{safe}.png")
+        if blob.exists():
+            return blob.download_as_bytes()
+    except Exception as e:
+        print(f"[covers] GCS background download error for {safe}: {e}")
+    local_path = os.path.join(LOCAL_CACHE_DIR, f"bg__{safe}.img")
+    if os.path.exists(local_path):
+        with open(local_path, "rb") as f:
+            return f.read()
     return None
 
 

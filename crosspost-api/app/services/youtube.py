@@ -25,11 +25,27 @@ def _prepare_thumbnail_bytes(cover_url: str) -> tuple[bytes, str]:
         return raw, r.headers.get("Content-Type", "image/png").split(";")[0]
 
 
-def _set_thumbnail_safe(youtube, yt_video_id: str, cover_url: Optional[str]) -> tuple[bool, Optional[str]]:
-    if not cover_url:
+def _jpeg_under_limit(raw: bytes) -> bytes:
+    """Converts image bytes to JPEG under YouTube's 2 MB thumbnail limit."""
+    from PIL import Image
+    im = Image.open(io.BytesIO(raw)).convert("RGB")
+    for q in (92, 88, 82, 75):
+        buf = io.BytesIO()
+        im.save(buf, format="JPEG", quality=q, optimize=True)
+        if buf.tell() < 2_000_000:
+            break
+    return buf.getvalue()
+
+
+def _set_thumbnail_safe(youtube, yt_video_id: str, cover_url: Optional[str],
+                        image_bytes: Optional[bytes] = None) -> tuple[bool, Optional[str]]:
+    if not cover_url and not image_bytes:
         return False, None
     try:
-        data, mime = _prepare_thumbnail_bytes(cover_url)
+        if image_bytes:
+            data, mime = _jpeg_under_limit(image_bytes), "image/jpeg"
+        else:
+            data, mime = _prepare_thumbnail_bytes(cover_url)
         media = MediaIoBaseUpload(io.BytesIO(data), mimetype=mime, resumable=False)
         youtube.thumbnails().set(videoId=yt_video_id, media_body=media).execute()
         return True, None
@@ -45,6 +61,7 @@ def apply_youtube_thumbnail(
     client_id: str,
     client_secret: str,
     on_token_refresh: Optional[Callable[[str, Optional[str]], None]] = None,
+    image_bytes: Optional[bytes] = None,
 ) -> dict:
     """Applies a custom thumbnail to an existing YouTube video."""
     creds = Credentials(
@@ -60,7 +77,7 @@ def apply_youtube_thumbnail(
             exp = creds.expiry.isoformat() if creds.expiry else None
             on_token_refresh(creds.token, exp)
     youtube = build("youtube", "v3", credentials=creds, cache_discovery=False)
-    ok, err = _set_thumbnail_safe(youtube, yt_video_id, cover_url)
+    ok, err = _set_thumbnail_safe(youtube, yt_video_id, cover_url, image_bytes=image_bytes)
     return {"ok": ok, "video_id": yt_video_id, "error": err}
 
 

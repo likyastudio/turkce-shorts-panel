@@ -691,8 +691,9 @@ const BRAND_COVER_CONFIG = {
   },
   kadimanadolu: {
     tagline: 'Anadolu tarihi, arkeoloji & mitoloji · Altın saat epik belgesel estetiği',
-    defaultStyle: 'kadim_epic',
+    defaultStyle: 'kadim_savas',
     styles: [
+      { id: 'kadim_savas',  label: '⚔️ Savaş Sahnesi',   suffix: ', photorealistic cinematic battle film still in the style of a big-budget historical epic, period-accurate armor, weapons, horses and banners for the exact era and armies described, one heroic or desperate focal figure in the foreground with readable face and emotion, massed armies, dust, smoke and arrows in the midground, dramatic golden-hour backlight, volumetric haze, shallow depth of field, rich teal-and-orange color grade, ultra-detailed 8k' },
       { id: 'kadim_epic',   label: '🏛️ Kadim Epik',     suffix: ', epic ancient Anatolian historical cinema illustration, golden-hour sunbeams over carved limestone ruins, antique gold and terracotta palette, museum-grade documentary atmosphere, volumetric dust motes' },
       { id: 'kadim_fresco', label: 'Fresk & Mozaik',      suffix: ', richly textured ancient Anatolian fresco and stone relief artwork, weathered gold-leaf accents, dramatic warm torchlight chiaroscuro' },
       { id: 'kadim_mystic', label: 'Mistik Gece',         suffix: ', atmospheric nocturnal archaeological mystery scene, glowing ancient symbols carved in stone, deep indigo night sky with warm amber lantern light, ultra-detailed realism' },
@@ -702,7 +703,7 @@ const BRAND_COVER_CONFIG = {
     buildPrompt: (title, desc) => {
       const topic = _cleanTopicText(title, 110) || 'ancient Anatolian mystery';
       const ctx = _cleanTopicText(desc, 160);
-      return `Vertical 9:16 epic historical editorial illustration for Kadim Anadolu about: "${topic}".${ctx ? ' Historical context: ' + ctx + '.' : ''} Monumental ancient Anatolian ruins, carved stone reliefs, dramatic sunset light rays, warm terracotta, obsidian and antique gold color grading, cinematic depth, clean vertical framing, no text baked into image.`;
+      return `Vertical 9:16 dramatic YouTube Shorts thumbnail scene for Kadim Anadolu showing the decisive moment of: "${topic}".${ctx ? ' Historical context: ' + ctx + '.' : ''} Show the real event, the real armies or people of that era and the real Anatolian landscape, the single most dramatic instant of the story, strong focal subject, high emotional tension, cinematic depth, clean vertical framing, no text baked into image.`;
     },
   },
   likyastudios: {
@@ -1007,9 +1008,9 @@ function coverWorkbenchHtml(key, heading, defaultPrompt, aspectRatio = '9:16', h
     <div class="fld">
       <label for="${hlId}">
         <span>Kapak Üzeri / Görsel Başlığı</span>
-        <span class="hint">Video başlığından bağımsızdır · Boşsa yazısız üretilir</span>
+        <span class="hint">${aspectRatio === '9:16' ? 'İki satır için araya / koy · Yazı sabit kapak stiliyle (Montserrat, beyaz + sarı) basılır' : 'Video başlığından bağımsızdır · Boşsa yazısız üretilir'}</span>
       </label>
-      <input id="${hlId}" type="text" placeholder="Örn: GÖRÜNMEZ SOYGUNCU? veya 12 BİN YILLIK SIR!" value="${esc(savedHl)}" oninput="setCoverHeadline('${jsKey}', this.value)">
+      <input id="${hlId}" type="text" placeholder="${aspectRatio === '9:16' ? "Örn: SELÇUKLU'YU BİTİREN / TEK BİR GÜN" : 'Örn: 12 BİN YILLIK SIR!'}" value="${esc(savedHl)}" oninput="setCoverHeadline('${jsKey}', this.value)">
     </div>
 
     <div class="fld">
@@ -1034,6 +1035,9 @@ function coverWorkbenchHtml(key, heading, defaultPrompt, aspectRatio = '9:16', h
       <button class="btn primary" ${isGen ? 'disabled' : ''} onclick="generateCover('${jsKey}', '${aspectRatio}', '${jsBrand}', '${escJsAttr(activeStyle)}')">
         ${isGen ? '<span class="spinner"></span> Vertex AI üretiyor…' : (url ? '🔄 Yeniden Üret' : '✨ Görsel Kapağı Üret')}
       </button>
+      ${url && aspectRatio === '9:16' ? `
+        <button class="btn" ${isGen ? 'disabled' : ''} onclick="retextCover('${jsKey}', '${jsBrand}')" title="Vertex'i yeniden çağırmadan yalnızca yazıyı değiştirir">✏️ Sadece Yazıyı Değiştir</button>
+      ` : ''}
       ${url ? `
         <a class="btn" href="${esc(url)}" download="${esc(domKey)}_kapak.png" target="_blank">⬇ PNG İndir</a>
         <button class="btn" onclick="copyRaw('${escJsAttr(url)}', 'Kapak URL panoya kopyalandı')">🔗 URL Kopyala</button>
@@ -1073,7 +1077,10 @@ async function runCoverGeneration({ key, aspectRatio = '9:16', prompt, headline 
   const st = styles.find(s => s.id === styleId) || COVER_STYLES.find(s => s.id === styleId);
   if (st && st.suffix) finalPrompt += st.suffix;
   const cleanHl = String(headline || '').trim();
-  if (cleanHl) {
+  // 9:16 kapakta yazıyı model değil sunucu basar: Türkçe harfler kusursuz ve tüm videolarda aynı stil.
+  const serverOverlay = aspectRatio === '9:16' && !!cleanHl;
+  const [hlTop, hlBottom] = splitHeadline(cleanHl);
+  if (cleanHl && !serverOverlay) {
     finalPrompt += `. Include bold, ultra-legible high-contrast display thumbnail title text reading "${cleanHl}" cleanly integrated into the composition with strong drop shadow and clear margins.`;
   }
 
@@ -1087,8 +1094,49 @@ async function runCoverGeneration({ key, aspectRatio = '9:16', prompt, headline 
     const res = await apiFetch('/api/covers/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, prompt: finalPrompt, aspect_ratio: aspectRatio }),
+      body: JSON.stringify(serverOverlay
+        ? { key, prompt: finalPrompt, aspect_ratio: aspectRatio, headline_top: hlTop, headline_bottom: hlBottom, brand }
+        : { key, prompt: finalPrompt, aspect_ratio: aspectRatio }),
     });
+    return await afterCoverSaved(key, sk, res, aspectRatio, onStep);
+  } finally {
+    generatingCovers[key] = false;
+    generatingCovers[sk] = false;
+    renderAll(false);
+  }
+}
+
+// "ÜST SATIR / ALT SATIR" -> ['ÜST SATIR', 'ALT SATIR']; tek satırsa sarı satır olur.
+function splitHeadline(hl) {
+  const parts = String(hl || '').split(/\s*[\/|\n]\s*/).map(x => x.trim()).filter(Boolean);
+  if (parts.length >= 2) return [parts[0], parts.slice(1).join(' ')];
+  return ['', parts[0] || ''];
+}
+
+async function retextCover(key, brand = 'akilalmaz') {
+  const sk = safeCoverKey(key);
+  const hlEl = document.getElementById('hl_' + sk);
+  const hl = (hlEl ? hlEl.value : getCoverHeadline(key)).trim();
+  if (!hl) { toast('Önce kapak yazısını girin (iki satır için araya / koyun).', 'err'); return; }
+  const [top, bottom] = splitHeadline(hl);
+  generatingCovers[key] = true; generatingCovers[sk] = true; renderAll(false);
+  try {
+    const res = await apiFetch(`/api/covers/${encodeURIComponent(sk)}/retext`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ headline_top: top, headline_bottom: bottom, brand }),
+    });
+    const result = await afterCoverSaved(key, sk, res, '9:16');
+    summarizeCoverToast(key, result);
+  } catch (e) {
+    toast('Yazı değiştirilemedi: ' + (e.message || e), 'err');
+  } finally {
+    generatingCovers[key] = false; generatingCovers[sk] = false; renderAll(false);
+  }
+}
+
+async function afterCoverSaved(key, sk, res, aspectRatio, onStep = null) {
+  {
     const resKey = res.key || sk;
     coverVersions[sk] = Date.now();
     coverVersions[resKey] = coverVersions[sk];
@@ -1102,7 +1150,14 @@ async function runCoverGeneration({ key, aspectRatio = '9:16', prompt, headline 
 
     let syncRes = null;
     const hasYtUploaded = matchedPosts.some(p => p.yt_uploaded);
-    if (aspectRatio === '9:16' && matchedPosts.length > 0 && hasYtUploaded) {
+    if (Array.isArray(res.youtube) && res.youtube.length) {
+      // Sunucu kapağı bu videonun YouTube küçük resmine zaten uyguladı.
+      syncRes = {
+        ok: true,
+        yt_thumbnails_applied: res.youtube.filter(x => x.ok),
+        yt_thumbnail_errors: res.youtube.filter(x => !x.ok),
+      };
+    } else if (aspectRatio === '9:16' && matchedPosts.length > 0 && hasYtUploaded) {
       onStep?.('2/2 · Kayda (cover_url) bağlandı · YouTube thumbnails.set (/api/schedule/sync-covers) uygulanıyor…');
       try {
         syncRes = await apiFetch('/api/schedule/sync-covers', { method: 'POST' });
@@ -1113,10 +1168,6 @@ async function runCoverGeneration({ key, aspectRatio = '9:16', prompt, headline 
 
     await syncBackend();
     return { res, imageUrl: bustedUrl, syncRes, matchedPosts, hasYtUploaded, resKey };
-  } finally {
-    generatingCovers[key] = false;
-    generatingCovers[sk] = false;
-    renderAll(false);
   }
 }
 
@@ -2241,8 +2292,8 @@ function openScheduleCoverModal(postId, lastResult = null) {
         </div>
 
         <div class="fld">
-          <label for="sc_hl"><span>Kapak Üzeri Başlık (opsiyonel)</span><span class="hint">Boş bırakılırsa yazısız 9:16 üretilir</span></label>
-          <input id="sc_hl" type="text" placeholder="Örn: 12 BİN YILLIK SIR!" value="${esc(savedHl)}" oninput="setCoverHeadline('${jsKey}', this.value)">
+          <label for="sc_hl"><span>Kapak Üzeri Başlık (opsiyonel)</span><span class="hint">İki satır için araya / koy · Sabit kapak stiliyle basılır</span></label>
+          <input id="sc_hl" type="text" placeholder="Örn: SELÇUKLU'YU BİTİREN / TEK BİR GÜN" value="${esc(savedHl)}" oninput="setCoverHeadline('${jsKey}', this.value)">
         </div>
 
         <div class="fld">

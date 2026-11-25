@@ -18,10 +18,12 @@ python3 likya_push.py \
   --title "<YOUTUBE_SHORTS_BASLIGI>" \
   --desc "<YOUTUBE_ACIKLAMA_VE_HASHTAGLER>" \
   --ig "<INSTAGRAM_REELS_ACIKLAMA>" \
-  --cover-prompt "<INGILIZCE_9_16_KAPAK_PROMPTU>"
+  --cover-prompt "<INGILIZCE_9_16_KAPAK_PROMPTU>" \
+  --cover-top "<KAPAK_1_SATIR>" --cover-bottom "<KAPAK_2_SATIR>"
 ```
 
 ## Kurallar
 1. `LIKYA_API_KEY` değerini `.env` dosyasından okur; kod içine asla yazma.
 2. `--scheduled-at` belirtilmezse sistem o markanın sıradaki **06:01–06:07 TR** haftalık slotunu otomatik atar.
-3. `--cover-prompt` her zaman İngilizce, 9:16 dikey, çarpıcı ve yazısız (`no text`) olarak yaz.
+3. `--cover-prompt` her zaman İngilizce, 9:16 dikey, çarpıcı ve yazısız (`no text`) olarak yaz. Videonun asıl sahnesini (savaşın kendisi, o dönemin orduları, gerçek coğrafya) göster.
+4. Kapak yazısını `--cover-top` (beyaz) ve `--cover-bottom` (sarı, kısa ve büyük) ile ver; yazıyı sunucu sabit kapak stiliyle basar, prompta yazı koyma. İstersen `--cover-ref kare.jpg` ile videodan bir kare ver, sahne o kareden çizilir.

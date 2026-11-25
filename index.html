@@ -1854,12 +1854,36 @@ async function bulkScheduleAllInner() {
 
 function syncPostToYouTube(id) { return once('post' + id, () => syncPostToYouTubeInner(id)); }
 async function syncPostToYouTubeInner(id) {
+  toast('YouTube Studio\'ya "Planlandı" olarak yükleniyor (10–25 sn sürebilir)…', 'info');
   try {
     const res = await apiFetch(`/api/schedule/${id}/sync-youtube`, { method: 'POST' });
-    toast(res.already_uploaded ? 'Bu video zaten YouTube Studio\'da planlı.' : 'YouTube Studio\'ya "Planlandı" olarak yükleniyor…', 'ok');
+    toast(res.already_uploaded ? 'Bu video zaten YouTube Studio\'da planlı.' : '✅ Video YouTube Studio\'da "Planlandı" olarak yayına hazır!', 'ok');
     await load(true);
   } catch (e) {
     toast('YouTube aktarım hatası: ' + e.message, 'err');
+  }
+}
+
+function syncAllPendingYouTube(brand) { return once('syncytall_' + (brand || 'all'), () => syncAllPendingYouTubeInner(brand)); }
+async function syncAllPendingYouTubeInner(brand) {
+  const qs = brand && brand !== 'all' ? `?brand=${encodeURIComponent(brand)}` : '';
+  toast('Kuyruktaki videolar YouTube Studio\'ya "Planlandı" olarak aktarılıyor (video başı ~15 sn)…', 'info');
+  try {
+    const res = await apiFetch('/api/schedule/sync-youtube-all' + qs, { method: 'POST' });
+    const okCount = res.uploaded_count || 0;
+    const failCount = (res.failed || []).length;
+    if (okCount && !failCount) {
+      toast(`✅ ${okCount} video YouTube Studio'da "Planlandı" olarak hazır!`, 'ok');
+    } else if (okCount && failCount) {
+      toast(`${okCount} video YouTube Studio'ya aktarıldı, ${failCount} hata: ${res.failed[0]?.error || ''}`, 'info');
+    } else if (failCount) {
+      toast(`YouTube aktarım hatası: ${res.failed[0]?.error || 'Bilinmeyen hata'}`, 'err');
+    } else {
+      toast('YouTube Studio\'ya aktarılacak bekleyen video yok.', 'info');
+    }
+    await load(true);
+  } catch (e) {
+    toast('Toplu YouTube aktarım hatası: ' + e.message, 'err');
   }
 }
 
@@ -2524,7 +2548,7 @@ function renderSchedule(el) {
 
       <div class="grid2" style="align-items:start">
         <div class="panel">
-          <div class="panel-head" style="margin-bottom:12px">
+          <div class="panel-head" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
             <div>
               <h3 style="margin:0;font-size:17px;font-weight:800">▶️ YouTube Shorts · Yayın & Planlama (${ytPosts.length})</h3>
               <div class="panel-sub" style="margin-top:4px">
@@ -2533,7 +2557,12 @@ function renderSchedule(el) {
                   : `Bu marka için bağlı YouTube kanalı yok · <a href="#settings" onclick="setView('settings');return false">VI. Ayarlar'dan bağla</a>`}
               </div>
             </div>
-            <button class="btn sm primary" ${!apiUrl?'disabled':''} onclick="openUploadModal('${activeBrand}', 'YT')">➕ YouTube'a Planla / Yayınla</button>
+            <div class="row" style="gap:6px">
+              ${ytPosts.some(p => !p.yt_uploaded && p.status === 'Planlandı')
+                ? `<button class="btn sm ink-btn" ${!apiUrl?'disabled':''} onclick="syncAllPendingYouTube('${activeBrandFilter}')">🚀 Kuyruktakileri YT Studio'ya Planla (${ytPosts.filter(p => !p.yt_uploaded && p.status === 'Planlandı').length})</button>`
+                : ''}
+              <button class="btn sm primary" ${!apiUrl?'disabled':''} onclick="openUploadModal('${activeBrand}', 'YT')">➕ YouTube'a Planla / Yayınla</button>
+            </div>
           </div>
           ${ytPosts.length
             ? `<div class="sched-list">${ytPosts.map(p => renderScheduleCard(p, 'YT', apiUrl)).join('')}</div>`

@@ -370,7 +370,7 @@ def get_cover_jpeg_endpoint(key: str):
     )
 
 
-YT_DAILY_PRESYNC_LIMIT = int(os.getenv("YT_DAILY_PRESYNC_LIMIT", "5"))
+YT_DAILY_PRESYNC_LIMIT = int(os.getenv("YT_DAILY_PRESYNC_LIMIT", "25"))
 
 
 class SchedulePostRequest(BaseModel):
@@ -415,25 +415,40 @@ def _enrich_sched(row: dict) -> dict:
     return row
 
 
-async def _sync_scheduled_post_to_youtube(post: dict):
+async def _sync_scheduled_post_to_youtube(post: dict, ignore_quota: bool = False) -> dict:
     """Pre-uploads a scheduled Short to YouTube Studio with native publishAt (status='private' + publishAt)
-    so it appears immediately as 'Planlandı' inside YouTube Studio. Respects daily YT API quota."""
+    so it appears immediately as 'Planlandı' inside YouTube Studio."""
     post_id = post["id"]
     if post.get("yt_uploaded"):
-        return
+        return {"ok": True, "uploaded": False, "already_uploaded": True, "reason": "already_uploaded", "yt_video_url": post.get("yt_video_url")}
 
     acc_ids = post.get("account_ids") or []
     post_brand = post.get("brand") or "akilalmaz"
     all_accs = db.get_accounts_by_ids(acc_ids) if acc_ids else db.list_accounts(include_tokens=True, brand=post_brand)
     yt_accs = [a for a in all_accs if a.get("platform") == "YT"]
     if not yt_accs:
-        return  # No YouTube account connected for this brand yet
+        return {
+            "ok": False,
+            "uploaded": False,
+            "reason": "no_yt_account",
+            "error": f"'{post_brand}' markasına bağlı YouTube kanalı bulunamadı (VI. Ayarlar'dan kanalın markasını seçin).",
+        }
 
-    if db.count_yt_uploads_today() >= YT_DAILY_PRESYNC_LIMIT:
-        return  # Safely wait until next day's quota window; scheduler/tick will pick it up
+    if not ignore_quota and db.count_yt_uploads_today() >= YT_DAILY_PRESYNC_LIMIT:
+        return {
+            "ok": False,
+            "uploaded": False,
+            "reason": "quota_reached",
+            "error": f"Günlük ön-planlama kotası doldu ({YT_DAILY_PRESYNC_LIMIT}/{YT_DAILY_PRESYNC_LIMIT}).",
+        }
 
     if not db.claim_yt_sync(post_id):
-        return  # Başka bir istek bu videoyu zaten yüklüyor (çift yükleme önlenir)
+        return {
+            "ok": False,
+            "uploaded": False,
+            "reason": "already_syncing_or_past",
+            "error": "Bu video şu anda zaten yükleniyor veya planlanan saati geçmiş.",
+        }
 
     local_path = None
     try:
@@ -441,6 +456,7 @@ async def _sync_scheduled_post_to_youtube(post: dict):
         local_path = await asyncio.to_thread(download_video_to_tmp, post["video_url"], f"ytsched_{post['video_id']}")
         last_url = post.get("yt_video_url")
         failed: list[str] = []
+        uploaded_any = False
         for acc in yt_accs:
             if acc.get("id") in already:
                 continue  # Önceki denemede bu kanala yüklenmişti
@@ -475,16 +491,21 @@ async def _sync_scheduled_post_to_youtube(post: dict):
                     on_token_refresh=on_refresh,
                 )
                 last_url = res.get("url")
+                uploaded_any = True
                 db.update_publish_log(log_id, res.get("status", "YT Planlandı"), platform_post_url=last_url)
             except Exception as e:
                 db.update_publish_log(log_id, "Hata", error_message=str(e)[:500])
                 failed.append(f"{acc.get('account_name')}: {e}")
         if failed:
-            db.release_yt_sync(post_id, ("YT ön-planlama uyarısı: " + " | ".join(failed))[:400])
-        else:
-            db.mark_scheduled_yt_uploaded(post_id, last_url or "")
+            err_msg = ("YT ön-planlama uyarısı: " + " | ".join(failed))[:400]
+            db.release_yt_sync(post_id, err_msg)
+            return {"ok": False, "uploaded": uploaded_any, "reason": "error", "error": err_msg, "yt_video_url": last_url}
+        db.mark_scheduled_yt_uploaded(post_id, last_url or "")
+        return {"ok": True, "uploaded": True, "reason": "uploaded", "yt_video_url": last_url}
     except Exception as e:
-        db.release_yt_sync(post_id, f"YT ön-planlama uyarısı: {e}"[:400])
+        err_msg = f"YT ön-planlama uyarısı: {e}"[:400]
+        db.release_yt_sync(post_id, err_msg)
+        return {"ok": False, "uploaded": False, "reason": "error", "error": err_msg}
     finally:
         if local_path and os.path.exists(local_path):
             try:
@@ -599,7 +620,7 @@ def get_schedule(brand: Optional[str] = None):
 
 
 @app.post("/api/schedule", dependencies=[Depends(verify_api_key)])
-def create_schedule(req: SchedulePostRequest, background_tasks: BackgroundTasks):
+async def create_schedule(req: SchedulePostRequest):
     if not req.video_url:
         raise HTTPException(status_code=400, detail="video_url gereklidir.")
 
@@ -628,23 +649,29 @@ def create_schedule(req: SchedulePostRequest, background_tasks: BackgroundTasks)
         thumb_offset_ms=req.thumb_offset_ms,
         account_ids=req.account_ids or [],
     )
+    yt_sync_res = None
     if req.sync_youtube_now:
-        background_tasks.add_task(_sync_scheduled_post_to_youtube, row)
-    return {"ok": True, "post": _enrich_sched(row), "yt_sync_queued": req.sync_youtube_now}
+        # Cloud Run yanıt sonrası CPU'yu kıstığı için ön-planlama yanıt dönmeden tamamlanır
+        yt_sync_res = await _sync_scheduled_post_to_youtube(row, ignore_quota=True)
+        row = db.get_scheduled_post(row["id"]) or row
+    return {
+        "ok": True,
+        "post": _enrich_sched(row),
+        "yt_sync_queued": bool(req.sync_youtube_now),
+        "yt_uploaded": bool(row.get("yt_uploaded")),
+        "yt_sync": yt_sync_res,
+    }
 
 
 @app.post("/api/schedule/bulk-daily", dependencies=[Depends(verify_api_key)])
-def bulk_schedule_daily(req: BulkDailyRequest, background_tasks: BackgroundTasks):
+async def bulk_schedule_daily(req: BulkDailyRequest):
     brand = re.sub(r"[^a-z0-9_\-]", "", (req.brand or "akilalmaz").strip().lower()) or "akilalmaz"
     existing = db.list_scheduled_posts(brand=brand)
     already_videos = {p["video_id"] for p in existing if p["status"] in ("Planlandı", "Yayınlanıyor", "Yayında")}
     occupied = [p["scheduled_at"] for p in existing if p["status"] in ("Planlandı", "Yayınlanıyor")]
 
-    created = []
+    created_rows = []
     skipped = []
-    remaining_yt_quota = max(0, YT_DAILY_PRESYNC_LIMIT - db.count_yt_uploads_today())
-    yt_queued = 0
-
     for item in req.items:
         if item.video_id in already_videos:
             skipped.append(item.video_id)
@@ -663,31 +690,84 @@ def bulk_schedule_daily(req: BulkDailyRequest, background_tasks: BackgroundTasks
             thumb_offset_ms=item.thumb_offset_ms,
             account_ids=req.account_ids or [],
         )
-        created.append(_enrich_sched(row))
+        created_rows.append(row)
         already_videos.add(item.video_id)
-        if req.sync_youtube_now and yt_queued < remaining_yt_quota:
-            background_tasks.add_task(_sync_scheduled_post_to_youtube, row)
-            yt_queued += 1
 
+    yt_synced = 0
+    if req.sync_youtube_now and created_rows:
+        deadline = time.monotonic() + 200
+        remaining_yt_quota = max(0, YT_DAILY_PRESYNC_LIMIT - db.count_yt_uploads_today())
+        for row in created_rows:
+            if yt_synced >= remaining_yt_quota or time.monotonic() > deadline:
+                break
+            res = await _sync_scheduled_post_to_youtube(row)
+            if res.get("uploaded"):
+                yt_synced += 1
+
+    created = [_enrich_sched(db.get_scheduled_post(r["id"]) or r) for r in created_rows]
     return {
         "ok": True,
         "brand": brand,
         "created_count": len(created),
         "skipped_count": len(skipped),
-        "yt_sync_queued": yt_queued,
+        "yt_sync_queued": yt_synced,
+        "yt_synced_count": yt_synced,
         "created": created,
     }
 
 
+@app.post("/api/schedule/sync-youtube-all", dependencies=[Depends(verify_api_key)])
+async def sync_all_pending_to_youtube(brand: Optional[str] = None):
+    """Kuyrukta bekleyen (yt_uploaded=False) tüm planlı videoları YouTube Studio'ya 'Planlandı' olarak yükler."""
+    deadline = time.monotonic() + 220
+    pending = db.get_pending_yt_presync_posts(limit=50, brand=brand)
+    uploaded_ids: list[int] = []
+    failed: list[dict] = []
+    skipped = 0
+
+    for post in pending:
+        if time.monotonic() > deadline:
+            break
+        res = await _sync_scheduled_post_to_youtube(post, ignore_quota=True)
+        if res.get("uploaded"):
+            uploaded_ids.append(post["id"])
+        elif res.get("reason") in ("already_uploaded", "no_yt_account"):
+            skipped += 1
+            if brand and res.get("reason") == "no_yt_account":
+                failed.append({"id": post["id"], "video_id": post["video_id"], "error": res.get("error")})
+                break
+        else:
+            failed.append({"id": post["id"], "video_id": post["video_id"], "error": res.get("error")})
+
+    return {
+        "ok": True,
+        "brand": brand or "all",
+        "pending_count": len(pending),
+        "uploaded_count": len(uploaded_ids),
+        "uploaded_ids": uploaded_ids,
+        "skipped_count": skipped,
+        "failed": failed,
+    }
+
+
 @app.post("/api/schedule/{post_id}/sync-youtube", dependencies=[Depends(verify_api_key)])
-async def sync_schedule_to_youtube_now(post_id: int, background_tasks: BackgroundTasks):
+async def sync_schedule_to_youtube_now(post_id: int):
     post = db.get_scheduled_post(post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Planlanmış gönderi bulunamadı.")
     if post.get("yt_uploaded"):
         return {"ok": True, "already_uploaded": True, "yt_video_url": post.get("yt_video_url")}
-    background_tasks.add_task(_sync_scheduled_post_to_youtube, post)
-    return {"ok": True, "message": "YouTube Studio'ya 'Planlandı' olarak yükleme başlatıldı.", "id": post_id}
+    res = await _sync_scheduled_post_to_youtube(post, ignore_quota=True)
+    if not res.get("ok"):
+        raise HTTPException(status_code=400, detail=res.get("error") or "YouTube Studio'ya yüklenemedi.")
+    return {
+        "ok": True,
+        "already_uploaded": bool(res.get("already_uploaded")),
+        "uploaded": bool(res.get("uploaded")),
+        "yt_video_url": res.get("yt_video_url"),
+        "message": "Video YouTube Studio'da 'Planlandı' olarak hazır!",
+        "id": post_id,
+    }
 
 
 class EditScheduleRequest(BaseModel):
@@ -748,7 +828,7 @@ async def run_schedule_now(post_id: int, background_tasks: BackgroundTasks):
 
 
 @app.post("/api/schedule/{post_id}/reschedule", dependencies=[Depends(verify_api_key)])
-async def reschedule_schedule_post(post_id: int, background_tasks: BackgroundTasks, sync_youtube_now: bool = True):
+async def reschedule_schedule_post(post_id: int, sync_youtube_now: bool = True):
     """Moves a failed/past scheduled post to the next open weekly slot (06:01-06:07 TR) for its brand,
     resets status to 'Planlandı', clears account_ids so current brand channels are used, and triggers YT presync."""
     post = db.get_scheduled_post(post_id)
@@ -769,15 +849,17 @@ async def reschedule_schedule_post(post_id: int, background_tasks: BackgroundTas
     occupied = [p["scheduled_at"] for p in existing if p["id"] != post_id and p["status"] in ("Planlandı", "Yayınlanıyor")]
     slot = sched_svc.next_weekly_slot(occupied_iso_list=occupied)
     updated = db.reschedule_post(post_id, slot["scheduled_at_utc"], account_ids=[])
+    yt_sync_res = None
     if sync_youtube_now and updated and not updated.get("yt_uploaded"):
-        background_tasks.add_task(_sync_scheduled_post_to_youtube, updated)
-    return {"ok": True, "post": _enrich_sched(updated), "channels": [a["account_name"] for a in brand_accs]}
+        yt_sync_res = await _sync_scheduled_post_to_youtube(updated, ignore_quota=True)
+        updated = db.get_scheduled_post(post_id) or updated
+    return {"ok": True, "post": _enrich_sched(updated), "channels": [a["account_name"] for a in brand_accs], "yt_sync": yt_sync_res}
 
 
 @app.post("/api/scheduler/tick", dependencies=[Depends(verify_scheduler)])
 async def scheduler_tick():
     """1. Triggers due scheduled posts (skipping YT if already natively scheduled).
-    2. Pre-uploads upcoming un-synced scheduled posts to YouTube Studio (within safe daily quota).
+    2. Pre-uploads upcoming un-synced scheduled posts across ALL brands to YouTube Studio (within safe daily quota).
     İş, yanıt dönmeden bitirilir: Cloud Run yanıttan sonra işlemciyi kıstığı için arka plan işi yarım kalabiliyordu."""
     deadline = time.monotonic() + 200  # Cloud Run 300 sn sınırından önce yeni iş başlatmayı bırak
     stale = db.fail_stale_publishing()
@@ -791,11 +873,13 @@ async def scheduler_tick():
 
     remaining_quota = max(0, YT_DAILY_PRESYNC_LIMIT - db.count_yt_uploads_today())
     presync_ids = []
-    for post in db.get_pending_yt_presync_posts(limit=remaining_quota) if remaining_quota else []:
-        if time.monotonic() > deadline:
-            break
-        await _sync_scheduled_post_to_youtube(post)
-        presync_ids.append(post["id"])
+    if remaining_quota > 0:
+        for post in db.get_pending_yt_presync_posts(limit=50):
+            if len(presync_ids) >= remaining_quota or time.monotonic() > deadline:
+                break
+            res = await _sync_scheduled_post_to_youtube(post)
+            if res.get("uploaded"):
+                presync_ids.append(post["id"])
 
     return {
         "ok": True,

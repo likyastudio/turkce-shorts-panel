@@ -459,17 +459,28 @@ def get_due_scheduled_posts(now_iso: Optional[str] = None) -> list[dict[str, Any
         return [_norm_sched_row(r) for r in _rows(cur, is_pg)]
 
 
-def get_pending_yt_presync_posts(limit: int = 5) -> list[dict[str, Any]]:
+def get_pending_yt_presync_posts(limit: int = 50, brand: Optional[str] = None) -> list[dict[str, Any]]:
     """Returns upcoming scheduled posts not yet pre-uploaded to YouTube Studio."""
     now = _now()
+    stale = _ago(SYNC_STALE_MINUTES)
     with get_conn() as (conn, p, is_pg):
         cur = conn.cursor()
         flag = "FALSE" if is_pg else "0"
+        conds = [
+            "status='Planlandı'",
+            f"yt_uploaded={flag}",
+            f"scheduled_at > {p}",
+            f"(yt_sync_started_at IS NULL OR yt_sync_started_at < {p})",
+        ]
+        vals: list[Any] = [now, stale]
+        if brand and brand.strip().lower() not in ("", "all"):
+            conds.append(f"brand={p}")
+            vals.append(brand.strip().lower())
+        where = " AND ".join(conds)
         cur.execute(
-            f"SELECT {_SCHED_COLS} FROM scheduled_posts "
-            f"WHERE status='Planlandı' AND yt_uploaded={flag} AND scheduled_at > {p} "
+            f"SELECT {_SCHED_COLS} FROM scheduled_posts WHERE {where} "
             f"ORDER BY scheduled_at ASC LIMIT {int(limit)}",
-            (now,),
+            tuple(vals),
         )
         return [_norm_sched_row(r) for r in _rows(cur, is_pg)]
 

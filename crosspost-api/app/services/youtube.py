@@ -10,43 +10,102 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseUpload
 
 
-def _prepare_thumbnail_bytes(cover_url: str) -> tuple[bytes, str]:
-    """Downloads cover image and converts to crisp JPEG under YouTube's 2 MB thumbnail limit."""
-    r = requests.get(cover_url, timeout=30)
-    r.raise_for_status()
-    raw = r.content
+import time as _time
+
+
+def _prepare_thumbnail_bytes(cover_url: Optional[str] = None, cover_bytes: Optional[bytes] = None) -> tuple[bytes, str]:
+    """Loads cover image (direct bytes or URL with cache-bust) and converts to crisp RGB JPEG under 2 MB."""
+    raw = cover_bytes
+    fallback_mime = "image/png"
+    if not raw:
+        if not cover_url:
+            raise ValueError("Kapak görseli bulunamadı.")
+        fetch_url = cover_url
+        if "/api/covers/" in fetch_url:
+            sep = "&" if "?" in fetch_url else "?"
+            fetch_url = f"{fetch_url}{sep}_t={int(_time.time())}"
+        r = requests.get(fetch_url, timeout=30)
+        r.raise_for_status()
+        raw = r.content
+        fallback_mime = r.headers.get("Content-Type", "image/png").split(";")[0]
     try:
         from PIL import Image
         im = Image.open(io.BytesIO(raw)).convert("RGB")
-        buf = io.BytesIO()
-        im.save(buf, format="JPEG", quality=90, optimize=True)
-        return buf.getvalue(), "image/jpeg"
+        # Keep crisp 9:16 (or 16:9) resolution without oversized 4K bloat
+        if max(im.width, im.height) > 1920:
+            im.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
+        for q in (92, 85, 76):
+            buf = io.BytesIO()
+            im.save(buf, format="JPEG", quality=q, optimize=True)
+            data = buf.getvalue()
+            if len(data) <= 1_900_000:
+                return data, "image/jpeg"
+        return data, "image/jpeg"
     except Exception:
-        return raw, r.headers.get("Content-Type", "image/png").split(";")[0]
+        return raw, fallback_mime
 
 
-def _set_thumbnail_safe(youtube, yt_video_id: str, cover_url: Optional[str]) -> tuple[bool, Optional[str]]:
-    if not cover_url:
+def _wait_for_video_processing(youtube, yt_video_id: str, max_wait_s: float = 45.0) -> str:
+    """YouTube Data API v3 requires Shorts video processing to finish (processingStatus='succeeded')
+    before thumbnails.set sticks. Polls processingDetails briefly after upload."""
+    deadline = _time.monotonic() + max_wait_s
+    last_status = "unknown"
+    while _time.monotonic() < deadline:
+        try:
+            resp = youtube.videos().list(part="processingDetails,status", id=yt_video_id).execute()
+            items = resp.get("items") or []
+            if items:
+                pdet = items[0].get("processingDetails") or {}
+                last_status = pdet.get("processingStatus") or "unknown"
+                if last_status in ("succeeded", "failed", "terminated"):
+                    return last_status
+        except Exception:
+            pass
+        _time.sleep(3.0)
+    return last_status
+
+
+def _set_thumbnail_safe(
+    youtube,
+    yt_video_id: str,
+    cover_url: Optional[str] = None,
+    cover_bytes: Optional[bytes] = None,
+    wait_processing: bool = False,
+) -> tuple[bool, Optional[str]]:
+    if not cover_url and not cover_bytes:
         return False, None
     try:
-        data, mime = _prepare_thumbnail_bytes(cover_url)
-        media = MediaIoBaseUpload(io.BytesIO(data), mimetype=mime, resumable=False)
-        youtube.thumbnails().set(videoId=yt_video_id, media_body=media).execute()
-        return True, None
+        if wait_processing:
+            _wait_for_video_processing(youtube, yt_video_id, max_wait_s=45.0)
+        data, mime = _prepare_thumbnail_bytes(cover_url=cover_url, cover_bytes=cover_bytes)
+        last_err = None
+        for attempt in range(2):
+            try:
+                media = MediaIoBaseUpload(io.BytesIO(data), mimetype=mime, resumable=False)
+                youtube.thumbnails().set(videoId=yt_video_id, media_body=media).execute()
+                return True, None
+            except Exception as e:
+                last_err = str(e)[:300]
+                if attempt == 0 and any(k in last_err.lower() for k in ("processing", "409", "500", "503", "temporarily")):
+                    _time.sleep(4.0)
+                    continue
+                return False, last_err
+        return False, last_err
     except Exception as e:
         return False, str(e)[:300]
 
 
 def apply_youtube_thumbnail(
     yt_video_id: str,
-    cover_url: str,
+    cover_url: Optional[str],
     access_token: str,
     refresh_token: Optional[str],
     client_id: str,
     client_secret: str,
+    cover_bytes: Optional[bytes] = None,
     on_token_refresh: Optional[Callable[[str, Optional[str]], None]] = None,
 ) -> dict:
-    """Applies a custom thumbnail to an existing YouTube video."""
+    """Applies a custom thumbnail to an existing YouTube video or Short."""
     creds = Credentials(
         token=access_token,
         refresh_token=refresh_token,
@@ -60,7 +119,7 @@ def apply_youtube_thumbnail(
             exp = creds.expiry.isoformat() if creds.expiry else None
             on_token_refresh(creds.token, exp)
     youtube = build("youtube", "v3", credentials=creds, cache_discovery=False)
-    ok, err = _set_thumbnail_safe(youtube, yt_video_id, cover_url)
+    ok, err = _set_thumbnail_safe(youtube, yt_video_id, cover_url=cover_url, cover_bytes=cover_bytes, wait_processing=False)
     return {"ok": ok, "video_id": yt_video_id, "error": err}
 
 
@@ -155,6 +214,7 @@ def publish_to_youtube(
     privacy_status: str = "public",
     publish_at: Optional[str] = None,
     cover_url: Optional[str] = None,
+    cover_bytes: Optional[bytes] = None,
     brand: Optional[str] = None,
     language: Optional[str] = None,
     tags: Optional[list[str]] = None,
@@ -167,6 +227,7 @@ def publish_to_youtube(
     - Sets paidProductPlacementDetails.hasPaidProductPlacement=False (No paid promotion)
     - Auto-fills snippet.tags from hashtags + brand defaults
     - Auto-detects snippet.defaultLanguage & snippet.defaultAudioLanguage ('tr' or 'en')
+    - Waits for YouTube Shorts video processing before calling thumbnails.set so cover sticks reliably
     - If publish_at is a future ISO timestamp, uploads as private + publishAt ('Planlandı')
     """
     creds = Credentials(
@@ -240,7 +301,13 @@ def publish_to_youtube(
     if not yt_id:
         raise RuntimeError(f"YouTube upload response missing video id: {response}")
 
-    thumb_ok, thumb_err = _set_thumbnail_safe(youtube, yt_id, cover_url)
+    thumb_ok, thumb_err = _set_thumbnail_safe(
+        youtube,
+        yt_id,
+        cover_url=cover_url,
+        cover_bytes=cover_bytes,
+        wait_processing=True,
+    )
 
     return {
         "platform": "YT",

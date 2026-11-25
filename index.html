@@ -1034,6 +1034,10 @@ function coverWorkbenchHtml(key, heading, defaultPrompt, aspectRatio = '9:16', h
       <button class="btn primary" ${isGen ? 'disabled' : ''} onclick="generateCover('${jsKey}', '${aspectRatio}', '${jsBrand}', '${escJsAttr(activeStyle)}')">
         ${isGen ? '<span class="spinner"></span> Vertex AI üretiyor…' : (url ? '🔄 Yeniden Üret' : '✨ Görsel Kapağı Üret')}
       </button>
+      <label class="btn ink-btn" style="cursor:pointer;margin:0">
+        📁 Kapak Ekle (JPG/PNG)
+        <input type="file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="uploadCoverFileForKey('${jsKey}', this)">
+      </label>
       ${url ? `
         <a class="btn" href="${esc(url)}" download="${esc(domKey)}_kapak.png" target="_blank">⬇ PNG İndir</a>
         <button class="btn" onclick="copyRaw('${escJsAttr(url)}', 'Kapak URL panoya kopyalandı')">🔗 URL Kopyala</button>
@@ -1169,26 +1173,92 @@ async function generateCover(key, aspectRatio, brand = 'akilalmaz', defaultStyle
   }
 }
 
-async function syncAllCoversToYouTube() {
+async function uploadCoverFileForKey(key, inputEl, postId = null) {
+  const file = inputEl?.files?.[0];
+  if (!file) return;
+  const { apiUrl, session } = getCfg();
+  if (!apiUrl) { toast('Cloud Run API URL tanımlı değil.', 'err'); return; }
+  const sk = safeCoverKey(key);
+  generatingCovers[key] = true;
+  generatingCovers[sk] = true;
+  renderAll(false);
+  toast('Kapak yükleniyor ve YouTube Studio güncelleniyor…', 'info');
+  try {
+    const fd = new FormData();
+    fd.append('key', key);
+    fd.append('file', file);
+    const resp = await fetch(apiUrl + '/api/covers/upload', {
+      method: 'POST',
+      headers: { 'X-Session': session },
+      body: fd,
+    });
+    const res = await resp.json().catch(() => ({}));
+    if (resp.status === 401) endSession('Oturumunuzun süresi doldu. Yeniden giriş yapın.');
+    if (!resp.ok) throw new Error(res.detail || `Kapak yükleme hatası (${resp.status})`);
+
+    const resKey = res.key || sk;
+    coverVersions[sk] = Date.now();
+    coverVersions[resKey] = coverVersions[sk];
+    const bustedUrl = withCoverBust(key, res.image_url);
+    savedCovers[key] = bustedUrl;
+    savedCovers[sk] = bustedUrl;
+    savedCovers[resKey] = bustedUrl;
+
+    const ytOk = (res.yt_thumbnails_applied || []).length;
+    const ytErrs = res.yt_thumbnail_errors || [];
+    if (ytOk) {
+      toast(`✅ Kapak eklendi ve YouTube Studio (${ytOk} video) güncellendi!`, 'ok');
+    } else if (ytErrs.length) {
+      toast(`Kapak eklendi, YT küçük resim uyarısı: ${ytErrs[0].error || 'Kanal doğrulama / yetki kontrolü'}`, 'info');
+    } else {
+      toast('✅ Kapak eklendi ve yayın planına bağlandı (YouTube yüklemesinde otomatik uygulanacak).', 'ok');
+    }
+    await load(true);
+    if (postId) openScheduleCoverModal(postId);
+  } catch (e) {
+    toast('Kapak ekleme hatası: ' + (e.message || e), 'err');
+  } finally {
+    generatingCovers[key] = false;
+    generatingCovers[sk] = false;
+    if (inputEl) inputEl.value = '';
+    renderAll(false);
+  }
+}
+
+async function syncAllCoversToYouTube(brandOverride = null) {
   if (coverSyncing) return;
   coverSyncing = true;
   renderAll(false);
+  const b = brandOverride !== null ? brandOverride : (view === 'schedule' ? activeBrandFilter : 'all');
+  const qs = b && b !== 'all' ? `?brand=${encodeURIComponent(b)}` : '';
   try {
-    const res = await apiFetch('/api/schedule/sync-covers', { method: 'POST' });
+    const res = await apiFetch('/api/schedule/sync-covers' + qs, { method: 'POST' });
     const linked = (res.linked_covers || []).length;
     const ytOk = (res.yt_thumbnails_applied || []).length;
-    const ytErr = (res.yt_thumbnail_errors || []).length;
+    const ytErrs = res.yt_thumbnail_errors || [];
     const parts = [];
     if (linked) parts.push(`${linked} cover_url bağlandı`);
     if (ytOk) parts.push(`${ytOk} YouTube küçük resmi güncellendi`);
-    if (ytErr) parts.push(`${ytErr} YT uyarısı`);
-    toast(parts.length ? parts.join(' · ') : 'Tüm kapaklar ve YouTube küçük resimleri zaten senkronize.', ytErr && !ytOk ? 'info' : 'ok');
+    if (ytErrs.length) parts.push(`${ytErrs.length} YT uyarısı (${ytErrs[0].error || ''})`);
+    toast(parts.length ? parts.join(' · ') : 'Tüm kapaklar ve YouTube küçük resimleri zaten senkronize.', ytErrs.length && !ytOk ? 'err' : 'ok');
     await load(true);
   } catch (e) {
     toast('Kapak senkron hatası: ' + (e.message || e), 'err');
   } finally {
     coverSyncing = false;
     renderAll(false);
+  }
+}
+
+function clearScheduleErrors(brand) { return once('clrerr_' + (brand || 'all'), () => clearScheduleErrorsInner(brand)); }
+async function clearScheduleErrorsInner(brand) {
+  const qs = brand && brand !== 'all' ? `?brand=${encodeURIComponent(brand)}` : '';
+  try {
+    const res = await apiFetch('/api/schedule/clear-errors' + qs, { method: 'POST' });
+    toast(res.cleared ? `🧹 ${res.cleared} kayıttaki hata mesajı temizlendi.` : 'Temizlenecek hata bulunmadı.', 'ok');
+    await load(true);
+  } catch (e) {
+    toast('Hata temizleme sorunu: ' + e.message, 'err');
   }
 }
 
@@ -2030,7 +2100,11 @@ function openUploadModal(defaultBrand, platformMode = 'ALL') {
         <div class="fld"><label for="u_title">${pm === 'IG' ? 'Reels Başlığı / Kayıt Adı' : 'YouTube Shorts Başlığı'}</label><input id="u_title" type="text" maxlength="100" placeholder="${pm === 'IG' ? 'Kısa başlık / konu adı' : 'Çarpıcı başlık #shorts'}"></div>
         ${pm !== 'IG' ? `<div class="fld"><label for="u_desc">YouTube Açıklama & Etiketler</label><textarea id="u_desc" maxlength="4900" rows="2" placeholder="Kısa açıklama + #shorts #etiketler"></textarea></div>` : ''}
         ${pm !== 'YT' ? `<div class="fld"><label for="u_ig">Instagram Reels Açıklama & Etiketler</label><textarea id="u_ig" maxlength="2200" rows="3" placeholder="Reels açıklaması + #reels #keşfet"></textarea></div>` : ''}
-        <div class="fld"><label for="u_cov">Vertex AI 9:16 Kapak Promptu (opsiyonel — doluysa kapağı otomatik üretir)</label><textarea id="u_cov" class="mono-input" rows="2" placeholder="Bold vertical 9:16 illustration..., no text"></textarea></div>
+        <div class="fld">
+          <label for="u_cov_file">Kapak Görseli Dosyası (JPG/PNG — opsiyonel, YouTube Studio'ya otomatik eklenir)</label>
+          <input id="u_cov_file" type="file" accept="image/jpeg,image/png,image/webp" style="padding:8px;background:var(--paper);border:1px dashed var(--line-strong);border-radius:6px;width:100%">
+        </div>
+        <div class="fld"><label for="u_cov">veya Vertex AI 9:16 Kapak Promptu (opsiyonel — dosya seçilmediyse üretir)</label><textarea id="u_cov" class="mono-input" rows="2" placeholder="Bold vertical 9:16 illustration..., no text"></textarea></div>
         <div id="u_msg" class="panel-sub" style="margin-bottom:10px"></div>
         <div class="row">
           <button id="u_btn" data-mode="schedule" data-platform="${pm}" class="btn primary" onclick="submitUploadAndSchedule()">📅 Yükle & Planla</button>
@@ -2049,6 +2123,7 @@ async function submitUploadInner() {
   const pm = btn?.dataset.platform || 'ALL';
   const fileEl = document.getElementById('u_file');
   const file = fileEl?.files?.[0];
+  const covFile = document.getElementById('u_cov_file')?.files?.[0];
   const brand = document.getElementById('u_brand').value;
   const title = document.getElementById('u_title').value.trim();
   const descEl = document.getElementById('u_desc');
@@ -2092,14 +2167,27 @@ async function submitUploadInner() {
     if (!upResp.ok) throw new Error(upData.detail || `Yükleme hatası (${upResp.status})`);
 
     let coverUrl = undefined;
-    if (covPrompt) {
+    if (covFile) {
+      msg.textContent = '2/3 · Kapak görseli buluta yükleniyor…';
+      const cfd = new FormData();
+      cfd.append('key', upData.video_id);
+      cfd.append('file', covFile);
+      const cResp = await fetch(apiUrl + '/api/covers/upload', {
+        method: 'POST',
+        headers: { 'X-Session': session },
+        body: cfd,
+      });
+      const cData = await cResp.json().catch(() => ({}));
+      if (!cResp.ok) throw new Error(cData.detail || `Kapak yükleme hatası (${cResp.status})`);
+      coverUrl = (cData.image_url || '').split('?')[0] || undefined;
+    } else if (covPrompt) {
       msg.textContent = '2/3 · Vertex AI 9:16 kapak üretiliyor…';
       const covRes = await apiFetch('/api/covers/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: upData.video_id, prompt: covPrompt, aspect_ratio: '9:16' }),
       });
-      coverUrl = covRes.image_url;
+      coverUrl = (covRes.image_url || '').split('?')[0] || undefined;
     }
 
     if (mode === 'now') {
@@ -2256,6 +2344,10 @@ function openScheduleCoverModal(postId, lastResult = null) {
           <button id="sc_btn" data-style="${esc(activeStyle)}" class="btn primary" ${!apiUrl || isGen ? 'disabled' : ''} onclick="submitScheduleCoverModal(${Number(p.id)})">
             ${isGen ? '<span class="spinner"></span> Üretiliyor…' : (covUrl ? '🔄 9:16 Kapağı Yenile & Bağla' : '✨ 9:16 Kapak Üret & Bağla')}
           </button>
+          <label class="btn ink-btn" style="cursor:pointer;margin:0">
+            📁 Kapak Ekle (JPG/PNG)
+            <input type="file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="uploadCoverFileForKey('${jsKey}', this, ${Number(p.id)})">
+          </label>
           <button class="btn" onclick="openInCoverStudio('${jsKey}', '${escJsAttr(brand)}')">🎨 Stüdyoda Aç</button>
           ${covUrl ? `<a class="btn" href="${esc(covUrl)}" download="${esc(safeCoverKey(key))}_kapak.png" target="_blank">⬇ PNG</a>` : ''}
           <button class="btn ghost" onclick="closeModal()">Kapat</button>
@@ -2513,6 +2605,9 @@ function renderSchedule(el) {
           <button class="btn primary" ${!apiUrl?'disabled':''} onclick="openUploadModal('${activeBrand}', 'ALL')">➕ Ortak (YT + IG) Planla</button>
           <button class="btn ink-btn" ${!apiUrl?'disabled':''} onclick="bulkScheduleAll()">⚡ AKILALMAZ Videolarını Sırala</button>
           <button class="btn" ${!apiUrl || coverSyncing?'disabled':''} onclick="syncAllCoversToYouTube()">${coverSyncing ? '<span class="spinner"></span> Senkronlanıyor…' : '🖼️ Kapakları YT\'ye Senkronla'}</button>
+          ${visible.some(p => p.error_message || p.status === 'Hata')
+            ? `<button class="btn" ${!apiUrl?'disabled':''} onclick="clearScheduleErrors('${activeBrandFilter}')">🧹 Hataları Temizle</button>`
+            : ''}
           <button class="btn" ${!apiUrl?'disabled':''} onclick="runSchedulerTick()">▶ Senkronize Et</button>
         </div>
       </div>

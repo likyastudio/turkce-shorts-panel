@@ -555,3 +555,45 @@ def update_scheduled_cover_url(video_id: str, cover_url: str) -> int:
         )
         return cur.rowcount
 
+
+def update_scheduled_cover_url_by_id(post_id: int, cover_url: str) -> int:
+    now = _now()
+    with get_conn() as (conn, p, _is_pg):
+        cur = conn.cursor()
+        cur.execute(
+            f"UPDATE scheduled_posts SET cover_url={p}, updated_at={p} WHERE id={p}",
+            (cover_url, now, post_id),
+        )
+        return cur.rowcount
+
+
+def clear_scheduled_errors(brand: Optional[str] = None) -> int:
+    """Clears stale error messages and stale sync locks on un-uploaded/pending scheduled posts,
+    and resets future 'Hata' posts back to 'Planlandı'."""
+    now = _now()
+    brand_clean = (brand or "").strip().lower()
+    use_brand = bool(brand_clean and brand_clean != "all")
+    with get_conn() as (conn, p, is_pg):
+        cur = conn.cursor()
+        flag = "FALSE" if is_pg else "0"
+        b_sql = f" AND brand={p}" if use_brand else ""
+        b_vals = (brand_clean,) if use_brand else ()
+
+        # 1. Reset future 'Hata' posts back to 'Planlandı'
+        cur.execute(
+            f"UPDATE scheduled_posts SET status='Planlandı', error_message=NULL, yt_sync_started_at=NULL, updated_at={p} "
+            f"WHERE status='Hata' AND scheduled_at > {p}{b_sql}",
+            (now, now, *b_vals),
+        )
+        cnt = cur.rowcount
+
+        # 2. Clear error_message & stale lock on all un-uploaded or 'Planlandı' posts
+        cur.execute(
+            f"UPDATE scheduled_posts SET error_message=NULL, yt_sync_started_at=NULL, updated_at={p} "
+            f"WHERE (error_message IS NOT NULL OR yt_sync_started_at IS NOT NULL) "
+            f"AND (status='Planlandı' OR (status='Hata' AND yt_uploaded={flag})){b_sql}",
+            (now, *b_vals),
+        )
+        cnt += cur.rowcount
+        return cnt
+

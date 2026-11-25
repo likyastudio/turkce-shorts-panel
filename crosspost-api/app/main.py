@@ -93,6 +93,12 @@ async def _run_single_target(
             csec = acc.get("client_secret") or os.getenv("YT_CLIENT_SECRET", "")
             acc_id = acc.get("id")
             on_refresh = (lambda tok, exp: db.update_account_token(acc_id, tok, exp)) if acc_id else None
+            safe_vid = covers_svc._safe_key(req.video_id)
+            cov_bytes = covers_svc.get_cover(safe_vid)
+            cov_url = req.cover_url
+            if not cov_url and cov_bytes:
+                pbase = os.getenv("PUBLIC_API_BASE", "").rstrip("/")
+                cov_url = f"{pbase}/api/covers/{safe_vid}.png" if pbase else None
             res = await asyncio.to_thread(
                 publish_to_youtube,
                 local_file_path=local_path,
@@ -104,7 +110,9 @@ async def _run_single_target(
                 client_secret=csec,
                 category_id=req.category_id,
                 privacy_status=req.privacy_status,
-                cover_url=req.cover_url,
+                cover_url=cov_url,
+                cover_bytes=cov_bytes,
+                brand=acc.get("brand"),
                 on_token_refresh=on_refresh,
             )
             db.update_publish_log(log_id, "Yayında", platform_post_url=res.get("url"))
@@ -306,16 +314,20 @@ async def generate_cover_endpoint(req: GenerateCoverRequest):
         ts = int(time.time())
         clean_url = f"{public_base}/api/covers/{safe_key}.png" if public_base else f"/api/covers/{safe_key}.png"
         img_url = f"{clean_url}?v={ts}"
+        sync = {"linked_covers": [], "yt_thumbnails_applied": [], "yt_thumbnail_errors": []}
         try:
-            db.update_scheduled_cover_url(safe_key, clean_url)
-        except Exception:
-            pass
+            sync = await _sync_covers(only_video_id=safe_key)
+        except Exception as e:
+            print(f"[covers] generate sync warning for {safe_key}: {e}")
         return {
             "ok": True,
             "key": safe_key,
             "aspect_ratio": req.aspect_ratio,
             "image_url": img_url,
             "size_bytes": len(png_bytes),
+            "linked_posts": sync.get("linked_covers", []),
+            "yt_thumbnails_applied": sync.get("yt_thumbnails_applied", []),
+            "yt_thumbnail_errors": sync.get("yt_thumbnail_errors", []),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Kapak üretimi başarısız: {e}")
@@ -524,9 +536,13 @@ async def _sync_scheduled_post_to_youtube(post: dict, ignore_quota: bool = False
                 acc_id = acc.get("id")
                 on_refresh = (lambda tok, exp, aid=acc_id: db.update_account_token(aid, tok, exp)) if acc_id else None
                 cov_url = post.get("cover_url")
-                if not cov_url and post["video_id"] in covers_svc.list_covers():
+                safe_vid = covers_svc._safe_key(post["video_id"])
+                cov_bytes = covers_svc.get_cover(safe_vid)
+                if not cov_url and cov_bytes:
                     pbase = os.getenv("PUBLIC_API_BASE", "").rstrip("/")
-                    cov_url = f"{pbase}/api/covers/{post['video_id']}.png" if pbase else None
+                    cov_url = f"{pbase}/api/covers/{safe_vid}.png" if pbase else None
+                    if cov_url:
+                        db.update_scheduled_cover_url_by_id(post_id, cov_url)
                 res = await asyncio.to_thread(
                     publish_to_youtube,
                     local_file_path=local_path,
@@ -538,6 +554,7 @@ async def _sync_scheduled_post_to_youtube(post: dict, ignore_quota: bool = False
                     client_secret=csec,
                     publish_at=post["scheduled_at"],
                     cover_url=cov_url,
+                    cover_bytes=cov_bytes,
                     brand=post_brand,
                     on_token_refresh=on_refresh,
                 )
@@ -956,48 +973,104 @@ async def ai_generate_story(req: GenerateStoryRequest):
         raise HTTPException(status_code=502, detail=f"Senaryo üretimi başarısız: {e}")
 
 
+def _extract_yt_video_id(url: Optional[str]) -> str:
+    u = (url or "").strip()
+    if not u:
+        return ""
+    if "/shorts/" in u:
+        return u.rsplit("/shorts/", 1)[-1].split("?")[0].split("/")[0].strip()
+    if "v=" in u:
+        return u.split("v=", 1)[-1].split("&")[0].strip()
+    if "youtu.be/" in u:
+        return u.rsplit("youtu.be/", 1)[-1].split("?")[0].split("/")[0].strip()
+    return ""
+
+
+@app.post("/api/schedule/clear-errors", dependencies=[Depends(verify_api_key)])
+def clear_schedule_errors_endpoint(brand: Optional[str] = None):
+    """Yüklenmemiş/bekleyen videolardaki eski hata mesajlarını temizler ve ileri tarihli hatalı kayıtları Planlandı'ya alır."""
+    cleared = db.clear_scheduled_errors(brand=brand)
+    return {"ok": True, "cleared": cleared, "brand": brand or "all"}
+
+
 @app.post("/api/schedule/sync-covers", dependencies=[Depends(verify_api_key)])
-async def sync_covers_to_schedule():
+async def sync_covers_to_schedule(brand: Optional[str] = None):
     """Links all existing GCS covers to scheduled_posts and applies thumbnails.set to already-uploaded YT videos."""
-    return await _sync_covers(only_video_id=None)
+    return await _sync_covers(only_video_id=None, brand=brand)
 
 
-async def _sync_covers(only_video_id: Optional[str] = None) -> dict:
+async def _sync_covers(only_video_id: Optional[str] = None, brand: Optional[str] = None) -> dict:
     available = set(covers_svc.list_covers())
     public_base = os.getenv("PUBLIC_API_BASE", "").rstrip("/")
     posts = db.list_scheduled_posts()
+    if brand and brand.strip().lower() not in ("", "all"):
+        b_filt = brand.strip().lower()
+        posts = [p for p in posts if (p.get("brand") or "akilalmaz").lower() == b_filt]
     if only_video_id:
-        posts = [p for p in posts if p["video_id"] == only_video_id]
+        target_safe = covers_svc._safe_key(only_video_id)
+        posts = [
+            p for p in posts
+            if p["video_id"] == only_video_id or covers_svc._safe_key(p["video_id"]) == target_safe
+        ]
     all_yt = [a for a in db.list_accounts(include_tokens=True) if a.get("platform") == "YT"]
+    yt_by_id = {a["id"]: a for a in all_yt if a.get("id") is not None}
+
+    # Build fallback map of (video_id -> [(yt_video_id, account_id)]) from publish_logs
+    logs_by_vid: dict[str, list[tuple[str, Optional[int]]]] = {}
+    for lg in db.list_publish_logs():
+        if lg.get("platform") == "YT" and lg.get("status") in ("Yayında", "YT Planlandı"):
+            yid = _extract_yt_video_id(lg.get("platform_post_url"))
+            if yid:
+                logs_by_vid.setdefault(lg["video_id"], []).append((yid, lg.get("account_id")))
 
     linked = []
     yt_applied = []
     yt_errors = []
+    seen_yt_pairs: set[tuple[str, int]] = set()
 
     for p in posts:
         vid = p["video_id"]
-        if vid not in available:
+        safe_vid = covers_svc._safe_key(vid)
+        has_gcs_cover = safe_vid in available
+        cov_url = f"{public_base}/api/covers/{safe_vid}.png" if (has_gcs_cover and public_base) else (
+            f"/api/covers/{safe_vid}.png" if has_gcs_cover else (p.get("cover_url") or "")
+        )
+        if not cov_url:
             continue
-        cov_url = f"{public_base}/api/covers/{vid}.png" if public_base else f"/api/covers/{vid}.png"
-        if p.get("cover_url") != cov_url:
-            db.update_scheduled_cover_url(vid, cov_url)
+
+        if has_gcs_cover and p.get("cover_url") != cov_url:
+            db.update_scheduled_cover_url_by_id(p["id"], cov_url)
             linked.append(vid)
 
-        yt_url = p.get("yt_video_url") or ""
-        # Kapak, videonun yüklendiği kanalın hesabıyla uygulanmalı (başka markanın hesabıyla değil)
+        cov_bytes = covers_svc.get_cover(safe_vid) if has_gcs_cover else None
+
+        # Collect target (yt_video_id, account) pairs for this post
         ids = p.get("account_ids") or []
-        yt_accs = [a for a in all_yt if (a["id"] in ids if ids else (a.get("brand") or "akilalmaz") == p.get("brand"))]
-        if p.get("yt_uploaded") and "/shorts/" in yt_url and yt_accs:
-            yt_id = yt_url.rsplit("/", 1)[-1]
-            acc = yt_accs[0]
+        yt_accs = [a for a in all_yt if (a["id"] in ids if ids else (a.get("brand") or "akilalmaz") == (p.get("brand") or "akilalmaz"))]
+        pairs: list[tuple[str, dict]] = []
+        yt_id_primary = _extract_yt_video_id(p.get("yt_video_url"))
+        if yt_id_primary and yt_accs:
+            for acc in yt_accs:
+                pairs.append((yt_id_primary, acc))
+        for yid_log, acc_id_log in logs_by_vid.get(vid, []):
+            acc_obj = yt_by_id.get(acc_id_log) if acc_id_log is not None else (yt_accs[0] if yt_accs else None)
+            if acc_obj:
+                pairs.append((yid_log, acc_obj))
+
+        for yt_id, acc in pairs:
+            acc_id = acc.get("id")
+            pair_key = (yt_id, int(acc_id or 0))
+            if pair_key in seen_yt_pairs:
+                continue
+            seen_yt_pairs.add(pair_key)
             cid = acc.get("client_id") or os.getenv("YT_CLIENT_ID", "")
             csec = acc.get("client_secret") or os.getenv("YT_CLIENT_SECRET", "")
-            acc_id = acc.get("id")
             on_refresh = (lambda tok, exp, aid=acc_id: db.update_account_token(aid, tok, exp)) if acc_id else None
             res = await asyncio.to_thread(
                 apply_youtube_thumbnail,
                 yt_video_id=yt_id,
                 cover_url=cov_url,
+                cover_bytes=cov_bytes,
                 access_token=acc["access_token"],
                 refresh_token=acc.get("refresh_token"),
                 client_id=cid,
@@ -1005,9 +1078,9 @@ async def _sync_covers(only_video_id: Optional[str] = None) -> dict:
                 on_token_refresh=on_refresh,
             )
             if res.get("ok"):
-                yt_applied.append({"video_id": vid, "yt_id": yt_id})
+                yt_applied.append({"video_id": vid, "yt_id": yt_id, "account": acc.get("account_name")})
             else:
-                yt_errors.append({"video_id": vid, "yt_id": yt_id, "error": res.get("error")})
+                yt_errors.append({"video_id": vid, "yt_id": yt_id, "account": acc.get("account_name"), "error": res.get("error")})
 
     return {
         "ok": True,

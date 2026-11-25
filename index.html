@@ -1240,14 +1240,18 @@ async function syncAllCoversToYouTube(brandOverride = null) {
     const reconciled = res.reconciled_from_studio || [];
     const notOnYt = res.not_on_youtube || [];
     const scanned = Number(res.studio_scanned || 0);
+    const alreadySynced = Number(res.already_synced_count || 0);
+    const quotaHit = !!res.quota_exceeded;
 
     const parts = [];
     if (ytOk.length) parts.push(`✅ ${ytOk.length} YT küçük resmi güncellendi`);
+    if (alreadySynced) parts.push(`⏭️ ${alreadySynced} güncel atlandı`);
     if (reconciled.length) parts.push(`🔗 ${reconciled.length} video Studio ile eşleştirildi`);
     if (linked.length) parts.push(`${linked.length} cover_url bağlandı`);
     if (notOnYt.length) parts.push(`⏳ ${notOnYt.length} video henüz YT Studio'da değil`);
-    if (ytErrs.length) parts.push(`⚠️ ${ytErrs.length} YT hatası`);
-    toast(parts.length ? parts.join(' · ') : `Studio tarandı (${scanned} video), değişiklik gerekmedi.`, ytErrs.length && !ytOk.length ? 'err' : 'ok');
+    if (quotaHit) parts.push(`🚫 YT günlük API kotası doldu (11:00 TR'de sıfırlanır)`);
+    else if (ytErrs.length) parts.push(`⚠️ ${ytErrs.length} YT hatası`);
+    toast(parts.length ? parts.join(' · ') : `Studio tarandı (${scanned} video), değişiklik gerekmedi.`, (quotaHit || (ytErrs.length && !ytOk.length)) ? 'err' : 'ok');
 
     document.getElementById('modal-root').innerHTML = `
       <div class="modal-bg" onclick="if(event.target===this)closeModal()">
@@ -1255,10 +1259,20 @@ async function syncAllCoversToYouTube(brandOverride = null) {
           <div class="panel-head" style="margin-bottom:14px">
             <div>
               <h3 style="margin:0;font-size:18px;font-weight:800">🖼️ YouTube Studio <span class="serif">Kapak Senkron Raporu</span></h3>
-              <div class="panel-sub">Studio'da taranan: <b>${scanned}</b> video · Güncellenen: <b>${ytOk.length}</b> · Eşleştirilen: <b>${reconciled.length}</b> · Hata: <b>${ytErrs.length}</b></div>
+              <div class="panel-sub">Studio'da taranan: <b>${scanned}</b> · Güncellenen: <b>${ytOk.length}</b> · Zaten güncel atlanan: <b>${alreadySynced}</b> · Hata: <b>${ytErrs.length}</b></div>
             </div>
             <button class="btn ghost icon-btn" onclick="closeModal()" aria-label="Kapat">✕</button>
           </div>
+          ${quotaHit ? `
+            <div class="block" style="border-color:var(--warn);background:rgba(245,158,11,.08);margin-bottom:12px">
+              <b style="color:var(--warn)">⏳ YouTube Data API Günlük Kotası Doldu (10.000 birim/gün)</b>
+              <div class="panel-sub" style="margin-top:6px;line-height:1.5">
+                YouTube API günlük kotası tükendiği için gereksiz istek atılmaması adına işlem ilk hatada otomatik durduruldu.<br/>
+                • Kota her gün <b>sabah 11:00 TR</b>'de (00:00 Pasifik Saati) otomatik sıfırlanır.<br/>
+                • <b>Hiçbir şey yapmanıza gerek yok:</b> 7/24 zamanlayıcı kota sıfırlandığında kalan tüm kapakları (v7–v20 dahil) YouTube Studio'ya otomatik uygulayacaktır.<br/>
+                • Güncellenmiş kapaklar artık işaretlendiği için sonraki senkronizasyonlarda kota harcanmaz.
+              </div>
+            </div>` : ''}
           ${ytOk.length ? `
             <div class="block" style="border-color:var(--ok);margin-bottom:12px">
               <b style="color:var(--ok)">✅ YouTube Studio'da Güncellenen Kapaklar (${ytOk.length})</b>
@@ -1281,8 +1295,8 @@ async function syncAllCoversToYouTube(brandOverride = null) {
                 ${ytErrs.map(e => `<div>• <b>${esc(e.video_id || e.yt_id)}</b>: <span class="mono">${esc(e.error)}</span></div>`).join('')}
               </div>
             </div>` : ''}
-          ${!ytOk.length && !notOnYt.length && !ytErrs.length ? `
-            <div class="panel-sub" style="margin-bottom:12px">Bağlı YouTube kanalında (${scanned} video tarandı) güncellenecek eşleşen video bulunamadı. Eğer v7–v20 videoları henüz YouTube Studio'ya yüklenmediyse, önce <b>⚡ AKILALMAZ Videolarını Sırala</b> veya <b>🚀 Kuyruktakileri YT Studio'ya Planla</b> butonunu kullanın.</div>` : ''}
+          ${!ytOk.length && !notOnYt.length && !ytErrs.length && !quotaHit ? `
+            <div class="panel-sub" style="margin-bottom:12px">${alreadySynced ? `✅ Tüm mevcut kapaklar (${alreadySynced} video) YouTube Studio ile zaten güncel.` : `Bağlı YouTube kanalında (${scanned} video tarandı) güncellenecek eşleşen video bulunamadı. Eğer v7–v20 videoları henüz YouTube Studio'ya yüklenmediyse, önce <b>⚡ AKILALMAZ Videolarını Sırala</b> veya <b>🚀 Kuyruktakileri YT Studio'ya Planla</b> butonunu kullanın.`}</div>` : ''}
           <div class="row"><button class="btn primary" onclick="closeModal()">Tamam</button></div>
         </div>
       </div>`;

@@ -560,6 +560,8 @@ async def _sync_scheduled_post_to_youtube(post: dict, ignore_quota: bool = False
                 )
                 last_url = res.get("url")
                 uploaded_any = True
+                if res.get("thumbnail_applied"):
+                    db.mark_scheduled_yt_thumb_synced(post_id, True)
                 db.update_publish_log(log_id, res.get("status", "YT Planlandı"), platform_post_url=last_url)
             except Exception as e:
                 db.update_publish_log(log_id, "Hata", error_message=str(e)[:500])
@@ -924,6 +926,9 @@ async def reschedule_schedule_post(post_id: int, sync_youtube_now: bool = True):
     return {"ok": True, "post": _enrich_sched(updated), "channels": [a["account_name"] for a in brand_accs], "yt_sync": yt_sync_res}
 
 
+_yt_quota_cooldown_until: float = 0.0
+
+
 @app.post("/api/scheduler/tick", dependencies=[Depends(verify_scheduler)])
 async def scheduler_tick():
     """1. Triggers due scheduled posts (skipping YT if already natively scheduled).
@@ -949,11 +954,29 @@ async def scheduler_tick():
             if res.get("uploaded"):
                 presync_ids.append(post["id"])
 
+    # 3. Auto-apply any pending YouTube thumbnails (e.g. after 11:00 TR daily quota reset)
+    thumbs_synced = 0
+    global _yt_quota_cooldown_until
+    if time.monotonic() < deadline - 20 and time.monotonic() >= _yt_quota_cooldown_until:
+        try:
+            has_pending_thumbs = any(
+                p.get("yt_uploaded") and not p.get("yt_thumb_synced")
+                for p in db.list_scheduled_posts()
+            )
+            if has_pending_thumbs:
+                cov_res = await _sync_covers(only_video_id=None, brand=None, force=False, skip_studio_scan=True)
+                thumbs_synced = len(cov_res.get("yt_thumbnails_applied") or [])
+                if cov_res.get("quota_exceeded"):
+                    _yt_quota_cooldown_until = time.monotonic() + 900  # 15 min backoff until daily reset
+        except Exception:
+            pass
+
     return {
         "ok": True,
         "due_count": len(due),
         "triggered_ids": triggered,
         "yt_presync_ids": presync_ids,
+        "yt_thumbs_synced": thumbs_synced,
         "stale_failed": stale,
     }
 
@@ -1071,14 +1094,24 @@ def _match_yt_title_to_cover(yt_title: str, catalog_entries: list[dict]) -> Opti
     return best_entry
 
 
+def _is_yt_quota_error(err: Optional[str]) -> bool:
+    s = str(err or "").lower()
+    return "quota" in s or "exceeded your" in s or "uploadratelimitexceeded" in s
+
+
 @app.post("/api/schedule/sync-covers", dependencies=[Depends(verify_api_key)])
-async def sync_covers_to_schedule(brand: Optional[str] = None):
-    """Links all existing GCS covers to scheduled_posts AND scans connected YouTube Studio channels
-    to apply thumbnails.set to every matching Short (including v1..v20+ even if not linked in DB)."""
-    return await _sync_covers(only_video_id=None, brand=brand)
+async def sync_covers_to_schedule(brand: Optional[str] = None, force: bool = False):
+    """Links all existing GCS covers to scheduled_posts AND applies thumbnails.set only to videos
+    whose cover has not been synced yet (unless force=True), aborting immediately on YouTube quota limit."""
+    return await _sync_covers(only_video_id=None, brand=brand, force=force)
 
 
-async def _sync_covers(only_video_id: Optional[str] = None, brand: Optional[str] = None) -> dict:
+async def _sync_covers(
+    only_video_id: Optional[str] = None,
+    brand: Optional[str] = None,
+    force: bool = False,
+    skip_studio_scan: bool = False,
+) -> dict:
     available = set(covers_svc.list_covers())
     public_base = os.getenv("PUBLIC_API_BASE", "").rstrip("/")
     all_posts = db.list_scheduled_posts()
@@ -1107,6 +1140,8 @@ async def _sync_covers(only_video_id: Optional[str] = None, brand: Optional[str]
     yt_errors = []
     not_on_youtube = []
     reconciled_from_studio = []
+    already_synced_count = 0
+    quota_exceeded = False
     seen_yt_pairs: set[tuple[str, int]] = set()
     updated_safe_keys: set[str] = set()
 
@@ -1124,6 +1159,19 @@ async def _sync_covers(only_video_id: Optional[str] = None, brand: Optional[str]
         if has_gcs_cover and p.get("cover_url") != cov_url:
             db.update_scheduled_cover_url_by_id(p["id"], cov_url)
             linked.append(vid)
+            p["yt_thumb_synced"] = False
+
+        if not only_video_id and not force and p.get("yt_thumb_synced"):
+            already_synced_count += 1
+            updated_safe_keys.add(safe_vid)
+            yt_id_skip = _extract_yt_video_id(p.get("yt_video_url"))
+            if yt_id_skip:
+                for acc in all_yt:
+                    seen_yt_pairs.add((yt_id_skip, int(acc.get("id") or 0)))
+            continue
+
+        if quota_exceeded:
+            continue
 
         cov_bytes = covers_svc.get_cover(safe_vid) if has_gcs_cover else None
 
@@ -1139,6 +1187,7 @@ async def _sync_covers(only_video_id: Optional[str] = None, brand: Optional[str]
             if acc_obj:
                 pairs.append((yid_log, acc_obj))
 
+        post_all_ok = bool(pairs)
         for yt_id, acc in pairs:
             acc_id = acc.get("id")
             pair_key = (yt_id, int(acc_id or 0))
@@ -1163,16 +1212,25 @@ async def _sync_covers(only_video_id: Optional[str] = None, brand: Optional[str]
                 yt_applied.append({"video_id": vid, "yt_id": yt_id, "account": acc.get("account_name"), "source": "schedule"})
                 updated_safe_keys.add(safe_vid)
             else:
-                yt_errors.append({"video_id": vid, "yt_id": yt_id, "account": acc.get("account_name"), "error": res.get("error")})
+                post_all_ok = False
+                err_txt = res.get("error")
+                yt_errors.append({"video_id": vid, "yt_id": yt_id, "account": acc.get("account_name"), "error": err_txt})
+                if _is_yt_quota_error(err_txt):
+                    quota_exceeded = True
+                    break
+        if post_all_ok and not quota_exceeded:
+            try:
+                db.mark_scheduled_yt_thumb_synced(p["id"], True)
+            except Exception:
+                pass
 
-    # Pass 2: Direct YouTube Studio scan — catches videos ALREADY in YouTube Studio (v7..v20, manually uploaded,
-    # or missing yt_video_url in DB) and matches them by title to available GCS covers!
+    # Pass 2: Direct YouTube Studio scan (skipped if quota is already exceeded or skip_studio_scan=True)
     studio_scanned = 0
     target_yt_accs = [
         a for a in all_yt
         if (not use_brand or (a.get("brand") or "akilalmaz").lower() == b_filt)
     ]
-    if target_yt_accs and available:
+    if target_yt_accs and available and not quota_exceeded and not skip_studio_scan:
         catalog_by_brand: dict[str, list[dict]] = {}
         seen_cat_keys: set[tuple[str, str]] = set()
         post_by_safe: dict[str, dict] = {}
@@ -1221,6 +1279,8 @@ async def _sync_covers(only_video_id: Optional[str] = None, brand: Optional[str]
                 })
 
         for acc in target_yt_accs:
+            if quota_exceeded:
+                break
             acc_brand = (acc.get("brand") or "akilalmaz").lower()
             entries = catalog_by_brand.get(acc_brand, [])
             if not entries:
@@ -1240,7 +1300,11 @@ async def _sync_covers(only_video_id: Optional[str] = None, brand: Optional[str]
                     on_token_refresh=on_refresh,
                 )
             except Exception as e:
-                yt_errors.append({"video_id": acc_brand, "yt_id": "", "account": acc.get("account_name"), "error": f"Studio listesi alınamadı: {str(e)[:200]}"})
+                err_txt = str(e)[:200]
+                yt_errors.append({"video_id": acc_brand, "yt_id": "", "account": acc.get("account_name"), "error": f"Studio listesi alınamadı: {err_txt}"})
+                if _is_yt_quota_error(err_txt):
+                    quota_exceeded = True
+                    break
                 continue
 
             studio_vids = ana.get("videos") or []
@@ -1262,7 +1326,6 @@ async def _sync_covers(only_video_id: Optional[str] = None, brand: Optional[str]
                 cov_url = f"{public_base}/api/covers/{sk}.png" if public_base else f"/api/covers/{sk}.png"
                 cov_bytes = covers_svc.get_cover(sk)
 
-                # Reconcile scheduled_posts row if it was missing yt_uploaded / yt_video_url
                 sp = post_by_safe.get(sk)
                 if sp and not sp.get("yt_uploaded"):
                     try:
@@ -1286,12 +1349,18 @@ async def _sync_covers(only_video_id: Optional[str] = None, brand: Optional[str]
                 if res.get("ok"):
                     yt_applied.append({"video_id": vid, "yt_id": yt_id, "account": acc.get("account_name"), "source": "studio_scan"})
                     updated_safe_keys.add(sk)
+                    if sp:
+                        try:
+                            db.mark_scheduled_yt_thumb_synced(sp["id"], True)
+                        except Exception:
+                            pass
                 else:
-                    yt_errors.append({"video_id": vid, "yt_id": yt_id, "account": acc.get("account_name"), "error": res.get("error")})
-                    if "uploadRateLimitExceeded" in str(res.get("error") or ""):
+                    err_txt = res.get("error")
+                    yt_errors.append({"video_id": vid, "yt_id": yt_id, "account": acc.get("account_name"), "error": err_txt})
+                    if _is_yt_quota_error(err_txt):
+                        quota_exceeded = True
                         break
 
-    # Report covers that are in scheduled_posts (with yt_uploaded=False) and were NOT found on YouTube Studio yet
     for p in posts:
         sk = covers_svc._safe_key(p["video_id"])
         if sk in available and not p.get("yt_uploaded") and sk not in updated_safe_keys:
@@ -1303,6 +1372,8 @@ async def _sync_covers(only_video_id: Optional[str] = None, brand: Optional[str]
         "yt_thumbnails_applied": yt_applied,
         "yt_thumbnail_errors": yt_errors,
         "reconciled_from_studio": reconciled_from_studio,
+        "already_synced_count": already_synced_count,
+        "quota_exceeded": quota_exceeded,
         "studio_scanned": studio_scanned,
         "not_on_youtube": not_on_youtube,
     }

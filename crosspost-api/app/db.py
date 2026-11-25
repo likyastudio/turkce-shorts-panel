@@ -103,6 +103,7 @@ def init_db() -> None:
                     yt_uploaded     INTEGER NOT NULL DEFAULT 0,
                     yt_video_url    TEXT,
                     yt_sync_started_at TEXT,
+                    yt_thumb_synced INTEGER NOT NULL DEFAULT 0,
                     error_message   TEXT,
                     created_at      TEXT NOT NULL,
                     updated_at      TEXT NOT NULL
@@ -110,6 +111,10 @@ def init_db() -> None:
                 CREATE INDEX IF NOT EXISTS idx_scheduled_posts_due ON scheduled_posts (status, scheduled_at);
                 """
             )
+            try:
+                conn.execute("ALTER TABLE scheduled_posts ADD COLUMN yt_thumb_synced INTEGER NOT NULL DEFAULT 0")
+            except Exception:
+                pass
 
 
 def _now() -> str:
@@ -273,7 +278,7 @@ def list_publish_logs(video_id: Optional[str] = None) -> list[dict[str, Any]]:
 
 _SCHED_COLS = (
     "id, brand, video_id, video_url, title, description, ig_caption, cover_url, thumb_offset_ms, "
-    "account_ids, scheduled_at, status, yt_uploaded, yt_video_url, error_message, created_at, updated_at"
+    "account_ids, scheduled_at, status, yt_uploaded, yt_video_url, yt_thumb_synced, error_message, created_at, updated_at"
 )
 
 
@@ -288,6 +293,7 @@ def _norm_sched_row(r: dict[str, Any]) -> dict[str, Any]:
         except Exception:
             r["account_ids"] = []
     r["yt_uploaded"] = bool(r.get("yt_uploaded"))
+    r["yt_thumb_synced"] = bool(r.get("yt_thumb_synced"))
     r["brand"] = r.get("brand") or "akilalmaz"
     return r
 
@@ -545,24 +551,37 @@ def delete_scheduled_post(post_id: int) -> bool:
         return cur.rowcount > 0
 
 
+def mark_scheduled_yt_thumb_synced(post_id: int, synced: bool = True) -> None:
+    now = _now()
+    with get_conn() as (conn, p, is_pg):
+        cur = conn.cursor()
+        flag = bool(synced) if is_pg else (1 if synced else 0)
+        cur.execute(
+            f"UPDATE scheduled_posts SET yt_thumb_synced={p}, updated_at={p} WHERE id={p}",
+            (flag, now, post_id),
+        )
+
+
 def update_scheduled_cover_url(video_id: str, cover_url: str) -> int:
     now = _now()
-    with get_conn() as (conn, p, _is_pg):
+    with get_conn() as (conn, p, is_pg):
         cur = conn.cursor()
+        flag = False if is_pg else 0
         cur.execute(
-            f"UPDATE scheduled_posts SET cover_url={p}, updated_at={p} WHERE video_id={p}",
-            (cover_url, now, video_id),
+            f"UPDATE scheduled_posts SET cover_url={p}, yt_thumb_synced={p}, updated_at={p} WHERE video_id={p}",
+            (cover_url, flag, now, video_id),
         )
         return cur.rowcount
 
 
 def update_scheduled_cover_url_by_id(post_id: int, cover_url: str) -> int:
     now = _now()
-    with get_conn() as (conn, p, _is_pg):
+    with get_conn() as (conn, p, is_pg):
         cur = conn.cursor()
+        flag = False if is_pg else 0
         cur.execute(
-            f"UPDATE scheduled_posts SET cover_url={p}, updated_at={p} WHERE id={p}",
-            (cover_url, now, post_id),
+            f"UPDATE scheduled_posts SET cover_url={p}, yt_thumb_synced={p}, updated_at={p} WHERE id={p}",
+            (cover_url, flag, now, post_id),
         )
         return cur.rowcount
 

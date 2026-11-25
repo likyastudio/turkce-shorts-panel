@@ -1,0 +1,57 @@
+name: AKILALMAZ 2D Çizgi Film Üretimi (v21)
+
+on:
+  workflow_dispatch:
+    inputs:
+      script_path:
+        description: 'Çalıştırılacak 2D çizgi film üretim scripti'
+        required: true
+        default: 'scripts/render_akilalmaz_v21.py'
+      publish_schedule:
+        description: 'Kapağı yükle ve 2 Aralık 06:03 TR slotuna planla'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout studio repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install FFmpeg, DejaVu fonts & Python deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+          pip install --quiet requests pillow
+
+      - name: Render 2D Cartoon Short (ERKAN Voice + 1080x1920 30fps)
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+        run: python3 "${{ inputs.script_path }}"
+
+      - name: Commit & Publish to studio.likyastudios.live
+        run: |
+          git config user.name "AKILALMAZ Studio Bot"
+          git config user.email "bot@likyastudios.live"
+          git add files/ videos.json
+          git commit -m "Video 21 hazır: 1788 Karanşebeş — Kendi Kendine Savaşan 100.000 Kişilik Ordu"
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep 5
+          done
+          exit 1
+
+      - name: Upload 9:16 Cover & Schedule for 2 Aralık (06:03 TR)
+        if: ${{ inputs.publish_schedule != false }}
+        env:
+          LIKYA_API_KEY: ${{ secrets.LIKYA_API_KEY }}
+        run: python3 "${{ inputs.script_path }}" --publish-schedule

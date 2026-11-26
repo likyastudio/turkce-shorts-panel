@@ -39,15 +39,22 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install FFmpeg, Fonts & Python Deps
+      - name: Install FFmpeg & Python Deps (Fast, no apt-get)
         run: |
           set -euxo pipefail
-          which ffmpeg ffprobe google-chrome || true
-          if ! command -v ffmpeg >/dev/null 2>&1 || [ ! -f /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf ]; then
-            sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq
-            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends ffmpeg fonts-dejavu-core
-          fi
-          pip install --no-cache-dir requests pillow numpy playwright
+          which google-chrome || true
+          pip install --no-cache-dir requests pillow numpy playwright static-ffmpeg
+          python3 - <<'PY'
+          import os, static_ffmpeg
+          ff, fp = static_ffmpeg.run.get_or_fetch_platform_executables_else_raise()
+          d = os.path.dirname(ff)
+          with open(os.environ["GITHUB_PATH"], "a") as fh:
+              fh.write(d + "\n")
+          print("Added to GITHUB_PATH:", d)
+          PY
+          export PATH="$(python3 -c 'import os, static_ffmpeg; print(os.path.dirname(static_ffmpeg.run.get_or_fetch_platform_executables_else_raise()[0]))'):$PATH"
+          ffmpeg -version | head -n 1
+          ffprobe -version | head -n 1
           if ! command -v google-chrome >/dev/null 2>&1 && ! command -v chromium >/dev/null 2>&1; then
             python3 -m playwright install chromium
           fi

@@ -128,6 +128,86 @@ function buildHeroProp(stage, heroSpec) {
       handMin.rotation.z = -t * 0.45;
       handHr.rotation.z = -t * 0.06;
     });
+  } else if (kind === 'sariyer_lion') {
+    // Sarıyer Uskumruköy Forest + Giant Stylized 3D Lion Emblem + Patrolling Thermal Search Drone + CCTV Pole!
+    // Pine trees flanking the Belgrad Forest backdrop
+    for (const [tx, tz, sc] of [[-4.2, -0.4, 1.0], [4.1, -0.3, 1.1], [-2.8, -1.6, 0.85], [2.9, -1.5, 0.9]]) {
+      heroGroup.add(tcyl(0.28 * sc, 0.34 * sc, 1.8 * sc, 10, '#6f4518', tx, 0.9 * sc, tz));
+      const c1 = new THREE.Mesh(new THREE.ConeGeometry(1.35 * sc, 2.4 * sc, 10), toonMat('#2b7a3d'));
+      c1.position.set(tx, 2.5 * sc, tz);
+      c1.castShadow = true;
+      const c2 = new THREE.Mesh(new THREE.ConeGeometry(1.05 * sc, 2.1 * sc, 10), toonMat('#37964d'));
+      c2.position.set(tx, 3.8 * sc, tz);
+      c2.castShadow = true;
+      heroGroup.add(c1, c2);
+    }
+
+    // Giant 3D Golden Lion Silhouette / Medallion looming behind the trees (the "phantom lion"!)
+    const lionGroup = new THREE.Group();
+    lionGroup.position.set(0.3, 3.9, 0);
+    // Spiky golden mane ring (12 chunky wedges around face)
+    const maneDisc = tcyl(3.15, 3.15, 0.52, 16, '#d97706', 0, 0, -0.1);
+    maneDisc.rotation.x = Math.PI / 2;
+    lionGroup.add(maneDisc);
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      const spike = tbox(0.82, 0.82, 0.56, '#e85d04', Math.cos(a) * 2.9, Math.sin(a) * 2.9, -0.1);
+      spike.rotation.z = a + Math.PI / 4;
+      lionGroup.add(spike);
+    }
+    // Lion face disc + ears + eyes + snout
+    const faceDisc = tcyl(2.35, 2.35, 0.65, 24, '#f59f00', 0, 0, 0.14);
+    faceDisc.rotation.x = Math.PI / 2;
+    lionGroup.add(faceDisc);
+    for (const sx of [-1.5, 1.5]) {
+      const ear = tcyl(0.55, 0.55, 0.5, 16, '#f59f00', sx, 1.85, 0.1);
+      ear.rotation.x = Math.PI / 2;
+      lionGroup.add(ear);
+      const eye = tcyl(0.24, 0.24, 0.25, 12, '#1b141c', sx * 0.52, 0.42, 0.48);
+      eye.rotation.x = Math.PI / 2;
+      lionGroup.add(eye);
+    }
+    const snout = tcyl(0.72, 0.82, 0.35, 16, '#ffd89b', 0, -0.45, 0.45);
+    snout.rotation.x = Math.PI / 2;
+    const nose = tbox(0.58, 0.42, 0.3, '#5c2c16', 0, -0.12, 0.58);
+    lionGroup.add(snout, nose);
+    heroGroup.add(lionGroup);
+
+    // Tall CCTV Security Camera Pole on right side (the famous camera angle!)
+    heroGroup.add(tcyl(0.12, 0.14, 5.2, 10, '#495057', 2.8, 2.6, 1.8));
+    const camHead = new THREE.Group();
+    camHead.position.set(2.8, 5.25, 1.8);
+    camHead.add(tbox(0.95, 0.46, 0.52, '#f1f3f5', -0.3, 0, 0));
+    const recLed = new THREE.Mesh(
+      new THREE.SphereGeometry(0.12, 10, 8),
+      new THREE.MeshBasicMaterial({ color: 0xff2b2b })
+    );
+    recLed.position.set(-0.78, 0.1, 0.22);
+    camHead.add(recLed);
+    heroGroup.add(camHead);
+
+    // Patrolling Thermal Search Drone hovering across the sky!
+    const drone = new THREE.Group();
+    drone.add(tbox(1.15, 0.24, 0.55, '#212529', 0, 0, 0));
+    drone.add(tbox(2.1, 0.08, 0.12, '#ffd60a', 0, 0.08, 0));
+    const rotorL = tcyl(0.45, 0.45, 0.05, 12, '#adb5bd', -1.0, 0.16, 0);
+    const rotorR = tcyl(0.45, 0.45, 0.05, 12, '#adb5bd', 1.0, 0.16, 0);
+    const beamMat = new THREE.MeshBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0.32, side: THREE.DoubleSide });
+    const beam = new THREE.Mesh(new THREE.ConeGeometry(1.1, 2.6, 12, 1, true), beamMat);
+    beam.position.set(0, -1.4, 0);
+    drone.add(rotorL, rotorR, beam);
+    heroGroup.add(drone);
+
+    animators.push((t) => {
+      lionGroup.rotation.z = Math.sin(t * 1.4) * 0.05;
+      lionGroup.position.y = 3.9 + Math.sin(t * 2.1) * 0.14;
+      camHead.rotation.y = Math.sin(t * 1.8) * 0.38;
+      recLed.visible = Math.floor(t * 3.0) % 2 === 0;
+      drone.position.set(Math.sin(t * 1.25) * 2.3, 6.7 + Math.cos(t * 2.5) * 0.22, 1.4);
+      drone.rotation.z = -Math.cos(t * 1.25) * 0.12;
+      rotorL.rotation.y = t * 18;
+      rotorR.rotation.y = -t * 18;
+    });
   } else {
     // Generic monumental pedestal + glowing emblem
     heroGroup.add(tbox(5.4, 2.4, 3.0, heroSpec?.colorA || '#495057', 0, 1.2, 0));

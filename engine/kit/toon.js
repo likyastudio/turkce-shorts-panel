@@ -160,6 +160,23 @@ function drawHeldProp(ctx, prop, hx, hy, side, t) {
     ctx.moveTo(0, -18);
     ctx.lineTo(Math.sin(t * 14) * 14, -34);
     ctx.stroke();
+  } else if (prop === 'binoculars') {
+    ctx.fillStyle = '#2b303a';
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 6.5;
+    roundRectPath(ctx, -38, -28, 32, 48, 10);
+    ctx.fill();
+    ctx.stroke();
+    roundRectPath(ctx, 6, -28, 32, 48, 10);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillRect(-8, -12, 16, 14);
+    ctx.fillStyle = '#74c0fc';
+    ctx.beginPath();
+    ctx.arc(-22, -26, 10, 0, Math.PI * 2);
+    ctx.arc(22, -26, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
   }
   ctx.restore();
 }
@@ -626,13 +643,258 @@ function drawSweatDrop(ctx, hx, hy, t) {
   ctx.restore();
 }
 
+function drawCatCharacter(ctx, spec, state) {
+  ctx.clearRect(0, 0, CW, CH);
+  const t = state.t || 0;
+  const seed = spec.seed || 2;
+  const idleBob = Math.sin(t * 4.4 + seed) * 6;
+  const hop = state.hop || 0;
+
+  const fur = spec.fur || '#f08c2b';
+  const furDark = shadeHex(fur, -18);
+  const belly = spec.belly || '#fff3d6';
+  const baseY = SOLE - hop;
+  const bodyY = baseY - 210 + idleBob;
+  const headY = bodyY - 125;
+
+  ctx.save();
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+
+  // Swishing curved cat tail behind body
+  const tailWag = Math.sin(t * 5.2) * 32;
+  ctx.beginPath();
+  ctx.moveTo(CX + 58, bodyY + 125);
+  ctx.bezierCurveTo(CX + 150, bodyY + 95, CX + 175 + tailWag, bodyY - 10, CX + 130 + tailWag, bodyY - 55);
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 34;
+  ctx.stroke();
+  ctx.strokeStyle = fur;
+  ctx.lineWidth = 17;
+  ctx.stroke();
+
+  // Four cute paws / legs
+  for (const lx of [CX - 48, CX + 48]) {
+    ctx.beginPath();
+    ctx.moveTo(lx, bodyY + 130);
+    ctx.lineTo(lx, baseY - 24);
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 32;
+    ctx.stroke();
+    ctx.strokeStyle = fur;
+    ctx.lineWidth = 16;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.ellipse(lx, baseY - 18, 26, 15, 0, 0, Math.PI * 2);
+    ctx.fillStyle = belly;
+    ctx.fill();
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 7;
+    ctx.stroke();
+  }
+
+  // Plump rounded cat body + cream belly patch
+  ctx.save();
+  roundRectPath(ctx, CX - 76, bodyY - 15, 152, 170, 62);
+  ctx.fillStyle = fur;
+  ctx.fill();
+  ctx.clip();
+  ctx.fillStyle = furDark;
+  ctx.fillRect(CX + 18, bodyY - 15, 80, 170);
+  // Tabby side stripes
+  ctx.fillStyle = '#c85a0b';
+  for (const sy of [35, 72, 108]) {
+    roundRectPath(ctx, CX - 80, bodyY + sy, 36, 13, 6);
+    ctx.fill();
+    roundRectPath(ctx, CX + 44, bodyY + sy, 36, 13, 6);
+    ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.ellipse(CX, bodyY + 86, 46, 62, 0, 0, Math.PI * 2);
+  ctx.fillStyle = belly;
+  ctx.fill();
+  ctx.restore();
+
+  roundRectPath(ctx, CX - 76, bodyY - 15, 152, 170, 62);
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = OW;
+  ctx.stroke();
+
+  // Raised cute cat paw when excited
+  if (state.armL === 'up' || state.armR === 'up' || state.armL === 'wave' || state.armR === 'wave') {
+    const wave = Math.sin(t * 7.5) * 14;
+    ctx.beginPath();
+    ctx.moveTo(CX - 64, bodyY + 26);
+    ctx.quadraticCurveTo(CX - 115, bodyY - 22, CX - 102 + wave, bodyY - 76);
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 30;
+    ctx.stroke();
+    ctx.strokeStyle = fur;
+    ctx.lineWidth = 15;
+    ctx.stroke();
+  }
+
+  // Optional comedic fluffy fake lion-mane ring (when spec.mane or state.propL === 'mane')
+  if (spec.mane || state.propL === 'mane') {
+    ctx.beginPath();
+    const spikes = 14;
+    for (let i = 0; i <= spikes * 2; i++) {
+      const a = (i / (spikes * 2)) * Math.PI * 2;
+      const r = i % 2 === 0 ? 136 : 112;
+      const x = CX + Math.cos(a) * r;
+      const y = headY + Math.sin(a) * (r * 0.94);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = '#d97706';
+    ctx.fill();
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = OW;
+    ctx.stroke();
+  }
+
+  // Pointy Cat Ears
+  for (const s of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(CX + s * 22, headY - 74);
+    ctx.lineTo(CX + s * 84, headY - 134);
+    ctx.lineTo(CX + s * 86, headY - 34);
+    ctx.closePath();
+    ctx.fillStyle = fur;
+    ctx.fill();
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = OW;
+    ctx.stroke();
+
+    // Inner pink ear
+    ctx.beginPath();
+    ctx.moveTo(CX + s * 38, headY - 68);
+    ctx.lineTo(CX + s * 74, headY - 108);
+    ctx.lineTo(CX + s * 74, headY - 46);
+    ctx.closePath();
+    ctx.fillStyle = '#ff9aa2';
+    ctx.fill();
+  }
+
+  // Cat Head
+  ctx.save();
+  drawBlobHead(ctx, CX, headY, 96, 84);
+  ctx.fillStyle = fur;
+  ctx.fill();
+  ctx.clip();
+  ctx.fillStyle = furDark;
+  ctx.beginPath();
+  ctx.arc(CX + 44, headY + 12, 92, 0, Math.PI * 2);
+  ctx.fill();
+  // Forehead tabby M stripes
+  ctx.fillStyle = '#b45309';
+  for (const sx of [-18, 0, 18]) {
+    roundRectPath(ctx, CX + sx - 5, headY - 82, 10, 30, 5);
+    ctx.fill();
+  }
+  // Cute cream muzzle cheeks
+  ctx.fillStyle = belly;
+  ctx.beginPath();
+  ctx.ellipse(CX - 22, headY + 28, 30, 22, 0, 0, Math.PI * 2);
+  ctx.ellipse(CX + 22, headY + 28, 30, 22, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  drawBlobHead(ctx, CX, headY, 96, 84);
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = OW;
+  ctx.stroke();
+
+  // Whiskers
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 4.5;
+  for (const s of [-1, 1]) {
+    for (const wy of [-6, 8, 22]) {
+      ctx.beginPath();
+      ctx.moveTo(CX + s * 56, headY + 22 + wy * 0.4);
+      ctx.lineTo(CX + s * 116, headY + 16 + wy);
+      ctx.stroke();
+    }
+  }
+
+  // Big bright cartoon cat eyes
+  const f = resolveFace(state.face || 'smile');
+  const blink = blinkAt(t, seed);
+  if (blink || f === 'smile' || f === 'laugh' || f === 'relief') {
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 6.5;
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(CX + s * 34, headY - 6, 15, Math.PI * 1.12, Math.PI * 1.88);
+      ctx.stroke();
+    }
+  } else {
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(CX + s * 34, headY - 12, 22, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = INK;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(CX + s * 34, headY - 11, 9.5, 0, Math.PI * 2);
+      ctx.fillStyle = INK;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(CX + s * 34 - 4, headY - 16, 3.8, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+    }
+  }
+
+  // Pink triangle cat nose + ':3' cat mouth (or tongue lick!)
+  ctx.beginPath();
+  ctx.moveTo(CX - 12, headY + 10);
+  ctx.lineTo(CX + 12, headY + 10);
+  ctx.lineTo(CX, headY + 24);
+  ctx.closePath();
+  ctx.fillStyle = '#ff6b81';
+  ctx.fill();
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 4.5;
+  ctx.stroke();
+
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 5.5;
+  ctx.beginPath();
+  ctx.arc(CX - 12, headY + 28, 12, 0.1 * Math.PI, 0.92 * Math.PI);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(CX + 12, headY + 28, 12, 0.08 * Math.PI, 0.9 * Math.PI);
+  ctx.stroke();
+
+  if (f === 'lick' || f === 'grin') {
+    ctx.beginPath();
+    ctx.ellipse(CX, headY + 46, 11, 13, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#ff6b81';
+    ctx.fill();
+    ctx.lineWidth = 4.5;
+    ctx.stroke();
+  }
+
+  if (state.sweat) drawSweatDrop(ctx, CX, headY, t);
+  ctx.restore();
+}
+
 /**
  * Draws a single 2D inked character onto a 600x1000 canvas.
  * @param {CanvasRenderingContext2D} ctx
- * @param {object} spec - Character identity (coat, pants, skin, hat, hatColor, hatAccent, glasses, sash, tie, collar, seed)
+ * @param {object} spec - Character identity (coat, pants, skin, hat, hatColor, hatAccent, glasses, sash, tie, collar, seed, species)
  * @param {object} state - Frame pose ({ face, armL, armR, sweat, talk, propL, propR, hop, lean, t })
  */
 export function drawCharacter(ctx, spec, state) {
+  if (spec && spec.species === 'cat') {
+    drawCatCharacter(ctx, spec, state);
+    return;
+  }
   ctx.clearRect(0, 0, CW, CH);
 
   const t = state.t || 0;

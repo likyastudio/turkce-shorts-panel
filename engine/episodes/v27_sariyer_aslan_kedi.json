@@ -1,0 +1,309 @@
+{
+  "slug": "v27_sariyer_aslan_kedi",
+  "mp4_name": "Video27-Sariyerde-Aranan-Aslan-Kedi-Cikti.mp4",
+  "title": "Sarıyer'de İki Gün Boyunca Aranan Aslan Aslında Kedi Çıktı!",
+  "youtube_title": "İstanbul Sarıyer'de 2 Gün Aranan Firari Aslan Bakın Ne Çıktı! 🦁🐱 #shorts",
+  "youtube_desc": "22 Kasım 2026'da İstanbul Sarıyer Uskumruköy'de güvenlik kamerasına yansıyan 'dişi aslan' ihbarı Türkiye'yi ayağa kaldırdı! Komandolar, termal dronlar, fotokapanlar ve 54 km²'lik Belgrad Ormanı'nın kapatılmasıyla geçen 2 günün sonunda kamera kayıtları 10 dakika geriye sarılınca inanılmaz gerçek ortaya çıktı...\n\n#sarıyer #istanbul #aslan #kedi #gündem #ilginçbilgiler #akılalmaz #shorts",
+  "ig_caption": "İstanbul Sarıyer'de komandolar ve termal dronlarla 2 gün aranan firari aslanın sırrı çözüldü! 🦁➡️🐱 #sarıyer #istanbul #aslan #kedi #reels",
+  "stability": 0.5,
+  "bpm": 124,
+  "music_seed": 27,
+  "script_v4": "[excited] İstanbul'da iki gün boyunca komandoların, termal dronların ve tüm Türkiye'nin aradığı firari aslanın, aslında sıradan bir kedi çıktığını biliyor muydunuz? [surprised] Koskoca Belgrad Ormanı bile kapatıldı; meğer her şey on beş santimlik otlar ve bir kamera açısı yüzündenmiş! [curious] Peki tek bir kedi İstanbul'u nasıl alarma geçirdi? [storytelling] Yirmi iki Kasım iki bin yirmi altıda Sarıyer Uskumruköy'de bir villanın güvenlik kamerasına dişi aslan sanılan bir görüntü yansıdı. Görüntü yayılınca jandarma komandoları, AFAD, termal dronlar ve fotokapanlar hemen bölgeye sevk edildi. [dramatic] Elli dört kilometrekarelik Belgrad Ormanı girişlere kapatıldı; hatta gece kükreme sesi duyduk diyenler bile çıktı! [surprised] Üstelik o ünlü kaydın, Başakşehirli futbolcu Bertuğ Yıldırım'ın evinden çıktığı anlaşıldı! [amused] Ama sahada tek bir iz bile bulunamayınca uzmanlar kaydı on dakika geriye sardı. [amused, chuckles] Meğer kısa otların arasından geçen masum bir kedi, bulanık kamera açısıyla dev aslan sanılmış! [storytelling] İşte İstanbul'u ayağa kaldıran o meşhur Sarıyer aslanı vakası şöyle başlar:",
+  "stage": {
+    "fogColor": "#98d4e8",
+    "skyTop": "#4a9ed6",
+    "skyMid": "#8fd3eb",
+    "skyBot": "#f7d97e",
+    "groundA": "#5b9e47",
+    "groundB": "#488538",
+    "stoneA": "#7d7463",
+    "stoneB": "#635c4e",
+    "stoneGrout": "#343028",
+    "curbColor": "#4f8c3d",
+    "plasterA": "#c2a666",
+    "plasterB": "#b39553",
+    "plasterSpot": "#9c7e3e",
+    "sign": {
+      "title": "SARIYER • 2026",
+      "subtitle": "USKUMRUKÖY • FİRARİ ASLAN ALARMI",
+      "bg": "#b71c1c",
+      "border": "#ffd60a",
+      "titleColor": "#ffd60a",
+      "subColor": "#ffffff"
+    },
+    "boards": [
+      {
+        "header": "SARIYER'DE ASLAN ALARMI!",
+        "line1": "KOMANDO + TERMAL DRON!",
+        "line2": "AFAD, İBB VE MİLLİ PARKLAR",
+        "line3": "FOTOKAPANLAR KURULDU!",
+        "bg": "#0c3c78",
+        "accent": "#4dabf7",
+        "headerColor": "#ffd60a",
+        "desk": true
+      },
+      {
+        "header": "54 KM² ORMAN TARANDI!",
+        "line1": "BELGRAD ORMANI KAPATILDI!",
+        "line2": "KAYIT BERTUĞ YILDIRIM'DAN",
+        "line3": "GECE KÜKREME İHBARLARI!",
+        "bg": "#9b111e",
+        "accent": "#ff6b6b",
+        "headerColor": "#ffd60a",
+        "desk": false
+      },
+      {
+        "header": "ASLAN DEĞİL, KEDİ ÇIKTI!",
+        "line1": "15:24 KAYDI GERİ SARILDI!",
+        "line2": "15 CM OT + KAMERA AÇISI!",
+        "line3": "VALİLİK: ASLAN YOK, KEDİ!",
+        "bg": "#114b34",
+        "accent": "#40c057",
+        "headerColor": "#51cf66",
+        "desk": true
+      }
+    ]
+  },
+  "heroProp": {
+    "kind": "sariyer_lion"
+  },
+  "characters": [
+    {
+      "id": "officer",
+      "coat": "#1d3557",
+      "pants": "#16243a",
+      "skin": "#f4be91",
+      "hat": "bobby",
+      "hatColor": "#1d3557",
+      "hatAccent": "#102038",
+      "collar": true,
+      "collarColor": "#e9ecef",
+      "sash": "#ffd60a",
+      "seed": 5
+    },
+    {
+      "id": "cat",
+      "species": "cat",
+      "fur": "#f08c2b",
+      "belly": "#fff3d6",
+      "seed": 11
+    }
+  ],
+  "fx": {
+    "year": { "year": "2026", "place": "22 KASIM" },
+    "mark": { "symbol": "?", "bg": "#ffd60a" },
+    "badges": {
+      "hookBadge": { "top": "15 CM OT!", "bottom": "KAMERA AÇISI!", "bg": "#e63946", "fg": "#ffffff" },
+      "board1Badge": { "top": "TERMAL DRON", "bottom": "KOMANDO SAHADA!", "bg": "#ffd60a", "fg": "#1b141c" },
+      "board2Badge": { "top": "SON DAKİKA!", "bottom": "EV KAMERASINDAN!", "bg": "#22b8cf", "fg": "#1b141c" },
+      "recordBadge": { "top": "MİYAV!", "bottom": "ASLAN DEĞİL KEDİ!", "bg": "#40c057", "fg": "#1b141c" }
+    }
+  },
+  "scenes": [
+    {
+      "id": "s0",
+      "note": "Hook Outdoor (x=0 — Officer searching + Cat with playful mane)",
+      "fallback_frac": 0.0,
+      "flash": false,
+      "camA": [0.0, 2.02, 6.15],
+      "camB": [0.0, 2.10, 5.65],
+      "lookA": [0.0, 1.98, -2.2],
+      "lookB": [0.0, 2.06, -2.2],
+      "focusDist": 5.8,
+      "focusRange": 2.7,
+      "maxBlur": 2.6,
+      "actors": {
+        "officer": { "x": -0.62, "z": 0.2, "face": "shock", "armL": "up", "armR": "point", "propR": "binoculars", "sweat": true, "talk": true },
+        "cat": { "x": 0.62, "z": 0.2, "s": 0.88, "face": "lick", "armL": "wave", "propL": "mane", "talk": false }
+      }
+    },
+    {
+      "id": "s1",
+      "note": "Quick Final Flash (x=180 — Cat revealed + 15 cm ot badge)",
+      "anchor": "Koskoca Belgrad",
+      "fallback_frac": 0.14,
+      "flash": true,
+      "cutSfx": "whoosh",
+      "camA": [180.0, 2.15, 4.95],
+      "camB": [180.0, 2.22, 4.5],
+      "lookA": [180.0, 2.12, -4.4],
+      "lookB": [180.0, 2.20, -4.4],
+      "focusDist": 6.5,
+      "focusRange": 5.0,
+      "maxBlur": 1.4,
+      "actors": {
+        "officer": { "x": 179.42, "z": -0.65, "face": "pained", "armL": "facepalm", "armR": "up", "sweat": true, "talk": true },
+        "cat": { "x": 180.58, "z": -0.65, "s": 0.85, "face": "smile", "armL": "wave", "hop": 12, "talk": false }
+      },
+      "fx": [
+        { "id": "hookBadge", "pos": [180.0, 1.72, -2.6], "scale": 0.72, "delay": 0.14, "sfx": "pop" }
+      ]
+    },
+    {
+      "id": "s2",
+      "note": "Question Mark Close-Up (x=0 — Confused officer + ?)",
+      "anchor": "Peki tek",
+      "fallback_frac": 0.24,
+      "flash": true,
+      "cutSfx": "whoosh",
+      "camA": [0.1, 1.92, 4.75],
+      "camB": [0.1, 1.98, 4.25],
+      "lookA": [0.1, 1.88, -2.0],
+      "lookB": [0.1, 1.94, -2.0],
+      "focusDist": 4.5,
+      "focusRange": 2.4,
+      "maxBlur": 2.8,
+      "actors": {
+        "officer": { "x": 0.1, "z": 0.2, "face": "nervous", "armL": "shrug", "armR": "shrug", "propR": "binoculars", "sweat": true, "talk": true },
+        "cat": { "hidden": true }
+      },
+      "fx": [
+        { "id": "mark", "pos": [0.15, 2.92, -0.25], "scale": 0.80, "delay": 0.10, "sfx": "pop" }
+      ]
+    },
+    {
+      "id": "s3",
+      "note": "Date Card 22 Kasım 2026 (x=0)",
+      "anchor": "Yirmi iki Kasım",
+      "fallback_frac": 0.33,
+      "flash": true,
+      "cutSfx": "whoosh",
+      "camA": [0.0, 2.05, 5.95],
+      "camB": [0.0, 2.0, 5.45],
+      "lookA": [0.0, 2.02, -2.2],
+      "lookB": [0.0, 1.98, -2.2],
+      "focusDist": 6.0,
+      "focusRange": 5.5,
+      "maxBlur": 1.2,
+      "actors": {
+        "officer": { "x": -0.60, "z": 0.2, "face": "shock", "armL": "up", "armR": "point", "propR": "binoculars", "sweat": true, "talk": true },
+        "cat": { "x": 0.60, "z": 0.2, "s": 0.88, "face": "grin", "propL": "mane", "talk": false }
+      },
+      "fx": [
+        { "id": "year", "pos": [0.55, 3.05, -1.6], "scale": 0.88, "delay": 0.14, "sfx": "pop" }
+      ]
+    },
+    {
+      "id": "s4",
+      "note": "Board 1 — Commando + Thermal Drone Search (x=60)",
+      "anchor": "Görüntü yayılınca",
+      "fallback_frac": 0.45,
+      "flash": true,
+      "cutSfx": "whoosh",
+      "camA": [60.0, 2.15, 4.95],
+      "camB": [60.0, 2.22, 4.45],
+      "lookA": [60.0, 2.12, -4.4],
+      "lookB": [60.0, 2.20, -4.4],
+      "focusDist": 6.5,
+      "focusRange": 5.5,
+      "maxBlur": 1.1,
+      "actors": {
+        "officer": { "x": 59.42, "z": -0.65, "face": "stern", "armL": "up", "armR": "point", "propR": "binoculars", "sweat": true, "talk": true },
+        "cat": { "x": 60.58, "z": -0.65, "s": 0.85, "face": "neutral", "armL": "wave", "talk": false }
+      },
+      "fx": [
+        { "id": "board1Badge", "pos": [60.0, 1.72, -2.6], "scale": 0.74, "delay": 0.18, "sfx": "pop" }
+      ]
+    },
+    {
+      "id": "s5",
+      "note": "Board 2a — Belgrad Forest Closed + Roar Reports (x=120)",
+      "anchor": "Elli dört",
+      "fallback_frac": 0.56,
+      "flash": true,
+      "cutSfx": "whoosh",
+      "camA": [120.0, 2.12, 4.85],
+      "camB": [120.0, 2.18, 4.35],
+      "lookA": [120.0, 2.14, -4.4],
+      "lookB": [120.0, 2.22, -4.4],
+      "focusDist": 6.2,
+      "focusRange": 5.5,
+      "maxBlur": 1.1,
+      "actors": {
+        "officer": { "x": 120.0, "z": -0.55, "face": "nervous", "armL": "shrug", "armR": "up", "propR": "binoculars", "sweat": true, "hop": 14, "talk": true },
+        "cat": { "hidden": true }
+      }
+    },
+    {
+      "id": "s6",
+      "note": "Board 2b — Bertug Yildirim Camera Record (x=120)",
+      "anchor": "Üstelik",
+      "fallback_frac": 0.67,
+      "flash": false,
+      "camA": [120.0, 2.18, 4.45],
+      "camB": [120.0, 2.12, 4.85],
+      "lookA": [120.0, 2.18, -4.4],
+      "lookB": [120.0, 2.12, -4.4],
+      "focusDist": 6.2,
+      "focusRange": 5.5,
+      "maxBlur": 1.1,
+      "actors": {
+        "officer": { "x": 119.42, "z": -0.65, "face": "shock", "armL": "up", "armR": "up", "sweat": true, "talk": true },
+        "cat": { "x": 120.58, "z": -0.65, "s": 0.85, "face": "lick", "armL": "wave", "hop": 14, "talk": false }
+      },
+      "fx": [
+        { "id": "board2Badge", "pos": [120.0, 1.72, -2.6], "scale": 0.76, "delay": 0.14, "sfx": "boing" }
+      ]
+    },
+    {
+      "id": "s7",
+      "note": "Final Board 3a — Footage Rewound 10 Minutes (x=180)",
+      "anchor": "Ama sahada",
+      "fallback_frac": 0.76,
+      "flash": true,
+      "cutSfx": "whoosh",
+      "camA": [180.0, 2.15, 4.95],
+      "camB": [180.0, 2.22, 4.45],
+      "lookA": [180.0, 2.12, -4.4],
+      "lookB": [180.0, 2.20, -4.4],
+      "focusDist": 6.4,
+      "focusRange": 5.5,
+      "maxBlur": 1.1,
+      "actors": {
+        "officer": { "x": 179.42, "z": -0.65, "face": "relief", "armL": "facepalm", "armR": "hip", "sweat": true, "talk": true },
+        "cat": { "x": 180.58, "z": -0.65, "s": 0.86, "face": "smile", "armL": "wave", "hop": 14, "talk": false }
+      }
+    },
+    {
+      "id": "s8",
+      "note": "Final Board 3b — Cat Reveal + Sparkles (x=180)",
+      "anchor": "Meğer kısa",
+      "fallback_frac": 0.85,
+      "flash": false,
+      "camA": [180.0, 2.22, 4.45],
+      "camB": [180.0, 2.26, 4.2],
+      "lookA": [180.0, 2.20, -4.4],
+      "lookB": [180.0, 2.24, -4.4],
+      "focusDist": 6.4,
+      "focusRange": 5.8,
+      "maxBlur": 0.9,
+      "actors": {
+        "officer": { "x": 179.42, "z": -0.65, "face": "laugh", "armL": "up", "armR": "up", "hop": 14, "talk": true },
+        "cat": { "x": 180.58, "z": -0.65, "s": 0.88, "face": "lick", "armL": "wave", "hop": 18, "talk": false }
+      },
+      "fx": [
+        { "id": "recordBadge", "pos": [180.0, 1.72, -2.5], "scale": 0.78, "delay": 0.12, "sfx": "ding" }
+      ],
+      "sparkles": [180.0, 1.72, -2.35]
+    },
+    {
+      "id": "s9",
+      "note": "Seamless Loop Return (exact s0 framing x=0)",
+      "anchor": "İşte İstanbul",
+      "fallback_frac": 0.93,
+      "flash": true,
+      "cutSfx": "whoosh",
+      "camA": [0.0, 2.10, 5.65],
+      "camB": [0.0, 2.02, 6.15],
+      "lookA": [0.0, 2.06, -2.2],
+      "lookB": [0.0, 1.98, -2.2],
+      "focusDist": 5.8,
+      "focusRange": 2.7,
+      "maxBlur": 2.6,
+      "actors": {
+        "officer": { "x": -0.62, "z": 0.2, "face": "shock", "armL": "up", "armR": "point", "propR": "binoculars", "sweat": true, "talk": true },
+        "cat": { "x": 0.62, "z": 0.2, "s": 0.88, "face": "lick", "armL": "wave", "propL": "mane", "talk": false }
+      }
+    }
+  ]
+}

@@ -1038,14 +1038,31 @@ def generate_covers_and_schedule(selected_eps: list[dict[str, Any]], generate_co
         for ep in selected_eps:
             slug = ep["slug"]
             print(f"[Kapak] Vertex AI 9:16 üretiliyor ({slug})...", flush=True)
-            rc = requests.post(
-                f"{api_url}/api/covers/generate",
-                headers={**hdr, "Content-Type": "application/json"},
-                json={"key": slug, "prompt": ep["meta"]["flow_prompt"], "aspect_ratio": "9:16"},
-                timeout=150,
-            )
-            rc.raise_for_status()
-            img_url = rc.json()["image_url"]
+            prompts = [
+                ep["meta"]["flow_prompt"],
+                (
+                    f"Colorful playful 3D Pixar-style cartoon vertical poster, 9:16 aspect ratio, "
+                    f"cheerful humorous historical storytelling scene representing '{ep['title']}', "
+                    f"bright warm studio lighting, vivid colors, charming cartoon characters, "
+                    f"NO text, NO words, NO letters, NO watermark."
+                ),
+            ]
+            img_url = None
+            for attempt, pr in enumerate(prompts, 1):
+                rc = requests.post(
+                    f"{api_url}/api/covers/generate",
+                    headers={**hdr, "Content-Type": "application/json"},
+                    json={"key": slug, "prompt": pr, "aspect_ratio": "9:16"},
+                    timeout=150,
+                )
+                if rc.ok:
+                    img_url = rc.json()["image_url"]
+                    break
+                print(f"  ! Kapak deneme #{attempt} başarısız ({rc.status_code}): {rc.text[:300]}", flush=True)
+                time.sleep(3)
+            if not img_url:
+                print(f"  ! {slug} için Vertex AI kapak üretilemedi, sonrakine geçiliyor.", flush=True)
+                continue
             ir = requests.get(img_url, timeout=60)
             ir.raise_for_status()
             out_dir = REPO_DIR / "files" / slug / "out"
@@ -1070,11 +1087,16 @@ def generate_covers_and_schedule(selected_eps: list[dict[str, Any]], generate_co
             else:
                 raise SystemExit(f"Video canlıda erişilemedi: {vurl}")
 
-        yt_quota_hit = False
+        remaining_yt = max(0, int(yt_q.get("limit", 25)) - int(yt_q.get("used", 0)))
+        yt_synced_now = 0
+        yt_quota_hit = remaining_yt <= 0
+        print(f"=== PLANLAMA BAŞLIYOR: Kalan YouTube günlük ön-yükleme limiti: {remaining_yt} ===", flush=True)
+
         for ep in selected_eps:
             slug = ep["slug"]
             vurl = f"{site_base}/files/{slug}/out/{ep['file_name']}"
             curl = f"{api_url}/api/covers/{slug}.png"
+            try_yt_now = (not yt_quota_hit) and (yt_synced_now < remaining_yt)
             payload = {
                 "brand": "akilalmaz",
                 "video_id": slug,
@@ -1084,7 +1106,7 @@ def generate_covers_and_schedule(selected_eps: list[dict[str, Any]], generate_co
                 "ig_caption": ep["meta"]["instagram"]["caption"],
                 "cover_url": curl,
                 "auto_next_slot": True,
-                "sync_youtube_now": not yt_quota_hit,
+                "sync_youtube_now": try_yt_now,
             }
             sr = requests.post(
                 f"{api_url}/api/schedule",
@@ -1095,19 +1117,20 @@ def generate_covers_and_schedule(selected_eps: list[dict[str, Any]], generate_co
             if sr.status_code == 409:
                 print(f"  -> {slug}: Zaten planlı (409), atlandı.", flush=True)
                 continue
-            sr.raise_for_status()
+            if not sr.ok:
+                print(f"  ! {slug} planlama hatası ({sr.status_code}): {sr.text[:300]}", flush=True)
+                continue
             res = sr.json()
             post = res.get("post") or {}
             yt_up = bool(res.get("yt_uploaded"))
             yt_sync = res.get("yt_sync") or {}
             yt_err = str(yt_sync.get("error") or "")
-            if not yt_up and ("quota" in yt_err.lower() or "exceeded" in yt_err.lower() or "limit" in yt_err.lower()):
+            if yt_up:
+                yt_synced_now += 1
+            elif try_yt_now and ("quota" in yt_err.lower() or "exceeded" in yt_err.lower() or "limit" in yt_err.lower()):
                 yt_quota_hit = True
-            print(
-                f"  -> ✅ #{post.get('id')} {slug} | Slot: {post.get('label_tr')} | YT yüklendi: {yt_up}"
-                + (f" | YT notu: {yt_err[:120]}" if yt_err else ""),
-                flush=True,
-            )
+            mode_note = "YouTube Studio'ya hemen yüklendi" if yt_up else ("YouTube günlük kota doldu — panel kuyruğunda, kota yenilenince otomatik yüklenecek" if not try_yt_now else f"YT notu: {yt_err[:140]}")
+            print(f"  -> ✅ #{post.get('id')} {slug} | Slot: {post.get('label_tr')} | YT yüklendi: {yt_up} | {mode_note}", flush=True)
 
 
 def main() -> None:

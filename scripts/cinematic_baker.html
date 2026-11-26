@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<title>AKILALMAZ Cinematic Multi-Location 3D-Toon Baker (v1/v3 Viral Style)</title>
+<style>
+  * { margin: 0; padding: 0; }
+  html, body { width: 1296px; height: 2304px; overflow: hidden; background: #141210; }
+  #gl { width: 1296px; height: 2304px; display: block; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+</head>
+<body>
+<canvas id="gl" width="1296" height="2304"></canvas>
+<script>
+(() => {
+  const BG_W = 1296, BG_H = 2304;
+  const glCanvas = document.getElementById("gl");
+
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+  function shadeHex(hex, amt) {
+    let n = parseInt(hex.replace("#", ""), 16);
+    let r = clamp((n >> 16) + amt, 0, 255);
+    let g = clamp(((n >> 8) & 0xff) + amt, 0, 255);
+    let b = clamp((n & 0xff) + amt, 0, 255);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  const renderer = new THREE.WebGLRenderer({
+    canvas: glCanvas,
+    antialias: true,
+    alpha: false,
+    preserveDrawingBuffer: true,
+  });
+  renderer.setSize(BG_W, BG_H, false);
+  renderer.setPixelRatio(1);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+
+  function makeTileOrPlankTex(baseA, baseB, lineC, cols = 8, rows = 8, grid = false) {
+    const c = document.createElement("canvas");
+    c.width = 512; c.height = 512;
+    const ctx = c.getContext("2d");
+    const g = ctx.createLinearGradient(0, 0, 0, 512);
+    g.addColorStop(0, baseA); g.addColorStop(1, baseB);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 512);
+    const sw = 512 / cols, sh = 512 / rows;
+    for (let i = 0; i < cols; i++) {
+      if (i % 2 === 0 && !grid) { ctx.fillStyle = "rgba(0,0,0,0.06)"; ctx.fillRect(i * sw, 0, sw, 512); }
+      ctx.strokeStyle = lineC; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(i * sw, 0); ctx.lineTo(i * sw, 512); ctx.stroke();
+    }
+    if (grid) {
+      for (let j = 0; j < rows; j++) {
+        for (let i = 0; i < cols; i++) {
+          if ((i + j) % 2 === 0) { ctx.fillStyle = "rgba(0,0,0,0.055)"; ctx.fillRect(i * sw, j * sh, sw, sh); }
+        }
+        ctx.strokeStyle = lineC; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(0, j * sh); ctx.lineTo(512, j * sh); ctx.stroke();
+      }
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.encoding = THREE.sRGBEncoding;
+    return tex;
+  }
+
+  function makeBrickTex(baseHex, mortarHex) {
+    const c = document.createElement("canvas");
+    c.width = 512; c.height = 512;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = mortarHex; ctx.fillRect(0, 0, 512, 512);
+    const rows = 8, cols = 4, bh = 512 / rows, bw = 512 / cols;
+    for (let r = 0; r < rows; r++) {
+      const off = (r % 2) * (bw * 0.5);
+      for (let col = -1; col <= cols; col++) {
+        ctx.fillStyle = shadeHex(baseHex, ((r * 17 + col * 23) % 22) - 11);
+        ctx.fillRect(col * bw + off + 4, r * bh + 4, bw - 8, bh - 8);
+      }
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.encoding = THREE.sRGBEncoding;
+    return tex;
+  }
+
+  function makeSignTex(top, sub, bg = "#1c4d96", border = "#f4c425") {
+    const c = document.createElement("canvas");
+    c.width = 768; c.height = 256;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#171720"; roundRect(ctx, 4, 4, 760, 248, 28); ctx.fill();
+    ctx.fillStyle = border; roundRect(ctx, 14, 14, 740, 228, 22); ctx.fill();
+    ctx.fillStyle = bg; roundRect(ctx, 26, 26, 716, 204, 16); ctx.fill();
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    let sz = 56;
+    ctx.font = `bold ${sz}px 'DejaVu Sans', sans-serif`;
+    while (ctx.measureText(top).width > 670 && sz > 28) { sz -= 2; ctx.font = `bold ${sz}px 'DejaVu Sans', sans-serif`; }
+    ctx.fillStyle = "#ffd95a"; ctx.fillText(top, 384, 96);
+    let sz2 = 34;
+    ctx.font = `bold ${sz2}px 'DejaVu Sans', sans-serif`;
+    while (ctx.measureText(sub).width > 670 && sz2 > 20) { sz2 -= 2; ctx.font = `bold ${sz2}px 'DejaVu Sans', sans-serif`; }
+    ctx.fillStyle = "#ffffff"; ctx.fillText(sub, 384, 174);
+    const tex = new THREE.CanvasTexture(c);
+    tex.encoding = THREE.sRGBEncoding;
+    return tex;
+  }
+
+  function makeChalkboardTex(title, bigStat, subLines) {
+    const c = document.createElement("canvas");
+    c.width = 1024; c.height = 768;
+    const ctx = c.getContext("2d");
+    // Classic v1 Dunning-Kruger / v3 Emu War dark green wooden chalkboard!
+    ctx.fillStyle = "#5c3818"; roundRect(ctx, 0, 0, 1024, 768, 24); ctx.fill();
+    ctx.fillStyle = "#8a5628"; roundRect(ctx, 14, 14, 996, 740, 18); ctx.fill();
+    const g = ctx.createLinearGradient(0, 40, 0, 728);
+    g.addColorStop(0, "#1c4a38"); g.addColorStop(1, "#123326");
+    ctx.fillStyle = g; ctx.fillRect(42, 42, 940, 684);
+
+    // Subtle chalk dust smudges
+    ctx.fillStyle = "rgba(255,255,255,0.035)";
+    for (let i = 0; i < 6; i++) {
+      ctx.beginPath(); ctx.ellipse(200 + i * 130, 180 + (i % 3) * 190, 160, 48, 0.2, 0, Math.PI * 2); ctx.fill();
+    }
+
+    const fit = (txt, maxW, maxSz, minSz = 24) => {
+      for (let s = maxSz; s >= minSz; s -= 2) {
+        ctx.font = `bold ${s}px 'DejaVu Sans', sans-serif`;
+        if (ctx.measureText(txt).width <= maxW) return s;
+      }
+      return minSz;
+    };
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    fit(title, 860, 52, 30);
+    ctx.fillStyle = "#ffe066"; ctx.fillText(title, 512, 128);
+    ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(110, 186); ctx.lineTo(914, 186); ctx.stroke();
+
+    fit(bigStat, 860, 74, 38);
+    ctx.fillStyle = "#7effa8"; ctx.fillText(bigStat, 512, 310);
+
+    subLines.forEach((ln, idx) => {
+      fit(ln, 850, 40, 24);
+      ctx.fillStyle = idx === subLines.length - 1 ? "#ffd85a" : "#eef6f0";
+      ctx.fillText(ln, 512, 455 + idx * 96);
+    });
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.encoding = THREE.sRGBEncoding;
+    return tex;
+  }
+
+  function makeBaseScene(bgHex, keyColor = 0xfff1d2, keyInt = 1.05) {
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(bgHex);
+    scene.fog = new THREE.Fog(bgHex, 20, 48);
+    scene.add(new THREE.HemisphereLight(0xfff5e0, 0x5c4630, 0.94));
+    const key = new THREE.DirectionalLight(keyColor, keyInt);
+    key.position.set(5.5, 11.5, 8.5);
+    key.castShadow = true;
+    key.shadow.mapSize.width = 1024;
+    key.shadow.mapSize.height = 1024;
+    key.shadow.camera.near = 1; key.shadow.camera.far = 36;
+    key.shadow.camera.left = -11; key.shadow.camera.right = 11;
+    key.shadow.camera.top = 13; key.shadow.camera.bottom = -4;
+    key.shadow.bias = -0.0012;
+    scene.add(key);
+    const fill = new THREE.DirectionalLight(0xaad4ff, 0.34);
+    fill.position.set(-7, 5, 5);
+    scene.add(fill);
+    return scene;
+  }
+
+  function addSign(scene, top, sub, x = -1.25, y = 4.65, z = -0.5, bg = "#1c4d96") {
+    const wood = new THREE.MeshStandardMaterial({ color: 0x543417, roughness: 0.8 });
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, y, 10), wood);
+    post.position.set(x - 0.15, y * 0.5, z - 0.06); post.castShadow = true; scene.add(post);
+    const sign = new THREE.Mesh(
+      new THREE.BoxGeometry(2.55, 0.88, 0.14),
+      [wood, wood, wood, wood, new THREE.MeshStandardMaterial({ map: makeSignTex(top, sub, bg), roughness: 0.5 }), wood]
+    );
+    sign.position.set(x, y, z); sign.rotation.y = 0.08; sign.castShadow = true;
+    scene.add(sign);
+  }
+
+  function buildMainWorld(scene, cfg) {
+    const floorTex = makeTileOrPlankTex(cfg.floorA, cfg.floorB, cfg.floorLine, 10, 10, cfg.gridFloor);
+    floorTex.repeat.set(3, 3);
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.78 }));
+    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+    if (!cfg.outdoorHero) {
+      const wTex = cfg.brickWall ? makeBrickTex(cfg.wallA, cfg.wallLine) : makeTileOrPlankTex(cfg.wallA, cfg.wallB, cfg.wallLine, 8, 8, false);
+      wTex.repeat.set(2, 2);
+      const wall = new THREE.Mesh(new THREE.PlaneGeometry(34, 22), new THREE.MeshStandardMaterial({ map: wTex, roughness: 0.85 }));
+      wall.position.set(0, 10, -5.4); wall.receiveShadow = true; scene.add(wall);
+    }
+
+    const kind = cfg.heroKind;
+    if (kind === "molasses_tank") {
+      // Historic Boston brick street + lampposts + giant steel molasses tank!
+      const steel = new THREE.MeshStandardMaterial({ color: 0x4b5563, metalness: 0.55, roughness: 0.42 });
+      const tank = new THREE.Mesh(new THREE.CylinderGeometry(2.35, 2.4, 5.2, 28), steel);
+      tank.position.set(0.35, 2.6, -2.4); tank.castShadow = true; scene.add(tank);
+      const band = new THREE.MeshStandardMaterial({ color: 0x262c34, metalness: 0.6, roughness: 0.4 });
+      [1.0, 2.3, 3.6, 4.9].forEach((y) => {
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(2.4, 0.08, 10, 28), band);
+        ring.rotation.x = Math.PI / 2; ring.position.set(0.35, y, -2.4); scene.add(ring);
+      });
+      // Street lampposts
+      const iron = new THREE.MeshStandardMaterial({ color: 0x1d2128, roughness: 0.5 });
+      [-3.1, 3.2].forEach((lx) => {
+        const p = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 4.8, 10), iron);
+        p.position.set(lx, 2.4, -0.8); scene.add(p);
+        const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.28, 14, 14), new THREE.MeshBasicMaterial({ color: 0xffe484 }));
+        lamp.position.set(lx, 4.95, -0.8); scene.add(lamp);
+      });
+      // Molasses puddle starting to leak
+      const syrup = new THREE.MeshStandardMaterial({ color: 0x4a2109, roughness: 0.12, metalness: 0.15 });
+      const spill = new THREE.Mesh(new THREE.CylinderGeometry(2.8, 3.2, 0.14, 24), syrup);
+      spill.position.set(0.2, 0.07, -0.5); scene.add(spill);
+    } else if (kind === "alpine_outpost") {
+      // Bright sunny Alps valley + snow peaks + pine trees + wooden outpost!
+      const mtn = new THREE.MeshStandardMaterial({ color: 0x3b6e52, roughness: 0.85 });
+      const snow = new THREE.MeshStandardMaterial({ color: 0xf4f8ff, roughness: 0.6 });
+      [[-3.2, 3.8, -5.2, 3.6, 7.2], [3.1, 4.1, -5.5, 3.8, 7.8], [0.0, 4.6, -6.2, 4.2, 8.6]].forEach(([x, y, z, r, h]) => {
+        const c = new THREE.Mesh(new THREE.ConeGeometry(r, h, 8), mtn); c.position.set(x, y, z); scene.add(c);
+        const s = new THREE.Mesh(new THREE.ConeGeometry(r * 0.42, h * 0.38, 8), snow); s.position.set(x, y + h * 0.31, z); scene.add(s);
+      });
+      // Pine trees
+      const pine = new THREE.MeshStandardMaterial({ color: 0x1e5c35, roughness: 0.85 });
+      const trunk = new THREE.MeshStandardMaterial({ color: 0x5c3a1e, roughness: 0.9 });
+      [[-2.8, -1.8], [2.9, -1.6], [-2.1, -3.0]].forEach(([tx, tz]) => {
+        const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 1.2, 8), trunk); tr.position.set(tx, 0.6, tz); scene.add(tr);
+        const top = new THREE.Mesh(new THREE.ConeGeometry(0.85, 2.2, 7), pine); top.position.set(tx, 2.0, tz); scene.add(top);
+      });
+      const cab = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.0, 2.0), new THREE.MeshStandardMaterial({ color: 0x8f5b2c, roughness: 0.8 }));
+      cab.position.set(0.8, 1.0, -2.5); cab.castShadow = true; scene.add(cab);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(2.2, 1.35, 4), new THREE.MeshStandardMaterial({ color: 0xb8352a, roughness: 0.7 }));
+      roof.rotation.y = Math.PI / 4; roof.position.set(0.8, 2.65, -2.5); scene.add(roof);
+      const sun = new THREE.Mesh(new THREE.SphereGeometry(0.85, 20, 20), new THREE.MeshBasicMaterial({ color: 0xffe066 }));
+      sun.position.set(2.2, 6.2, -4.0); scene.add(sun);
+    } else if (kind === "royal_throne") {
+      // Lavish gilded French palace hall + crimson carpet + marble columns + golden throne!
+      const gold = new THREE.MeshStandardMaterial({ color: 0xf0be32, metalness: 0.55, roughness: 0.28 });
+      const velvet = new THREE.MeshStandardMaterial({ color: 0xa11a24, roughness: 0.72 });
+      const marble = new THREE.MeshStandardMaterial({ color: 0xf4eee0, roughness: 0.4 });
+      [-3.1, 3.1].forEach((cx) => {
+        const col = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.46, 8.5, 16), marble);
+        col.position.set(cx, 4.25, -3.5); col.castShadow = true; scene.add(col);
+        const cap = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.35, 1.1), gold);
+        cap.position.set(cx, 8.4, -3.5); scene.add(cap);
+      });
+      const carpet = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 16), velvet);
+      carpet.rotation.x = -Math.PI / 2; carpet.position.set(0, 0.03, 0); scene.add(carpet);
+      const throne = new THREE.Mesh(new THREE.BoxGeometry(1.9, 3.1, 0.35), velvet);
+      throne.position.set(0.3, 1.75, -2.1); throne.castShadow = true; scene.add(throne);
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(2.15, 3.35, 0.25), gold);
+      frame.position.set(0.3, 1.75, -2.18); scene.add(frame);
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.55, 1.3), velvet);
+      seat.position.set(0.3, 0.5, -1.55); scene.add(seat);
+    } else if (kind === "sea_rock_fort") {
+      // Caribbean turquoise ocean + towering volcanic rock fortress + cannons + Union Jack!
+      const rockM = new THREE.MeshStandardMaterial({ color: 0x5c5b5e, roughness: 0.92, flatShading: true });
+      const r1 = new THREE.Mesh(new THREE.DodecahedronGeometry(2.75, 1), rockM);
+      r1.scale.set(1.05, 1.65, 0.85); r1.position.set(0.35, 2.35, -2.6); r1.castShadow = true; scene.add(r1);
+      const r2 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.5, 0), rockM);
+      r2.position.set(-1.5, 1.1, -2.2); scene.add(r2);
+      const iron = new THREE.MeshStandardMaterial({ color: 0x1e222a, metalness: 0.7, roughness: 0.35 });
+      [[-0.9, 3.1, -1.5, -0.4], [1.7, 2.8, -1.6, 0.35]].forEach(([x, y, z, rz]) => {
+        const cn = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.26, 1.45, 14), iron);
+        cn.rotation.z = Math.PI / 2 + rz; cn.position.set(x, y, z); scene.add(cn);
+      });
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.4, 8), new THREE.MeshStandardMaterial({ color: 0x5c3818 }));
+      pole.position.set(0.35, 5.7, -2.3); scene.add(pole);
+      const flag = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.85, 0.05), new THREE.MeshStandardMaterial({ color: 0xc8232c, roughness: 0.6 }));
+      flag.position.set(1.08, 6.4, -2.3); scene.add(flag);
+    } else if (kind === "nasa_launchpad") {
+      // 1962 NASA Cape Canaveral launchpad + red steel gantry + gleaming white Atlas rocket!
+      const redSteel = new THREE.MeshStandardMaterial({ color: 0xc9312b, roughness: 0.48, metalness: 0.35 });
+      const tower = new THREE.Mesh(new THREE.BoxGeometry(1.05, 6.5, 1.05), redSteel);
+      tower.position.set(1.75, 3.25, -2.5); tower.castShadow = true; scene.add(tower);
+      const pad = new THREE.Mesh(new THREE.BoxGeometry(5.5, 0.65, 4.0), new THREE.MeshStandardMaterial({ color: 0x606670, roughness: 0.85 }));
+      pad.position.set(0, 0.32, -2.3); scene.add(pad);
+      const rg = new THREE.Group(); rg.position.set(-0.1, 3.4, -2.2); scene.add(rg);
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.60, 4.3, 20), new THREE.MeshStandardMaterial({ color: 0xf4f6fa, roughness: 0.3, metalness: 0.25 }));
+      body.castShadow = true; rg.add(body);
+      const nose = new THREE.Mesh(new THREE.ConeGeometry(0.48, 1.25, 20), new THREE.MeshStandardMaterial({ color: 0x1d3b75, roughness: 0.4 }));
+      nose.position.y = 2.76; rg.add(nose);
+      const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.52, 0.42, 20), redSteel);
+      stripe.position.y = 0.7; rg.add(stripe);
+    }
+
+    addSign(scene, cfg.plaqueTop, cfg.plaqueSub);
+  }
+
+  function buildInteriorOffice(scene, cfg) {
+    // 2nd distinct 3D location: Warm wood-paneled Office / Command Room / Desk!
+    const fTex = makeTileOrPlankTex("#c49356", "#9a6c34", "#5c3c18", 10, 10, true);
+    fTex.repeat.set(3, 3);
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(36, 36), new THREE.MeshStandardMaterial({ map: fTex, roughness: 0.75 }));
+    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+    const wTex = makeTileOrPlankTex(cfg.intWallA || "#476072", cfg.intWallB || "#334257", "#1e2733", 8, 8, false);
+    wTex.repeat.set(2, 2);
+    const wall = new THREE.Mesh(new THREE.PlaneGeometry(34, 22), new THREE.MeshStandardMaterial({ map: wTex, roughness: 0.82 }));
+    wall.position.set(0, 10, -5.0); scene.add(wall);
+
+    // Big 3D wooden desk / console table in foreground-mid!
+    const deskMat = new THREE.MeshStandardMaterial({ color: 0x704520, roughness: 0.7 });
+    const desk = new THREE.Mesh(new THREE.BoxGeometry(5.8, 1.55, 1.6), deskMat);
+    desk.position.set(0, 0.78, -0.6); desk.castShadow = true; desk.receiveShadow = true; scene.add(desk);
+    const deskTop = new THREE.Mesh(new THREE.BoxGeometry(6.1, 0.16, 1.85), new THREE.MeshStandardMaterial({ color: 0x8f5b2c, roughness: 0.6 }));
+    deskTop.position.set(0, 1.6, -0.6); scene.add(deskTop);
+
+    // Overhead hanging warm lamp (just like v1 interrogation/office room!)
+    const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 2.2, 8), new THREE.MeshStandardMaterial({ color: 0x181820 }));
+    cord.position.set(0, 6.9, -0.6); scene.add(cord);
+    const shade = new THREE.Mesh(new THREE.ConeGeometry(0.75, 0.55, 16), new THREE.MeshStandardMaterial({ color: 0x262934, metalness: 0.4 }));
+    shade.position.set(0, 5.7, -0.6); scene.add(shade);
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 12), new THREE.MeshBasicMaterial({ color: 0xfff0a6 }));
+    bulb.position.set(0, 5.38, -0.6); scene.add(bulb);
+
+    // Framed wall window or radar screen on back wall
+    const winFrame = new THREE.Mesh(new THREE.BoxGeometry(3.8, 2.3, 0.18), new THREE.MeshStandardMaterial({ color: 0x2e231c }));
+    winFrame.position.set(0, 4.1, -4.85); scene.add(winFrame);
+    const winGlass = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 1.9), new THREE.MeshBasicMaterial({ color: cfg.intWindowHex || 0x88c9f2 }));
+    winGlass.position.set(0, 4.1, -4.74); scene.add(winGlass);
+  }
+
+  function buildActionZone(scene, cfg) {
+    // 3rd distinct 3D location: Dramatic Action/Sky/Road/Sea/Crisis Backdrop!
+    const fTex = makeTileOrPlankTex(cfg.actFloorA || "#606670", cfg.actFloorB || "#424852", "#262a30", 8, 8, true);
+    fTex.repeat.set(3, 3);
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ map: fTex, roughness: 0.78 }));
+    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+    // Dramatic angled architectural/horizon silhouettes for depth
+    const bMat = new THREE.MeshStandardMaterial({ color: cfg.actPropHex || 0x3b4252, roughness: 0.78 });
+    [[-3.6, 2.8, -5.5, 2.2, 5.6], [3.5, 3.2, -5.8, 2.4, 6.4], [-1.2, 2.1, -6.5, 2.0, 4.2], [1.4, 2.4, -6.2, 1.9, 4.8]].forEach(([x, y, z, w, h]) => {
+      const blk = new THREE.Mesh(new THREE.BoxGeometry(w, h, 1.8), bMat);
+      blk.position.set(x, y, z); blk.castShadow = true; scene.add(blk);
+    });
+  }
+
+  function buildChalkboardRoom(scene, cfg) {
+    // 4th distinct 3D location: Classic v1/v3 University Wooden Classroom + Green Chalkboard!
+    const fTex = makeTileOrPlankTex("#c68c48", "#96632a", "#5c3b16", 10, 10, false);
+    fTex.repeat.set(3, 3);
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(36, 36), new THREE.MeshStandardMaterial({ map: fTex, roughness: 0.78 }));
+    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+    const wTex = makeTileOrPlankTex("#dfc088", "#b8955a", "#856738", 8, 8, false);
+    wTex.repeat.set(2, 2);
+    const wall = new THREE.Mesh(new THREE.PlaneGeometry(34, 22), new THREE.MeshStandardMaterial({ map: wTex, roughness: 0.85 }));
+    wall.position.set(0, 10, -5.0); wall.receiveShadow = true; scene.add(wall);
+
+    const cb = cfg.chalkboard;
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0x5c3818, roughness: 0.7 });
+    const faceMat = new THREE.MeshStandardMaterial({ map: makeChalkboardTex(cb.title, cb.bigStat, cb.subLines), roughness: 0.55 });
+    const board = new THREE.Mesh(
+      new THREE.BoxGeometry(4.75, 3.65, 0.24),
+      [frameMat, frameMat, frameMat, frameMat, faceMat, frameMat]
+    );
+    board.position.set(0, 5.15, -3.2); board.castShadow = true; scene.add(board);
+    // Chalk tray ledge
+    const ledge = new THREE.Mesh(new THREE.BoxGeometry(4.85, 0.16, 0.42), frameMat);
+    ledge.position.set(0, 3.3, -3.0); scene.add(ledge);
+  }
+
+  window.BAKER_READY = true;
+
+  window.bakeCinematicLocations = function(cfg) {
+    const out = {};
+
+    // 1. Wide Establishing Hero Location
+    {
+      const sc = makeBaseScene(cfg.heroSkyHex, 0xfff1d2, 1.08);
+      buildMainWorld(sc, cfg);
+      const cam = new THREE.PerspectiveCamera(42, BG_W / BG_H, 0.1, 100);
+      cam.position.set(0, 3.35, 11.6);
+      cam.lookAt(0, 3.15, -1.0);
+      renderer.render(sc, cam);
+      out.wide = glCanvas.toDataURL("image/png").slice(22);
+    }
+
+    // 2. High-Angle / Overhead CCTV-style 3D Camera (v1 iconic angle!)
+    {
+      const sc = makeBaseScene(cfg.heroSkyHex, 0xfff1d2, 1.05);
+      buildMainWorld(sc, cfg);
+      const cam = new THREE.PerspectiveCamera(45, BG_W / BG_H, 0.1, 100);
+      cam.position.set(2.2, 7.6, 8.8);
+      cam.lookAt(0, 1.4, -0.5);
+      renderer.render(sc, cam);
+      out.overhead = glCanvas.toDataURL("image/png").slice(22);
+    }
+
+    // 3. Second 3D Location: Interior Office / Command Room / Desk!
+    {
+      const sc = makeBaseScene(0x232a36, 0xffe8ba, 0.98);
+      buildInteriorOffice(sc, cfg);
+      const cam = new THREE.PerspectiveCamera(42, BG_W / BG_H, 0.1, 100);
+      cam.position.set(0, 3.15, 9.6);
+      cam.lookAt(0, 2.55, -1.5);
+      renderer.render(sc, cam);
+      out.interior = glCanvas.toDataURL("image/png").slice(22);
+    }
+
+    // 4. Third 3D Location: Dramatic Action / Crisis Zone!
+    {
+      const sc = makeBaseScene(cfg.actSkyHex || 0x3b2c2c, cfg.actLightHex || 0xffd2b5, 1.12);
+      buildActionZone(sc, cfg);
+      const cam = new THREE.PerspectiveCamera(44, BG_W / BG_H, 0.1, 100);
+      cam.position.set(-0.8, 3.2, 10.2);
+      cam.lookAt(0, 2.8, -1.5);
+      renderer.render(sc, cam);
+      out.action = glCanvas.toDataURL("image/png").slice(22);
+    }
+
+    // 5. Fourth 3D Location: Classic v1/v3 Finale Chalkboard Classroom!
+    {
+      const sc = makeBaseScene(0x3a2d20, 0xfff4d8, 1.05);
+      buildChalkboardRoom(sc, cfg);
+      const cam = new THREE.PerspectiveCamera(42, BG_W / BG_H, 0.1, 100);
+      cam.position.set(0, 3.35, 11.4);
+      cam.lookAt(0, 3.55, -2.5);
+      renderer.render(sc, cam);
+      out.chalkboard = glCanvas.toDataURL("image/png").slice(22);
+    }
+
+    return out;
+  };
+})();
+</script>
+</body>
+</html>

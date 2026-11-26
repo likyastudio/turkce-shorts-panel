@@ -23,6 +23,10 @@ on:
         description: 'Sadece planlamayı çalıştır (videoyu yeniden render etme)'
         type: boolean
         default: false
+      cover_only:
+        description: 'Sadece Cloud Run /api/covers/generate ile 9:16 Vertex AI kapak üret ve commit et'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -60,15 +64,15 @@ jobs:
           fi
 
       - name: Render 3D-Toon + 2D Cartoon Short (ERKAN eleven_v4 + -12dB BGM/SFX + 1080x1920 30fps)
-        if: ${{ inputs.schedule_only != true }}
+        if: ${{ inputs.schedule_only != true && inputs.cover_only != true }}
         env:
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
-          ELEVENLABS_VOICE_ID: 'gsfAMpj9oiFONXfvZJoE'
+          ELEVENLABS_VOICE_ID: 'jdpQqF5lMnLWcXlPOnAU'
           ELEVENLABS_MODEL: 'eleven_v4'
         run: python3 "${{ inputs.script_path }}" --music-db "${{ inputs.music_db }}" --workers 4
 
       - name: Generate 9:16 Vertex AI Cover via Cloud Run /api/covers/generate
-        if: ${{ inputs.schedule_only != true && inputs.generate_cover != false }}
+        if: ${{ inputs.schedule_only != true && (inputs.generate_cover != false || inputs.cover_only == true) }}
         env:
           LIKYA_API_KEY: ${{ secrets.LIKYA_API_KEY }}
         run: python3 "${{ inputs.script_path }}" --generate-cover

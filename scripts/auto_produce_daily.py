@@ -27,8 +27,8 @@ from PIL import Image, ImageDraw, ImageFont
 API_URL = os.getenv("LIKYA_API_URL", "https://likya-crosspost-api-64i7umkgnq-ew.a.run.app").rstrip("/")
 API_KEY = os.environ["LIKYA_API_KEY"].strip()
 EL_KEY = os.environ["ELEVENLABS_API_KEY"].strip()
-EL_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "gsfAMpj9oiFONXfvZJoE")  # ERKAN
-EL_MODEL = os.getenv("ELEVENLABS_MODEL", "eleven_multilingual_v2")
+EL_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "jdpQqF5lMnLWcXlPOnAU")  # erkanv2 (ERKAN)
+EL_MODEL = os.getenv("ELEVENLABS_MODEL", "eleven_v4")
 SITE_BASE = os.getenv("SITE_BASE_URL", "https://studio.likyastudios.live").rstrip("/")
 TOPIC_HINT = os.getenv("TOPIC_HINT", "").strip()
 AUTO_SCHEDULE = os.getenv("AUTO_SCHEDULE", "true").lower() == "true"

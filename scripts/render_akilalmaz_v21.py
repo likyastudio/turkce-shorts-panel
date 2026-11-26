@@ -110,9 +110,10 @@ SCENE_HTML = Path(__file__).resolve().parent / "v21_scene.html"
 
 W, H = 1080, 1920
 FPS = 30
+VOICE_TEMPO = 1.10  # Snappy Shorts pacing (~58s total, comfortably under 60s!)
 
-# Match scene cuts in scripts/v21_scene.html
-SCENE_CUTS = [0.0, 0.15, 0.30, 0.44, 0.60, 0.74, 0.90]
+# Match exact sentence boundaries in scripts/v21_scene.html
+SCENE_CUTS = [0.0, 0.209, 0.364, 0.465, 0.598, 0.718, 0.947]
 
 
 # ---------------------------------------------------------------------------
@@ -164,7 +165,7 @@ def synthesize_erkan_voice(text: str, out_mp3: Path) -> tuple[float, list[dict[s
     import requests
 
     el_key = os.environ["ELEVENLABS_API_KEY"].strip()
-    voice_id = os.getenv("ELEVENLABS_VOICE_ID", "gsfAMpj9oiFONXfvZJoE")  # ERKAN
+    voice_id = os.getenv("ELEVENLABS_VOICE_ID", "jdpQqF5lMnLWcXlPOnAU")  # erkanv2 (ERKAN)
     model_id = os.getenv("ELEVENLABS_MODEL", "eleven_v4")
 
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/with-timestamps"
@@ -295,15 +296,15 @@ def _render_chunk_worker(args: tuple[int, int, int, float, list[dict[str, Any]],
         for fidx in range(start_f, end_f):
             t = fidx / FPS
             cap, age, speaking = lookup_caption(chunks, t)
-            page.evaluate(
-                "([t, dur, cap, age, sp]) => window.renderFrameAt(t, dur, cap, age, sp)",
+            b64_jpg = page.evaluate(
+                "([t, dur, cap, age, sp]) => window.renderFrameJpeg(t, dur, cap, age, sp)",
                 [t, total_dur, cap, age, speaking],
             )
             frame_path = out_dir / f"f_{fidx:05d}.jpg"
-            page.screenshot(path=str(frame_path), type="jpeg", quality=92)
+            frame_path.write_bytes(base64.b64decode(b64_jpg))
             rendered += 1
-            if rendered % 120 == 0:
-                print(f"  [worker {worker_id}] {rendered}/{end_f - start_f} kare")
+            if rendered % 100 == 0:
+                print(f"  [worker {worker_id}] {rendered}/{end_f - start_f} kare", flush=True)
 
         browser.close()
     return rendered
@@ -356,21 +357,40 @@ def build_sfx_timeline(total_dur: float) -> list[tuple[float, str]]:
 # ---------------------------------------------------------------------------
 # Full Production Pipeline
 # ---------------------------------------------------------------------------
-def produce_video(music_db: float = -12.0, workers: int = 4) -> None:
+def produce_video(music_db: float = -12.0, workers: int = 4, use_existing_voice: bool = False) -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     WORK_DIR.mkdir(parents=True, exist_ok=True)
 
     voice_path = WORK_DIR / "voice.mp3"
+    words_cache = WORK_DIR / "words.json"
     bgm_sfx_path = WORK_DIR / "bgm_sfx.wav"
     mp4_path = OUT_DIR / FILE_NAME
     qa_path = OUT_DIR / "qa_sheet.jpg"
 
-    print(f"[1/5] ElevenLabs ERKAN (eleven_v4) sesi üretiliyor ({SLUG})...")
-    duration, words = synthesize_erkan_voice(TTS_SCRIPT, voice_path)
-    total_dur = duration + 0.45
+    if use_existing_voice and voice_path.exists() and words_cache.exists():
+        print(f"[1/5] Mevcut doğrulanmış ERKAN (eleven_v4) sesi kullanılıyor ({voice_path.name})...")
+        raw_dur = float(
+            subprocess.check_output(
+                ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", str(voice_path)],
+                text=True,
+            ).strip()
+        )
+        raw_words = json.loads(words_cache.read_text(encoding="utf-8"))
+    else:
+        print(f"[1/5] ElevenLabs ERKAN (eleven_v4) sesi üretiliyor ({SLUG})...")
+        raw_dur, raw_words = synthesize_erkan_voice(TTS_SCRIPT, voice_path)
+
+    # Apply subtle 1.10x Shorts tempo so total runtime is ~58s (snappy & safely under 60s!)
+    tempo = VOICE_TEMPO
+    duration = raw_dur / tempo
+    words = [
+        {"word": w["word"], "start": w["start"] / tempo, "end": w["end"] / tempo}
+        for w in raw_words
+    ]
+    total_dur = duration + 0.35
     total_frames = int(math.ceil(total_dur * FPS))
     chunks = group_word_chunks(words, chunk_size=2)
-    print(f"  -> Süre: {duration:.2f}s ({total_frames} kare), {len(words)} kelime, {len(chunks)} altyazı parçası")
+    print(f"  -> Süre: {duration:.2f}s (ham {raw_dur:.2f}s @ {tempo:.2f}x, {total_frames} kare), {len(words)} kelime, {len(chunks)} altyazı parçası")
 
     print(f"[2/5] Canlı arka plan müziği + çizgi film SFX sentezleniyor (--music-db {music_db:.1f})...")
     sfx_events = build_sfx_timeline(total_dur)
@@ -397,13 +417,12 @@ def produce_video(music_db: float = -12.0, workers: int = 4) -> None:
 
         print(f"  -> {total_frames} kare {time.time() - t0:.1f}s içinde tamamlandı.")
 
-        print("[4/5] QA Sheet ve final MP4 (ERKAN + -12dB müzik/SFX miks) oluşturuluyor...")
+        print("[4/5] QA Sheet ve final MP4 (ERKAN eleven_v4 + -12dB müzik/SFX miks) oluşturuluyor...")
         build_qa_sheet_from_dir(frames_dir, total_frames, qa_path)
 
-        # Mix normalized ERKAN voice (-15.5 LUFS) with lively stereo BGM+SFX at --music-db
-        # (BGM normalized to -14 dBFS RMS, so applying `music_db` puts music ~12 dB beneath voice)
+        # Mix normalized ERKAN voice (-15.5 LUFS @ 1.10x tempo) with lively stereo BGM+SFX at --music-db
         af = (
-            f"[1:a]loudnorm=I=-15.5:TP=-1.5:LRA=9,aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[v];"
+            f"[1:a]atempo={tempo:.3f},loudnorm=I=-15.5:TP=-1.5:LRA=9,aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[v];"
             f"[2:a]volume={music_db:.1f}dB,aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[m];"
             f"[v][m]amix=inputs=2:duration=first:dropout_transition=2:normalize=0,alimiter=limit=0.95[aout]"
         )
@@ -423,9 +442,11 @@ def produce_video(music_db: float = -12.0, workers: int = 4) -> None:
         ]
         subprocess.run(cmd, check=True)
 
-    # Clean up temporary large wav in work/ (keep voice.mp3 matching v1-v20)
+    # Clean up temporary work files (keep voice.mp3 matching v1-v20)
     if bgm_sfx_path.exists():
         bgm_sfx_path.unlink()
+    if words_cache.exists():
+        words_cache.unlink()
 
     print("[5/5] Eski v21 temizleniyor ve videos.json güncelleniyor...")
     old_dir = REPO_DIR / "files" / OLD_V21_SLUG
@@ -600,6 +621,7 @@ def main() -> None:
     p = argparse.ArgumentParser(description="AKILALMAZ v21 — 2 Aralık 1942 Chicago Pile-1 Üretici")
     p.add_argument("--music-db", type=float, default=-12.0, help="Arka plan müzik seviyesi (dB, varsayılan -12.0)")
     p.add_argument("--workers", type=int, default=4, help="Paralel 3D render işçi sayısı")
+    p.add_argument("--use-existing-voice", action="store_true", help="Mevcut work/voice.mp3 + words.json dosyalarını kullan")
     p.add_argument("--preview", action="store_true", help="Hızlı yerel 6x3 3D-toon QA önizlemesi üret")
     p.add_argument("--generate-cover", action="store_true", help="Cloud Run /api/covers/generate ile 9:16 Vertex AI kapak üret")
     p.add_argument("--publish-schedule", action="store_true", help="2 Aralık 2026 06:03 TR slotuna planla")
@@ -612,7 +634,7 @@ def main() -> None:
     elif args.publish_schedule:
         schedule_for_dec2()
     else:
-        produce_video(music_db=args.music_db, workers=args.workers)
+        produce_video(music_db=args.music_db, workers=args.workers, use_existing_voice=args.use_existing_voice)
 
 
 if __name__ == "__main__":

@@ -135,6 +135,7 @@ def natural_sort_key(v: dict):
 
 
 def sync_to_panel(ep: dict, ep_dir: Path, duration: float):
+    from datetime import datetime, timezone
     slug = ep["slug"]
     mp4_name = ep["mp4_name"]
     dest_root = REPO_ROOT / "files" / slug
@@ -149,40 +150,56 @@ def sync_to_panel(ep: dict, ep_dir: Path, duration: float):
 
     vjson_path = REPO_ROOT / "videos.json"
     videos = json.loads(vjson_path.read_text(encoding="utf-8"))
-    size_mb = round((dest_out / mp4_name).stat().st_size / (1024 * 1024), 2)
+    size_mb = round((dest_out / mp4_name).stat().st_size / (1024 * 1024), 1)
+    clean_script = re.sub(r"\[[^\]]+\]\s*", "", ep.get("script_v4", "")).strip()
+    words_count = len(clean_script.split())
+    frames_count = int(math.ceil(duration * 30))
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    entry_fields = {
+        "slug": slug,
+        "title": ep["title"],
+        "status": "Hazır",
+        "script": clean_script,
+        "meta": {
+            "youtube": {
+                "title": ep.get("youtube_title", ep["title"]),
+                "description": ep.get("youtube_desc", ""),
+            },
+            "instagram": {
+                "caption": ep.get("ig_caption", ep.get("youtube_desc", "")),
+            },
+            "cover_title": ep.get("cover_title", ep["title"].upper()),
+            "flow_prompt": ep.get("flow_prompt", ""),
+        },
+        "words": words_count,
+        "frames": frames_count,
+        "voice": f"files/{slug}/work/voice.mp3",
+        "qa": f"files/{slug}/out/qa_sheet.jpg",
+        "video": f"files/{slug}/out/{mp4_name}",
+        "fileName": mp4_name,
+        "sizeMB": size_mb,
+        "updated": now_iso,
+        "width": 1080,
+        "height": 1920,
+        "duration": round(duration, 3),
+    }
 
     found = False
-    for v in videos:
+    for idx, v in enumerate(videos):
         if v.get("slug") == slug:
-            v["title"] = ep["title"]
-            v["duration"] = round(duration, 3)
-            v["video_path"] = f"files/{slug}/out/{mp4_name}"
-            v["qa_path"] = f"files/{slug}/out/qa_sheet.jpg"
-            v["voice_path"] = f"files/{slug}/work/voice.mp3"
-            v["size_mb"] = size_mb
-            if ep.get("youtube_title"):
-                v["youtube_title"] = ep["youtube_title"]
-            if ep.get("youtube_desc"):
-                v["youtube_desc"] = ep["youtube_desc"]
-            if ep.get("ig_caption"):
-                v["ig_caption"] = ep["ig_caption"]
+            # Preserve existing flow_prompt / cover_title if not overridden in ep
+            old_meta = v.get("meta") or {}
+            if not entry_fields["meta"]["flow_prompt"] and old_meta.get("flow_prompt"):
+                entry_fields["meta"]["flow_prompt"] = old_meta["flow_prompt"]
+            if not ep.get("cover_title") and old_meta.get("cover_title"):
+                entry_fields["meta"]["cover_title"] = old_meta["cover_title"]
+            videos[idx] = entry_fields
             found = True
             break
 
     if not found:
-        videos.append({
-            "slug": slug,
-            "title": ep["title"],
-            "duration": round(duration, 3),
-            "video_path": f"files/{slug}/out/{mp4_name}",
-            "qa_path": f"files/{slug}/out/qa_sheet.jpg",
-            "voice_path": f"files/{slug}/work/voice.mp3",
-            "cover_path": f"files/{slug}/out/cover.jpg",
-            "size_mb": size_mb,
-            "youtube_title": ep.get("youtube_title", ep["title"]),
-            "youtube_desc": ep.get("youtube_desc", ""),
-            "ig_caption": ep.get("ig_caption", ""),
-        })
+        videos.append(entry_fields)
 
     videos.sort(key=natural_sort_key)
     vjson_path.write_text(json.dumps(videos, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

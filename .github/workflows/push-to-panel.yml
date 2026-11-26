@@ -1,0 +1,79 @@
+name: AKILALMAZ Video & Kapak Panele Yükle (Cloud Run + Yayın Planı)
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: 'Video slug (ör. v27_sariyer_aslan_kedi)'
+        required: true
+      scheduled_at:
+        description: 'Özel ISO saat (boşsa sıradaki 06:01-06:07 TR slotu otomatik seçilir)'
+        required: false
+        default: ''
+      sync_youtube_now:
+        description: 'YouTube Studio ön-yüklemesini hemen dene'
+        type: boolean
+        default: true
+
+jobs:
+  push_to_panel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout studio repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install requests
+        run: pip install --no-cache-dir requests
+
+      - name: Upload MP4 + 9:16 Cover & Schedule via likya_push.py
+        env:
+          LIKYA_API_KEY: ${{ secrets.LIKYA_API_KEY }}
+          TARGET_SLUG: ${{ inputs.slug }}
+          SCHEDULED_AT: ${{ inputs.scheduled_at }}
+          SYNC_YT: ${{ inputs.sync_youtube_now }}
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess, sys
+          from pathlib import Path
+
+          slug = os.environ["TARGET_SLUG"].strip()
+          videos = json.loads(Path("videos.json").read_text(encoding="utf-8"))
+          item = next((v for v in videos if v.get("slug") == slug), None)
+          if not item:
+              sys.exit(f"ERROR: slug '{slug}' not found in videos.json")
+
+          mp4 = item["video"]
+          meta = item.get("meta") or {}
+          yt = meta.get("youtube") or {}
+          ig = meta.get("instagram") or {}
+          title = yt.get("title") or item["title"]
+          desc = yt.get("description") or title
+          ig_cap = ig.get("caption") or desc
+          cover_file = f"files/{slug}/out/cover.jpg"
+
+          cmd = [
+              sys.executable, "claude-code-kit/likya_push.py",
+              "--brand", "akilalmaz",
+              "--video", mp4,
+              "--video-id", slug,
+              "--title", title,
+              "--desc", desc,
+              "--ig", ig_cap,
+          ]
+          if Path(cover_file).is_file():
+              cmd += ["--cover-file", cover_file]
+          if meta.get("flow_prompt"):
+              cmd += ["--cover-prompt", meta["flow_prompt"]]
+          if os.environ.get("SCHEDULED_AT", "").strip():
+              cmd += ["--scheduled-at", os.environ["SCHEDULED_AT"].strip()]
+          if os.environ.get("SYNC_YT", "true").lower() == "false":
+              cmd += ["--no-yt-sync"]
+
+          print("Running:", " ".join(cmd[:8]), "...")
+          subprocess.check_call(cmd)
+          PY

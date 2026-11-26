@@ -1,0 +1,60 @@
+name: AKILALMAZ Toplu Kapak & YouTube/IG Planlama (v22-v26)
+
+on:
+  workflow_dispatch:
+    inputs:
+      episodes:
+        description: 'Bölüm numaraları (virgülle, ör. 22,23,24,25,26)'
+        required: true
+        default: '22,23,24,25,26'
+      generate_covers:
+        description: 'Cloud Run /api/covers/generate ile 9:16 Vertex AI kapakları üret'
+        type: boolean
+        default: true
+      schedule_posts:
+        description: 'Sıradaki 06:01-06:07 TR slotlarına planla ve YouTube kota dahilinde yükle'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  covers_and_schedule:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout studio repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python Deps
+        run: pip install --no-cache-dir requests pillow numpy
+
+      - name: Generate 9:16 Vertex AI Covers via Cloud Run /api/covers/generate
+        if: ${{ inputs.generate_covers != false }}
+        env:
+          LIKYA_API_KEY: ${{ secrets.LIKYA_API_KEY }}
+        run: python3 scripts/batch_produce_akilalmaz.py --episodes "${{ inputs.episodes }}" --generate-covers
+
+      - name: Commit Covers to studio.likyastudios.live
+        if: ${{ inputs.generate_covers != false }}
+        run: |
+          git config user.name "AKILALMAZ Studio Bot"
+          git config user.email "bot@likyastudios.live"
+          git add -A files/
+          git diff --cached --quiet || git commit -m "Kapaklar hazır (Vertex AI 9:16): v${{ inputs.episodes }}"
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep 5
+          done
+          exit 1
+
+      - name: Check YouTube Quota & Schedule + Upload to YouTube Studio / IG
+        if: ${{ inputs.schedule_posts != false }}
+        env:
+          LIKYA_API_KEY: ${{ secrets.LIKYA_API_KEY }}
+        run: python3 scripts/batch_produce_akilalmaz.py --episodes "${{ inputs.episodes }}" --schedule

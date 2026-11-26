@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<title>AKILALMAZ 3D-Toon Multi-Episode Plate Baker</title>
+<style>
+  * { margin: 0; padding: 0; }
+  html, body { width: 1296px; height: 2304px; overflow: hidden; background: #141210; }
+  #gl { width: 1296px; height: 2304px; display: block; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+</head>
+<body>
+<canvas id="gl" width="1296" height="2304"></canvas>
+<script>
+(() => {
+  const BG_W = 1296, BG_H = 2304;
+  const glCanvas = document.getElementById("gl");
+
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+  function shadeHex(hex, amt) {
+    let n = parseInt(hex.replace("#", ""), 16);
+    let r = clamp((n >> 16) + amt, 0, 255);
+    let g = clamp(((n >> 8) & 0xff) + amt, 0, 255);
+    let b = clamp((n & 0xff) + amt, 0, 255);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  const renderer = new THREE.WebGLRenderer({
+    canvas: glCanvas,
+    antialias: true,
+    alpha: false,
+    preserveDrawingBuffer: true,
+  });
+  renderer.setSize(BG_W, BG_H, false);
+  renderer.setPixelRatio(1);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+
+  function makePlankTexture(baseA, baseB, lineC, count = 10, vertical = false) {
+    const c = document.createElement("canvas");
+    c.width = 512; c.height = 512;
+    const ctx = c.getContext("2d");
+    const g = ctx.createLinearGradient(0, 0, vertical ? 512 : 0, vertical ? 0 : 512);
+    g.addColorStop(0, baseA); g.addColorStop(1, baseB);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 512);
+    const step = 512 / count;
+    for (let i = 0; i < count; i++) {
+      if (i % 2 === 0) {
+        ctx.fillStyle = "rgba(0,0,0,0.065)";
+        if (vertical) ctx.fillRect(i * step, 0, step, 512);
+        else ctx.fillRect(0, i * step, 512, step);
+      }
+      ctx.strokeStyle = lineC; ctx.lineWidth = 4;
+      ctx.beginPath();
+      if (vertical) { ctx.moveTo(i * step, 0); ctx.lineTo(i * step, 512); }
+      else { ctx.moveTo(0, i * step); ctx.lineTo(512, i * step); }
+      ctx.stroke();
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.encoding = THREE.sRGBEncoding;
+    return tex;
+  }
+
+  function makeBrickTexture(baseHex, mortarHex) {
+    const c = document.createElement("canvas");
+    c.width = 512; c.height = 512;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = mortarHex; ctx.fillRect(0, 0, 512, 512);
+    const rows = 8, cols = 4, bh = 512 / rows, bw = 512 / cols;
+    for (let r = 0; r < rows; r++) {
+      const off = (r % 2) * (bw * 0.5);
+      for (let col = -1; col <= cols; col++) {
+        const x = col * bw + off, y = r * bh;
+        ctx.fillStyle = shadeHex(baseHex, ((r * 17 + col * 23) % 24) - 12);
+        ctx.fillRect(x + 4, y + 4, bw - 8, bh - 8);
+      }
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.encoding = THREE.sRGBEncoding;
+    return tex;
+  }
+
+  function makePlaqueTexture(topText, subText, bg = "#1c4d96", border = "#f4c425") {
+    const c = document.createElement("canvas");
+    c.width = 768; c.height = 256;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#181822"; roundRect(ctx, 4, 4, 760, 248, 28); ctx.fill();
+    ctx.fillStyle = border; roundRect(ctx, 14, 14, 740, 228, 22); ctx.fill();
+    ctx.fillStyle = bg; roundRect(ctx, 26, 26, 716, 204, 16); ctx.fill();
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    let sz = 58;
+    ctx.font = `bold ${sz}px 'DejaVu Sans', sans-serif`;
+    while (ctx.measureText(topText).width > 670 && sz > 32) { sz -= 2; ctx.font = `bold ${sz}px 'DejaVu Sans', sans-serif`; }
+    ctx.fillStyle = "#ffd95a"; ctx.fillText(topText, 384, 98);
+    let sz2 = 34;
+    ctx.font = `bold ${sz2}px 'DejaVu Sans', sans-serif`;
+    while (ctx.measureText(subText).width > 670 && sz2 > 22) { sz2 -= 2; ctx.font = `bold ${sz2}px 'DejaVu Sans', sans-serif`; }
+    ctx.fillStyle = "#ffffff"; ctx.fillText(subText, 384, 174);
+    const tex = new THREE.CanvasTexture(c);
+    tex.encoding = THREE.sRGBEncoding;
+    return tex;
+  }
+
+  function makeBoardTexture(title, lines, bgHex, accentHex, badgeText) {
+    const c = document.createElement("canvas");
+    c.width = 1024; c.height = 768;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#171720"; roundRect(ctx, 6, 6, 1012, 756, 36); ctx.fill();
+    ctx.fillStyle = accentHex; roundRect(ctx, 20, 20, 984, 728, 28); ctx.fill();
+    const grad = ctx.createLinearGradient(0, 36, 0, 732);
+    grad.addColorStop(0, bgHex); grad.addColorStop(1, shadeHex(bgHex, -24));
+    ctx.fillStyle = grad; roundRect(ctx, 38, 38, 948, 692, 20); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.07)"; roundRect(ctx, 46, 46, 932, 160, 14); ctx.fill();
+
+    const fitFont = (txt, maxW, maxSz, minSz = 22) => {
+      for (let sz = maxSz; sz >= minSz; sz -= 2) {
+        ctx.font = `bold ${sz}px 'DejaVu Sans', sans-serif`;
+        if (ctx.measureText(txt).width <= maxW) return sz;
+      }
+      return minSz;
+    };
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.lineWidth = 10; ctx.strokeStyle = "rgba(15,15,24,0.68)";
+    fitFont(title, 860, 54, 30);
+    ctx.strokeText(title, 512, 132);
+    ctx.fillStyle = "#ffe066"; ctx.fillText(title, 512, 132);
+    ctx.strokeStyle = "rgba(255,224,102,0.55)"; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(96, 198); ctx.lineTo(928, 198); ctx.stroke();
+
+    lines.forEach((line, idx) => {
+      const y = 296 + idx * 116;
+      fitFont(line, 845, 42, 24);
+      ctx.lineWidth = 8; ctx.strokeStyle = "rgba(12,12,18,0.65)";
+      ctx.strokeText(line, 512, y);
+      ctx.fillStyle = idx === 2 ? "#ffe87a" : "#ffffff";
+      ctx.fillText(line, 512, y);
+    });
+
+    if (badgeText) {
+      ctx.fillStyle = "#171720"; roundRect(ctx, 175, 620, 674, 78, 39); ctx.fill();
+      ctx.fillStyle = "#ffd644"; roundRect(ctx, 183, 628, 658, 62, 31); ctx.fill();
+      ctx.fillStyle = "#171720";
+      fitFont(badgeText, 600, 34, 20);
+      ctx.fillText(badgeText, 512, 660);
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.encoding = THREE.sRGBEncoding;
+    return tex;
+  }
+
+  function makeClockFaceTexture() {
+    const c = document.createElement("canvas");
+    c.width = 512; c.height = 512;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#fff8dc"; ctx.beginPath(); ctx.arc(256, 256, 244, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#d49b1a"; ctx.lineWidth = 22; ctx.stroke();
+    // 20-minute red wedge!
+    ctx.fillStyle = "rgba(217, 38, 38, 0.28)";
+    ctx.beginPath(); ctx.moveTo(256, 256); ctx.arc(256, 256, 210, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 / 3); ctx.closePath(); ctx.fill();
+    for (let i = 0; i < 12; i++) {
+      const a = (i * Math.PI) / 6;
+      ctx.strokeStyle = "#1c1a24"; ctx.lineWidth = i % 3 === 0 ? 12 : 6;
+      ctx.beginPath();
+      ctx.moveTo(256 + Math.cos(a) * 185, 256 + Math.sin(a) * 185);
+      ctx.lineTo(256 + Math.cos(a) * 218, 256 + Math.sin(a) * 218);
+      ctx.stroke();
+    }
+    // Hands showing 20 minutes!
+    ctx.strokeStyle = "#1c1a24"; ctx.lineWidth = 18; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(256, 256); ctx.lineTo(256, 110); ctx.stroke();
+    ctx.strokeStyle = "#d92626"; ctx.lineWidth = 16;
+    ctx.beginPath(); ctx.moveTo(256, 256); ctx.lineTo(256 + Math.cos(Math.PI / 6) * 175, 256 + Math.sin(Math.PI / 6) * 175); ctx.stroke();
+    ctx.fillStyle = "#1c1a24"; ctx.beginPath(); ctx.arc(256, 256, 18, 0, Math.PI * 2); ctx.fill();
+    const tex = new THREE.CanvasTexture(c);
+    tex.encoding = THREE.sRGBEncoding;
+    return tex;
+  }
+
+  function addHeroProp(scene, heroKind, plaqueTop, plaqueSub) {
+    const group = new THREE.Group();
+    scene.add(group);
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x5c3818, roughness: 0.8 });
+
+    if (heroKind === "molasses_tank") {
+      // Giant 1919 Boston steel molasses tank + sticky brown syrup puddle & wave!
+      const steelMat = new THREE.MeshStandardMaterial({ color: 0x4b5563, metalness: 0.55, roughness: 0.45 });
+      const tank = new THREE.Mesh(new THREE.CylinderGeometry(2.15, 2.2, 4.4, 24), steelMat);
+      tank.position.set(0.35, 2.2, -2.0); tank.castShadow = true; tank.receiveShadow = true;
+      group.add(tank);
+      // Rivet bands
+      const bandMat = new THREE.MeshStandardMaterial({ color: 0x2f3640, metalness: 0.6, roughness: 0.4 });
+      [0.9, 2.1, 3.3, 4.3].forEach((by) => {
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.08, 10, 28), bandMat);
+        ring.rotation.x = Math.PI / 2; ring.position.set(0.35, by, -2.0);
+        group.add(ring);
+      });
+      // Burst crack + glossy brown molasses wave pouring out!
+      const syrupMat = new THREE.MeshStandardMaterial({ color: 0x4a2109, roughness: 0.14, metalness: 0.15, emissive: 0x1a0902 });
+      const wave = new THREE.Mesh(new THREE.SphereGeometry(2.2, 20, 16), syrupMat);
+      wave.scale.set(1.5, 0.72, 1.1); wave.position.set(0.1, 0.65, -0.5);
+      wave.castShadow = true; group.add(wave);
+      const spill = new THREE.Mesh(new THREE.CylinderGeometry(3.8, 4.2, 0.12, 24), syrupMat);
+      spill.position.set(0, 0.06, 0.6); group.add(spill);
+      // Glossy brown splash drops in mid-air
+      [[-1.2, 2.4, -0.2, 0.25], [1.6, 2.8, -0.3, 0.22], [0.4, 3.1, -0.1, 0.18]].forEach(([dx, dy, dz, r]) => {
+        const drop = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 12), syrupMat);
+        drop.position.set(dx, dy, dz); group.add(drop);
+      });
+    } else if (heroKind === "alpine_outpost") {
+      // Sunny 1866 Alps mountains + snow peaks + cozy wooden mountain outpost!
+      const mtnMat = new THREE.MeshStandardMaterial({ color: 0x3b6e52, roughness: 0.85 });
+      const snowMat = new THREE.MeshStandardMaterial({ color: 0xf4f8ff, roughness: 0.6 });
+      [[-2.5, 3.4, -4.2, 3.2, 6.2], [2.4, 3.8, -4.5, 3.5, 6.8], [0.0, 4.2, -5.0, 3.8, 7.6]].forEach(([mx, my, mz, r, h]) => {
+        const cone = new THREE.Mesh(new THREE.ConeGeometry(r, h, 8), mtnMat);
+        cone.position.set(mx, my, mz); group.add(cone);
+        const cap = new THREE.Mesh(new THREE.ConeGeometry(r * 0.42, h * 0.38, 8), snowMat);
+        cap.position.set(mx, my + h * 0.31, mz); group.add(cap);
+      });
+      // Cute wooden alpine cabin
+      const cab = new THREE.Mesh(new THREE.BoxGeometry(2.8, 2.1, 2.2), new THREE.MeshStandardMaterial({ color: 0x8f5b2c, roughness: 0.8 }));
+      cab.position.set(0.6, 1.05, -2.0); cab.castShadow = true; group.add(cab);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(2.35, 1.4, 4), new THREE.MeshStandardMaterial({ color: 0xb8352a, roughness: 0.7 }));
+      roof.rotation.y = Math.PI / 4; roof.position.set(0.6, 2.75, -2.0); roof.castShadow = true; group.add(roof);
+      // Warm sun sphere
+      const sun = new THREE.Mesh(new THREE.SphereGeometry(0.85, 20, 20), new THREE.MeshBasicMaterial({ color: 0xffe066 }));
+      sun.position.set(2.0, 6.1, -3.5); group.add(sun);
+    } else if (heroKind === "royal_throne") {
+      // Gilded 1830 French palace velvet throne + giant gleaming 20-minute gold stopwatch behind!
+      const goldMat = new THREE.MeshStandardMaterial({ color: 0xf0be32, metalness: 0.55, roughness: 0.28 });
+      const clockRim = new THREE.Mesh(new THREE.CylinderGeometry(2.15, 2.15, 0.36, 36), goldMat);
+      clockRim.rotation.x = Math.PI / 2; clockRim.position.set(0.3, 4.35, -2.5); clockRim.castShadow = true;
+      group.add(clockRim);
+      const clockFace = new THREE.Mesh(new THREE.CircleGeometry(1.92, 36), new THREE.MeshBasicMaterial({ map: makeClockFaceTexture() }));
+      clockFace.position.set(0.3, 4.35, -2.30); group.add(clockFace);
+      const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.45, 16), goldMat);
+      btn.position.set(0.3, 6.65, -2.5); group.add(btn);
+      // Royal crimson carpet & throne
+      const velvetMat = new THREE.MeshStandardMaterial({ color: 0x9e1b24, roughness: 0.75 });
+      const carpet = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 14), velvetMat);
+      carpet.rotation.x = -Math.PI / 2; carpet.position.set(0, 0.03, 0); group.add(carpet);
+      const throneBack = new THREE.Mesh(new THREE.BoxGeometry(1.75, 2.7, 0.3), velvetMat);
+      throneBack.position.set(0.3, 1.45, -1.6); throneBack.castShadow = true; group.add(throneBack);
+      const throneFrame = new THREE.Mesh(new THREE.BoxGeometry(1.95, 2.9, 0.22), goldMat);
+      throneFrame.position.set(0.3, 1.45, -1.68); group.add(throneFrame);
+    } else if (heroKind === "sea_rock_fort") {
+      // Towering 1804 Caribbean volcanic rock fortress (HMS Diamond Rock) + cannons + turquoise ocean!
+      const seaMat = new THREE.MeshStandardMaterial({ color: 0x1578a8, roughness: 0.25, metalness: 0.1 });
+      const sea = new THREE.Mesh(new THREE.PlaneGeometry(36, 36), seaMat);
+      sea.rotation.x = -Math.PI / 2; sea.position.y = 0.02; group.add(sea);
+      const rockMat = new THREE.MeshStandardMaterial({ color: 0x5c5b5e, roughness: 0.92, flatShading: true });
+      const rock1 = new THREE.Mesh(new THREE.DodecahedronGeometry(2.55, 1), rockMat);
+      rock1.scale.set(1.1, 1.55, 0.9); rock1.position.set(0.35, 2.2, -2.2); rock1.castShadow = true; group.add(rock1);
+      const rock2 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.4, 0), rockMat);
+      rock2.position.set(-1.3, 1.1, -1.9); group.add(rock2);
+      // Black naval cannon peeking off the rock!
+      const ironMat = new THREE.MeshStandardMaterial({ color: 0x1e222a, metalness: 0.7, roughness: 0.35 });
+      const cannon = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.26, 1.45, 16), ironMat);
+      cannon.rotation.z = Math.PI / 2.2; cannon.position.set(1.75, 2.95, -1.5); group.add(cannon);
+      // Flagpole + Royal Navy red ensign
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.3, 8), woodMat);
+      pole.position.set(0.35, 5.4, -2.0); group.add(pole);
+      const flag = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.78, 0.05), new THREE.MeshStandardMaterial({ color: 0xc8232c, roughness: 0.6 }));
+      flag.position.set(1.05, 6.1, -2.0); group.add(flag);
+    } else if (heroKind === "nasa_launchpad") {
+      // 1962 NASA Launchpad + Red gantry tower + White Atlas-Agena Rocket!
+      const steelRed = new THREE.MeshStandardMaterial({ color: 0xc9312b, roughness: 0.5, metalness: 0.3 });
+      const tower = new THREE.Mesh(new THREE.BoxGeometry(1.05, 5.8, 1.05), steelRed);
+      tower.position.set(1.65, 2.9, -2.2); tower.castShadow = true; group.add(tower);
+      // White Atlas-Agena rocket tilted slightly mid-chaos!
+      const rocketGroup = new THREE.Group();
+      rocketGroup.position.set(-0.05, 2.8, -1.9);
+      rocketGroup.rotation.z = 0.14;
+      group.add(rocketGroup);
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.56, 3.8, 20), new THREE.MeshStandardMaterial({ color: 0xf2f4f8, roughness: 0.35, metalness: 0.25 }));
+      body.castShadow = true; rocketGroup.add(body);
+      const nose = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.15, 20), new THREE.MeshStandardMaterial({ color: 0x203b70, roughness: 0.4 }));
+      nose.position.y = 2.48; rocketGroup.add(nose);
+      const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.49, 0.49, 0.4, 20), steelRed);
+      stripe.position.y = 0.65; rocketGroup.add(stripe);
+      // Fiery orange exhaust plume
+      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.65, 1.6, 16), new THREE.MeshBasicMaterial({ color: 0xff8c1a }));
+      flame.rotation.x = Math.PI; flame.position.y = -2.55; rocketGroup.add(flame);
+    }
+
+    // Wooden signpost plaque cleanly in upper-left frame!
+    const signPost = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4.7, 10), woodMat);
+    signPost.position.set(-1.15, 2.35, -0.35); signPost.castShadow = true; group.add(signPost);
+    const plaque = new THREE.Mesh(
+      new THREE.BoxGeometry(2.42, 0.86, 0.14),
+      [woodMat, woodMat, woodMat, woodMat, new THREE.MeshStandardMaterial({ map: makePlaqueTexture(plaqueTop, plaqueSub), roughness: 0.5 }), woodMat]
+    );
+    plaque.position.set(-0.92, 4.55, -0.25); plaque.rotation.y = 0.08; plaque.castShadow = true;
+    group.add(plaque);
+  }
+
+  window.BAKER_READY = true;
+
+  window.bakeEpisodePlates = function(cfg) {
+    const out = {};
+    function renderOne(mode, boardIdx) {
+      const scene = new THREE.Scene();
+      const bgHex = mode === "hero" ? cfg.heroSkyHex : cfg.roomBgHex;
+      scene.background = new THREE.Color(bgHex);
+      scene.fog = new THREE.Fog(bgHex, 20, 46);
+
+      const camera = new THREE.PerspectiveCamera(42, BG_W / BG_H, 0.1, 100);
+      scene.add(new THREE.HemisphereLight(0xfff4dd, 0x5c4630, 0.94));
+      const key = new THREE.DirectionalLight(0xfff1d2, 1.05);
+      key.position.set(5.5, 11, 8.5);
+      key.castShadow = true;
+      key.shadow.mapSize.width = 1024;
+      key.shadow.mapSize.height = 1024;
+      key.shadow.camera.near = 1; key.shadow.camera.far = 35;
+      key.shadow.camera.left = -10; key.shadow.camera.right = 10;
+      key.shadow.camera.top = 12; key.shadow.camera.bottom = -4;
+      key.shadow.bias = -0.0012;
+      scene.add(key);
+      const fill = new THREE.DirectionalLight(0xaad4ff, 0.34);
+      fill.position.set(-7, 5, 5);
+      scene.add(fill);
+
+      // Floor
+      const floorTex = makePlankTexture(cfg.floorA, cfg.floorB, cfg.floorLine, 10, true);
+      floorTex.repeat.set(3, 3);
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(36, 36), new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.78 }));
+      floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true;
+      scene.add(floor);
+
+      if (mode === "hero") {
+        if (!cfg.outdoorHero) {
+          const wallTex = cfg.brickWall ? makeBrickTexture(cfg.wallA, cfg.wallLine) : makePlankTexture(cfg.wallA, cfg.wallB, cfg.wallLine, 10, false);
+          wallTex.repeat.set(2, 2);
+          const wall = new THREE.Mesh(new THREE.PlaneGeometry(30, 20), new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.85 }));
+          wall.position.set(0, 9.5, -5.2); wall.receiveShadow = true;
+          scene.add(wall);
+        }
+        addHeroProp(scene, cfg.heroKind, cfg.plaqueTop, cfg.plaqueSub);
+        camera.position.set(0, 3.4, 11.7);
+        camera.lookAt(0, 3.25, -0.8);
+      } else {
+        const b = cfg.boards[boardIdx];
+        const wallTex = makePlankTexture(cfg.wallA, cfg.wallB, cfg.wallLine, 10, false);
+        wallTex.repeat.set(2, 2);
+        const wall = new THREE.Mesh(new THREE.PlaneGeometry(30, 20), new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.85 }));
+        wall.position.set(0, 9.5, -5.2); wall.receiveShadow = true;
+        scene.add(wall);
+        const baseboard = new THREE.Mesh(new THREE.BoxGeometry(30, 1.35, 0.25), new THREE.MeshStandardMaterial({ color: 0x5c3c1e, roughness: 0.8 }));
+        baseboard.position.set(0, 0.67, -5.05); scene.add(baseboard);
+
+        const frameMat = new THREE.MeshStandardMaterial({ color: 0x3b2614, roughness: 0.7 });
+        const faceMat = new THREE.MeshStandardMaterial({ map: makeBoardTexture(b.title, b.lines, b.bg, b.accent, b.badge), roughness: 0.45 });
+        const board = new THREE.Mesh(
+          new THREE.BoxGeometry(4.55, 3.45, 0.24),
+          [frameMat, frameMat, frameMat, frameMat, faceMat, frameMat]
+        );
+        board.position.set(0, 5.15, -3.2); board.castShadow = true;
+        scene.add(board);
+
+        if (b.tint) key.color.setHex(b.tint);
+        camera.position.set(0, 3.35, 11.6);
+        camera.lookAt(0, 3.55, -2.5);
+      }
+
+      renderer.render(scene, camera);
+      return glCanvas.toDataURL("image/png").slice(22);
+    }
+
+    out.hero = renderOne("hero", 0);
+    for (let i = 0; i < cfg.boards.length; i++) {
+      out["board" + i] = renderOne("board", i);
+    }
+    return out;
+  };
+})();
+</script>
+</body>
+</html>

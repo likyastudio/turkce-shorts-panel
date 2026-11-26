@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<title>AKILALMAZ v21 — 2 Aralık 1942 Chicago Pile-1 (3D-Toon + 2D Stick-Figure)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 1080px;
+    height: 1920px;
+    overflow: hidden;
+    background: #141210;
+    font-family: "DejaVu Sans", "Liberation Sans", Arial, sans-serif;
+  }
+  #stage {
+    position: relative;
+    width: 1080px;
+    height: 1920px;
+  }
+  #gl, #hud {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1080px;
+    height: 1920px;
+    display: block;
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+</head>
+<body>
+<div id="stage">
+  <canvas id="gl" width="1080" height="1920"></canvas>
+  <canvas id="hud" width="1080" height="1920"></canvas>
+</div>
+<script>
+(() => {
+  const W = 1080, H = 1920;
+  const glCanvas = document.getElementById("gl");
+  const hudCanvas = document.getElementById("hud");
+  const hctx = hudCanvas.getContext("2d");
+
+  // -------------------------------------------------------------------------
+  // Math & Easing Helpers
+  // -------------------------------------------------------------------------
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, t) => a + (b - a) * clamp(t, 0, 1);
+  const easeOutBack = (t) => {
+    t = clamp(t, 0, 1);
+    const c1 = 1.70158, c3 = c1 + 1;
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+  };
+  const easeInOut = (t) => {
+    t = clamp(t, 0, 1);
+    return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  };
+
+  // -------------------------------------------------------------------------
+  // Three.js Renderer, Camera, Lights
+  // -------------------------------------------------------------------------
+  const renderer = new THREE.WebGLRenderer({
+    canvas: glCanvas,
+    antialias: true,
+    alpha: false,
+    preserveDrawingBuffer: true,
+  });
+  renderer.setSize(W, H, false);
+  renderer.setPixelRatio(1);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x2a231b);
+  scene.fog = new THREE.Fog(0x2a231b, 18, 42);
+
+  const camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 100);
+  camera.position.set(0, 2.7, 9.2);
+  camera.lookAt(0, 2.3, 0);
+
+  // Warm studio toon lighting
+  const hemiLight = new THREE.HemisphereLight(0xfff4dd, 0x5c4630, 0.92);
+  scene.add(hemiLight);
+
+  const keyLight = new THREE.DirectionalLight(0xfff1d2, 1.05);
+  keyLight.position.set(5.5, 11, 8.5);
+  keyLight.castShadow = true;
+  keyLight.shadow.mapSize.width = 1024;
+  keyLight.shadow.mapSize.height = 1024;
+  keyLight.shadow.camera.near = 1;
+  keyLight.shadow.camera.far = 35;
+  keyLight.shadow.camera.left = -10;
+  keyLight.shadow.camera.right = 10;
+  keyLight.shadow.camera.top = 12;
+  keyLight.shadow.camera.bottom = -4;
+  keyLight.shadow.bias = -0.0012;
+  scene.add(keyLight);
+
+  const fillLight = new THREE.DirectionalLight(0xaad4ff, 0.32);
+  fillLight.position.set(-7, 5, 5);
+  scene.add(fillLight);
+
+  const reactorGlow = new THREE.PointLight(0x52ff7e, 1.8, 12, 1.5);
+  reactorGlow.position.set(0, 3.0, 0.6);
+  scene.add(reactorGlow);
+
+  // -------------------------------------------------------------------------
+  // Procedural Toon Textures (Wood Planks, Graphite Bricks, Brick Wall, Hazard)
+  // -------------------------------------------------------------------------
+  function makeWoodTexture(baseA, baseB, lineC, plankCount = 8, vertical = false) {
+    const c = document.createElement("canvas");
+    c.width = 512; c.height = 512;
+    const ctx = c.getContext("2d");
+    const g = ctx.createLinearGradient(0, 0, vertical ? 512 : 0, vertical ? 0 : 512);
+    g.addColorStop(0, baseA);
+    g.addColorStop(1, baseB);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 512, 512);
+
+    const step = 512 / plankCount;
+    for (let i = 0; i < plankCount; i++) {
+      if (i % 2 === 0) {
+        ctx.fillStyle = "rgba(0,0,0,0.065)";
+        if (vertical) ctx.fillRect(i * step, 0, step, 512);
+        else ctx.fillRect(0, i * step, 512, step);
+      }
+      // Subtle wood grain streaks
+      ctx.strokeStyle = "rgba(255,235,195,0.06)";
+      ctx.lineWidth = 2;
+      for (let k = 0; k < 4; k++) {
+        ctx.beginPath();
+        const off = i * step + (k + 0.5) * (step / 4);
+        if (vertical) {
+          ctx.moveTo(off, 0);
+          ctx.bezierCurveTo(off + 4, 170, off - 4, 340, off, 512);
+        } else {
+          ctx.moveTo(0, off);
+          ctx.bezierCurveTo(170, off + 4, 340, off - 4, 512, off);
+        }
+        ctx.stroke();
+      }
+      ctx.strokeStyle = lineC;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      if (vertical) { ctx.moveTo(i * step, 0); ctx.lineTo(i * step, 512); }
+      else { ctx.moveTo(0, i * step); ctx.lineTo(512, i * step); }
+      ctx.stroke();
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.encoding = THREE.sRGBEncoding;
+    return tex;
+  }
+
+  function makeGraphiteTexture() {
+    const c = document.createElement("canvas");
+    c.width = 512; c.height = 512;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#2b2f38";
+    ctx.fillRect(0, 0, 512, 512);
+    const rows = 8, cols = 4;
+    const bh = 512 / rows, bw = 512 / cols;
+    for (let r = 0; r < rows; r++) {
+      const off = (r % 2) * (bw * 0.5);
+      for (let col = -1; col <= cols; col++) {
+        const x = col * bw + off;
+        const y = r * bh;
+        const shade = 36 + ((r * 13 + col * 29) & 15);
+        ctx.fillStyle = `rgb(${shade},${shade + 4},${shade + 11})`;
+        ctx.fillRect(x + 3, y + 3, bw - 6, bh - 6);
+        // Subtle bevel highlight
+        ctx.fillStyle = "rgba(255,255,255,0.07)";
+        ctx.fillRect(x + 3, y + 3, bw - 6, 5);
+        ctx.strokeStyle = "#14161c";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(x + 2, y + 2, bw - 4, bh - 4);
+      }
+    }
+    // Glowing uranium fuel rod ports
+    for (let r = 1; r < rows; r += 2) {
+      for (let col = 0; col < cols; col++) {
+        const cx = col * bw + bw * 0.5;
+        const cy = r * bh + bh * 0.5;
+        const rg = ctx.createRadialGradient(cx, cy, 2, cx, cy, 18);
+        rg.addColorStop(0, "#d8ff72");
+        rg.addColorStop(0.45, "#46e86c");
+        rg.addColorStop(1, "rgba(40,220,90,0)");
+        ctx.fillStyle = rg;
+        ctx.beginPath(); ctx.arc(cx, cy, 18, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#1d2228";
+        ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#9eff57";
+        ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.encoding = THREE.sRGBEncoding;
+    return tex;
+  }
+
+  function makeHazardTexture() {
+    const c = document.createElement("canvas");
+    c.width = 512; c.height = 128;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#f4c425";
+    ctx.fillRect(0, 0, 512, 128);
+    ctx.fillStyle = "#1c1c22";
+    for (let x = -128; x < 640; x += 64) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0); ctx.lineTo(x + 32, 0);
+      ctx.lineTo(x - 16, 128); ctx.lineTo(x - 48, 128);
+      ctx.closePath(); ctx.fill();
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.encoding = THREE.sRGBEncoding;
+    return tex;
+  }
+
+  function makePlaqueTexture(topText, subText, bg = "#1c4d96", border = "#f4c425") {
+    const c = document.createElement("canvas");
+    c.width = 768; c.height = 256;
+    const ctx = c.getContext("2d");
+    // Rounded sign
+    ctx.fillStyle = "#181822";
+    roundRect(ctx, 4, 4, 760, 248, 28); ctx.fill();
+    ctx.fillStyle = border;
+    roundRect(ctx, 14, 14, 740, 228, 22); ctx.fill();
+    ctx.fillStyle = bg;
+    roundRect(ctx, 26, 26, 716, 204, 16); ctx.fill();
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#ffd95a";
+    ctx.font = "bold 62px 'DejaVu Sans', sans-serif";
+    ctx.fillText(topText, 384, 100);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 36px 'DejaVu Sans', sans-serif";
+    ctx.fillText(subText, 384, 175);
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.encoding = THREE.sRGBEncoding;
+    return tex;
+  }
+
+  function makeBoardTexture(title, lines, bgHex, accentHex, badgeText) {
+    const c = document.createElement("canvas");
+    c.width = 1024; c.height = 768;
+    const ctx = c.getContext("2d");
+
+    // Outer dark ink border
+    ctx.fillStyle = "#171720";
+    roundRect(ctx, 6, 6, 1012, 756, 36); ctx.fill();
+    // Gold/wooden bezel
+    ctx.fillStyle = accentHex;
+    roundRect(ctx, 20, 20, 984, 728, 28); ctx.fill();
+    // Inner colored panel
+    const grad = ctx.createLinearGradient(0, 36, 0, 732);
+    grad.addColorStop(0, bgHex);
+    grad.addColorStop(1, shadeHex(bgHex, -22));
+    ctx.fillStyle = grad;
+    roundRect(ctx, 38, 38, 948, 692, 20); ctx.fill();
+
+    // Subtle top sheen
+    ctx.fillStyle = "rgba(255,255,255,0.06)";
+    roundRect(ctx, 46, 46, 932, 160, 14); ctx.fill();
+
+    const fitFont = (txt, maxW, maxSz, minSz = 22) => {
+      for (let sz = maxSz; sz >= minSz; sz -= 2) {
+        ctx.font = `bold ${sz}px 'DejaVu Sans', sans-serif`;
+        if (ctx.measureText(txt).width <= maxW) return sz;
+      }
+      return minSz;
+    };
+
+    // Title
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.lineWidth = 10;
+    ctx.strokeStyle = "rgba(15,15,24,0.65)";
+    fitFont(title, 860, 54, 34);
+    ctx.strokeText(title, 512, 132);
+    ctx.fillStyle = "#ffe066";
+    ctx.fillText(title, 512, 132);
+
+    // Divider line
+    ctx.strokeStyle = "rgba(255,224,102,0.55)";
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(96, 198); ctx.lineTo(928, 198); ctx.stroke();
+
+    // Bullet lines
+    lines.forEach((line, idx) => {
+      const y = 296 + idx * 116;
+      fitFont(line, 845, 42, 26);
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = "rgba(12,12,18,0.65)";
+      ctx.strokeText(line, 512, y);
+      ctx.fillStyle = idx === 2 ? "#ffe87a" : "#ffffff";
+      ctx.fillText(line, 512, y);
+    });
+
+    // Bottom pill tag inside board
+    if (badgeText) {
+      ctx.fillStyle = "#171720";
+      roundRect(ctx, 180, 620, 664, 78, 39); ctx.fill();
+      ctx.fillStyle = "#ffd644";
+      roundRect(ctx, 188, 628, 648, 62, 31); ctx.fill();
+      ctx.fillStyle = "#171720";
+      fitFont(badgeText, 590, 34, 22);
+      ctx.fillText(badgeText, 512, 660);
+    }
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.encoding = THREE.sRGBEncoding;
+    return tex;
+  }
+
+  function shadeHex(hex, amt) {
+    let n = parseInt(hex.replace("#", ""), 16);
+    let r = clamp((n >> 16) + amt, 0, 255);
+    let g = clamp(((n >> 8) & 0xff) + amt, 0, 255);
+    let b = clamp((n & 0xff) + amt, 0, 255);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  // -------------------------------------------------------------------------
+  // Build 3D World Groups:
+  //   Group A: Stagg Field Squash Court + Chicago Pile-1 Graphite Reactor + Balcony/Rope
+  //   Group B: Warm Wooden Wall + 3D Beveled Info Boards (Scenes 2, 3, 5)
+  //   Group C: Reactor Rooftop + Caution Board (Scene 4)
+  // -------------------------------------------------------------------------
+  const floorTex = makeWoodTexture("#b78144", "#8e5d28", "#4f3112", 10, true);
+  floorTex.repeat.set(3, 3);
+  const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.78 });
+  const floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(36, 36), floorMat);
+  floorMesh.rotation.x = -Math.PI / 2;
+  floorMesh.position.y = 0;
+  floorMesh.receiveShadow = true;
+  scene.add(floorMesh);
+
+  // Back wall (warm wood/stadium wall)
+  const wallTex = makeWoodTexture("#d5a662", "#a57335", "#69451c", 10, false);
+  wallTex.repeat.set(2, 2);
+  const backWall = new THREE.Mesh(
+    new THREE.PlaneGeometry(30, 20),
+    new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.85 })
+  );
+  backWall.position.set(0, 9.5, -5.2);
+  backWall.receiveShadow = true;
+  scene.add(backWall);
+
+  // Dark wainscoting baseboard
+  const baseboard = new THREE.Mesh(
+    new THREE.BoxGeometry(30, 1.35, 0.25),
+    new THREE.MeshStandardMaterial({ color: 0x5c3c1e, roughness: 0.8 })
+  );
+  baseboard.position.set(0, 0.67, -5.05);
+  baseboard.receiveShadow = true;
+  scene.add(baseboard);
+
+  // Side walls for depth
+  const sideWallMat = new THREE.MeshStandardMaterial({ color: 0x8f6639, roughness: 0.88 });
+  const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(24, 18), sideWallMat);
+  leftWall.rotation.y = Math.PI / 2;
+  leftWall.position.set(-7.5, 8.5, 2);
+  scene.add(leftWall);
+  const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(24, 18), sideWallMat);
+  rightWall.rotation.y = -Math.PI / 2;
+  rightWall.position.set(7.5, 8.5, 2);
+  scene.add(rightWall);
+
+  // --- GROUP A: Stagg Field Stadium Squash Court & Chicago Pile-1 Reactor ---
+  const groupReactor = new THREE.Group();
+  scene.add(groupReactor);
+
+  // Stadium wooden roof rafters overhead
+  const rafterMat = new THREE.MeshStandardMaterial({ color: 0x4b3119, roughness: 0.85 });
+  for (let i = -3; i <= 3; i++) {
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(16, 0.35, 0.35), rafterMat);
+    beam.position.set(0, 8.2 + Math.abs(i) * 0.22, -4.5 + i * 1.4);
+    beam.rotation.z = i * 0.025;
+    groupReactor.add(beam);
+  }
+
+  // Chicago Pile-1 Stepped Graphite Reactor Cube
+  const graphiteTex = makeGraphiteTexture();
+  const graphiteMat = new THREE.MeshStandardMaterial({
+    map: graphiteTex,
+    roughness: 0.65,
+    metalness: 0.15,
+    emissive: new THREE.Color(0x13381b),
+    emissiveIntensity: 0.45,
+  });
+  const reactorBase = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.48, 3.6), new THREE.MeshStandardMaterial({ map: makeHazardTexture(), roughness: 0.5 }));
+  reactorBase.position.set(0, 0.24, -1.8);
+  reactorBase.castShadow = true;
+  reactorBase.receiveShadow = true;
+  groupReactor.add(reactorBase);
+
+  const reactorTier1 = new THREE.Mesh(new THREE.BoxGeometry(3.8, 2.3, 3.1), graphiteMat);
+  reactorTier1.position.set(0, 1.62, -1.8);
+  reactorTier1.castShadow = true;
+  reactorTier1.receiveShadow = true;
+  groupReactor.add(reactorTier1);
+
+  const reactorTier2 = new THREE.Mesh(new THREE.BoxGeometry(3.1, 1.5, 2.5), graphiteMat);
+  reactorTier2.position.set(0, 3.5, -1.8);
+  reactorTier2.castShadow = true;
+  reactorTier2.receiveShadow = true;
+  groupReactor.add(reactorTier2);
+
+  // Timber scaffolding posts around reactor
+  const woodPostMat = new THREE.MeshStandardMaterial({ color: 0x7a4e24, roughness: 0.82 });
+  [[-2.05, -0.25], [2.05, -0.25], [-2.05, -3.35], [2.05, -3.35]].forEach(([px, pz]) => {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.22, 4.7, 0.22), woodPostMat);
+    post.position.set(px, 2.35, pz);
+    post.castShadow = true;
+    groupReactor.add(post);
+  });
+
+  // Overhead 3D Balcony Catwalk (where the SCRAM rope is rigged above reactor)
+  const balconyDeck = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.28, 1.8), woodPostMat);
+  balconyDeck.position.set(0, 5.25, -2.0);
+  balconyDeck.castShadow = true;
+  groupReactor.add(balconyDeck);
+
+  // Balcony railing
+  const railBar = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.12, 0.12), rafterMat);
+  railBar.position.set(0, 6.02, -1.15);
+  groupReactor.add(railBar);
+  for (let rx = -3.3; rx <= 3.3; rx += 1.1) {
+    const bal = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.78, 0.1), rafterMat);
+    bal.position.set(rx, 5.64, -1.15);
+    groupReactor.add(bal);
+  }
+
+  // Hanging SCRAM Emergency Control Rod on a taut Rope! (Clearly visible upper-center!)
+  const scramAssembly = new THREE.Group();
+  scramAssembly.position.set(0.65, 5.25, -0.55);
+  groupReactor.add(scramAssembly);
+
+  const ropeMat = new THREE.MeshStandardMaterial({ color: 0xe6c373, roughness: 0.9 });
+  const ropeMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 1.75, 12), ropeMat);
+  ropeMesh.position.set(0, -0.82, 0);
+  scramAssembly.add(ropeMesh);
+
+  const rodMat = new THREE.MeshStandardMaterial({ color: 0xd92626, roughness: 0.35, metalness: 0.45, emissive: 0x550808 });
+  const controlRod = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 1.25, 16), rodMat);
+  controlRod.position.set(0, -1.95, 0);
+  controlRod.castShadow = true;
+  scramAssembly.add(controlRod);
+
+  const rodTip = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.35, 16), new THREE.MeshStandardMaterial({ color: 0xffd23f, metalness: 0.5, roughness: 0.3 }));
+  rodTip.rotation.x = Math.PI;
+  rodTip.position.set(0, -2.72, 0);
+  scramAssembly.add(rodTip);
+
+  // Signpost Plaque cleanly inside left-upper frame ("CHICAGO · 1942 / STAGG FIELD STADYUMU")
+  const signPost = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4.7, 10), rafterMat);
+  signPost.position.set(-1.15, 2.35, -0.3);
+  signPost.castShadow = true;
+  groupReactor.add(signPost);
+
+  const plaqueTex = makePlaqueTexture("CHICAGO · 1942", "STAGG FIELD STADYUMU");
+  const plaqueMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(2.38, 0.84, 0.14),
+    [
+      rafterMat, rafterMat, rafterMat, rafterMat,
+      new THREE.MeshStandardMaterial({ map: plaqueTex, roughness: 0.5 }),
+      rafterMat,
+    ]
+  );
+  plaqueMesh.position.set(-0.92, 4.48, -0.22);
+  plaqueMesh.rotation.y = 0.08;
+  plaqueMesh.castShadow = true;
+  groupReactor.add(plaqueMesh);
+
+  // --- GROUP B: 3D Framed Info Boards (Scenes 2, 3, 4, 5) ---
+  const groupBoards = new THREE.Group();
+  scene.add(groupBoards);
+
+  const boardTex2 = makeBoardTexture(
+    "2 ARALIK 1942 · CHICAGO",
+    ["SOĞUTMA SİSTEMİ: YOK!", "RADYASYON KALKANI: YOK!", "400 TON GRAFİT TUĞLA YIĞINI"],
+    "#184c96", "#f5c531", "STADYUM ALTINDA GİZLİ DENEY!"
+  );
+  const boardTex3 = makeBoardTexture(
+    "ACİL DURUM PLANI: BALTA!",
+    ["HALATA BAĞLI FREN ÇUBUĞU", "BALKONDA ELİNDE BALTA BEKLEYEN ADAM", "TERS GİDERSE İPİ KES!"],
+    "#a81e22", "#f5c531", "S.C.R.A.M. = BALTALI ADAM"
+  );
+  const boardTex4 = makeBoardTexture(
+    "B PLANI: \"İNTİHAR TİMİ\"",
+    ["TEPEDE BEKLEYEN 3 BİLİM İNSANI", "ELLERİNDE KADMİYUM KOVALARI", "REAKTÖR TAŞARSA ÜZERİNE DÖK!"],
+    "#c2590c", "#ffe066", "KOVAYLA NÜKLEER SÖNDÜRME!"
+  );
+  const boardTex5 = makeBoardTexture(
+    "15:25 · NÜKLEER ÇAĞ BAŞLADI!",
+    ["28 DAKİKA SORUNSUZ ÇALIŞTI", "BALTAYA HİÇ GEREK KALMADI!", "SCRAM ADI HÂLÂ BALTALI ADAM'DAN"],
+    "#156e43", "#ffd84d", "KÂĞIT BARDAKLARLA KUTLAMA!"
+  );
+
+  const boardFrameMat = new THREE.MeshStandardMaterial({ color: 0x3b2614, roughness: 0.7 });
+  const boardFaceMat = new THREE.MeshStandardMaterial({ map: boardTex2, roughness: 0.45 });
+  const boardMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(4.55, 3.45, 0.24),
+    [boardFrameMat, boardFrameMat, boardFrameMat, boardFrameMat, boardFaceMat, boardFrameMat]
+  );
+  boardMesh.position.set(0, 5.15, -3.2);
+  boardMesh.castShadow = true;
+  groupBoards.add(boardMesh);
+
+  // Dramatic extra rope hanging cleanly below crimson axe board right next to the swinging steel axe!
+  const scene3RopeGroup = new THREE.Group();
+  scene3RopeGroup.position.set(0.05, 3.65, 0.35);
+  groupBoards.add(scene3RopeGroup);
+  const s3Pulley = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.14, 16), new THREE.MeshStandardMaterial({ color: 0xffd23f, metalness: 0.5, roughness: 0.35 }));
+  s3Pulley.rotation.x = Math.PI / 2;
+  scene3RopeGroup.add(s3Pulley);
+  const s3Rope = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 2.0, 12), ropeMat);
+  s3Rope.position.y = -1.0;
+  scene3RopeGroup.add(s3Rope);
+  const s3Weight = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.78, 16), rodMat);
+  s3Weight.position.y = -2.25;
+  scene3RopeGroup.add(s3Weight);
+
+  // Floating 3D golden victory stars for Scene 5
+  const starsGroup = new THREE.Group();
+  groupBoards.add(starsGroup);
+  const starGeo = new THREE.OctahedronGeometry(0.26, 0);
+  const starMat = new THREE.MeshStandardMaterial({ color: 0xffe047, emissive: 0x6b4f00, roughness: 0.25, metalness: 0.65 });
+  const starMeshes = [];
+  [[-2.4, 6.2, -1.2], [2.4, 6.0, -1.4], [-2.1, 2.7, -0.5], [2.2, 2.8, -0.6], [0, 6.7, -1.8]].forEach(([sx, sy, sz], i) => {
+    const sm = new THREE.Mesh(starGeo, starMat);
+    sm.position.set(sx, sy, sz);
+    starsGroup.add(sm);
+    starMeshes.push({ mesh: sm, baseY: sy, phase: i * 1.3 });
+  });
+
+  // -------------------------------------------------------------------------
+  // 2D Thick-Outlined Stick-Figure ("Çöp Adam") Character Sprite Builder
+  // Exact AKILALMAZ v1-v20 look with crisp 512x768 Canvas textures in 3D space!
+  // -------------------------------------------------------------------------
+  class StickChar {
+    constructor(role) {
+      this.role = role;
+      this.canvas = document.createElement("canvas");
+      this.canvas.width = 512;
+      this.canvas.height = 768;
+      this.ctx = this.canvas.getContext("2d");
+      this.tex = new THREE.CanvasTexture(this.canvas);
+      this.tex.encoding = THREE.sRGBEncoding;
+
+      const mat = new THREE.MeshBasicMaterial({
+        map: this.tex,
+        transparent: true,
+        alphaTest: 0.05,
+        side: THREE.DoubleSide,
+      });
+      this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(2.45, 3.68), mat);
+      this.mesh.position.set(0, 1.84, 1.4);
+
+      // Soft dark contact shadow on the 3D floor right underneath the stick legs!
+      const shCanvas = document.createElement("canvas");
+      shCanvas.width = 128; shCanvas.height = 128;
+      const sctx = shCanvas.getContext("2d");
+      const sg = sctx.createRadialGradient(64, 64, 8, 64, 64, 58);
+      sg.addColorStop(0, "rgba(18,12,6,0.52)");
+      sg.addColorStop(1, "rgba(18,12,6,0)");
+      sctx.fillStyle = sg;
+      sctx.fillRect(0, 0, 128, 128);
+      const shTex = new THREE.CanvasTexture(shCanvas);
+      this.shadow = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.75, 0.72),
+        new THREE.MeshBasicMaterial({ map: shTex, transparent: true, depthWrite: false })
+      );
+      this.shadow.rotation.x = -Math.PI / 2;
+      this.shadow.position.set(0, 0.02, 1.4);
+
+      this.group = new THREE.Group();
+      this.group.add(this.shadow);
+      this.group.add(this.mesh);
+      scene.add(this.group);
+    }
+
+    setPos(x, y, z, scale = 1.0) {
+      this.group.position.set(x, y, z);
+      this.mesh.scale.set(scale, scale, 1);
+      this.shadow.scale.set(scale, scale, 1);
+      this.shadow.position.y = 0.02 - y;
+      this.shadow.visible = y < 0.8;
+    }
+
+    draw(t, opts = {}) {
+      const {
+        emotion = "happy",
+        pose = "idle",
+        speaking = false,
+        facing = 1,
+        phase = 0,
+        prop = "none",
+      } = opts;
+      const ctx = this.ctx;
+      ctx.clearRect(0, 0, 512, 768);
+
+      const INK = "#181722";
+      const bob = Math.sin(t * 5.2 + phase) * 8;
+      const sway = Math.sin(t * 2.6 + phase) * 4;
+      const cx = 256 + sway;
+      const footY = 720;
+      const hipY = 550 + bob * 0.4;
+      const torsoTopY = 365 + bob;
+      const headY = 248 + bob;
+      const headR = 112;
+
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      // 1. Stick Legs + Cute Shoes
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 18;
+      const step = pose === "panic" ? Math.sin(t * 18 + phase) * 14 : 0;
+      ctx.beginPath();
+      ctx.moveTo(cx - 38, hipY); ctx.lineTo(cx - 46, footY + step);
+      ctx.moveTo(cx + 38, hipY); ctx.lineTo(cx + 46, footY - step);
+      ctx.stroke();
+
+      // Little shoes
+      ctx.fillStyle = INK;
+      ctx.beginPath();
+      ctx.ellipse(cx - 52, footY + step, 22, 11, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx + 52, footY - step, 22, 11, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 2. Back Arm (left or right depending on pose)
+      const drawArm = (sx, sy, ex, ey, mx, my) => {
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 17;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.quadraticCurveTo(mx, my, ex, ey);
+        ctx.stroke();
+        // Cute round cartoon hand
+        ctx.fillStyle = "#f7cba0";
+        ctx.beginPath(); ctx.arc(ex, ey, 16, 0, Math.PI * 2); ctx.fill();
+        ctx.lineWidth = 7; ctx.stroke();
+      };
+
+      // Compute hand positions by pose
+      let lHand = [cx - 125, torsoTopY + 125];
+      let rHand = [cx + 125, torsoTopY + 125];
+      let lCtrl = [cx - 115, torsoTopY + 60];
+      let rCtrl = [cx + 115, torsoTopY + 60];
+
+      if (pose === "wave" || pose === "cheer") {
+        const wv = Math.sin(t * 11 + phase) * 28;
+        lHand = [cx - 145, torsoTopY - 65 + wv];
+        rHand = [cx + 145, torsoTopY - 65 - wv];
+        lCtrl = [cx - 145, torsoTopY + 20];
+        rCtrl = [cx + 145, torsoTopY + 20];
+      } else if (pose === "point_up") {
+        const pt = Math.sin(t * 7 + phase) * 12;
+        lHand = [cx - 110, torsoTopY + 130];
+        rHand = [cx + 140 * facing, torsoTopY - 85 + pt];
+        rCtrl = [cx + 120 * facing, torsoTopY + 10];
+      } else if (pose === "axe_ready" || pose === "axe_swing") {
+        const sw = pose === "axe_swing" ? Math.sin(t * 11.5) * 48 : Math.sin(t * 4.5) * 14;
+        // Hold axe prominently inward toward the center rope!
+        lHand = [cx - 122, torsoTopY - 38 + sw];
+        lCtrl = [cx - 125, torsoTopY + 35];
+        rHand = [cx + 110, torsoTopY + 118];
+      } else if (pose === "panic") {
+        const sh = Math.sin(t * 22 + phase) * 16;
+        lHand = [cx - 145, torsoTopY - 45 + sh];
+        rHand = [cx + 145, torsoTopY - 45 - sh];
+      } else if (pose === "bucket") {
+        const sl = Math.sin(t * 12 + phase) * 12;
+        lHand = [cx - 88, torsoTopY + 42 + sl];
+        rHand = [cx + 88, torsoTopY + 42 - sl];
+      } else if (pose === "toast") {
+        const cl = Math.sin(t * 8 + phase) * 14;
+        lHand = [cx - 115, torsoTopY + 110];
+        rHand = [cx + 128 * facing, torsoTopY - 22 + cl];
+        rCtrl = [cx + 125 * facing, torsoTopY + 48];
+      } else {
+        // Energetic talking gesture
+        const g = speaking ? Math.sin(t * 10 + phase) * 24 : Math.sin(t * 3 + phase) * 8;
+        lHand = [cx - 118, torsoTopY + 108 + g * 0.5];
+        rHand = [cx + 126, torsoTopY + 60 - g];
+      }
+
+      drawArm(cx - 64, torsoTopY + 34, lHand[0], lHand[1], lCtrl[0], lCtrl[1]);
+      drawArm(cx + 64, torsoTopY + 34, rHand[0], rHand[1], rCtrl[0], rCtrl[1]);
+
+      // 3. Torso Capsule (Outfit per role)
+      let bodyFill = "#f2f4f8";
+      let innerFill = "#2a528a";
+      let tieColor = "#d93434";
+      if (this.role === "axeman") {
+        bodyFill = "#203a68";
+        innerFill = "#1a2f55";
+        tieColor = "#f4c425";
+      } else if (this.role === "scientist2") {
+        bodyFill = "#eef2f7";
+        innerFill = "#2d7050";
+        tieColor = "#e88b25";
+      } else if (this.role === "scientist3") {
+        bodyFill = "#eef2f7";
+        innerFill = "#683b7a";
+        tieColor = "#38a3d1";
+      }
+
+      ctx.fillStyle = bodyFill;
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 14;
+      roundRect(ctx, cx - 72, torsoTopY, 144, 198, 56);
+      ctx.fill();
+      ctx.stroke();
+
+      // Outfit details (lab coat lapels + tie OR security uniform sash + gold badge)
+      if (this.role === "axeman") {
+        // Yellow diagonal security sash (echoes v20 iconic sash!)
+        ctx.fillStyle = "#f4c425";
+        ctx.beginPath();
+        ctx.moveTo(cx - 56, torsoTopY + 10);
+        ctx.lineTo(cx - 24, torsoTopY + 6);
+        ctx.lineTo(cx + 62, torsoTopY + 178);
+        ctx.lineTo(cx + 30, torsoTopY + 188);
+        ctx.closePath();
+        ctx.fill();
+        ctx.lineWidth = 7; ctx.stroke();
+        // Belt
+        ctx.fillStyle = "#181722";
+        ctx.fillRect(cx - 68, torsoTopY + 140, 136, 22);
+        ctx.fillStyle = "#ffd95a";
+        ctx.fillRect(cx - 18, torsoTopY + 138, 36, 26);
+      } else {
+        // Lab coat V-neck + shirt + tie + pocket pen
+        ctx.fillStyle = innerFill;
+        ctx.beginPath();
+        ctx.moveTo(cx - 32, torsoTopY + 4);
+        ctx.lineTo(cx + 32, torsoTopY + 4);
+        ctx.lineTo(cx, torsoTopY + 92);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = tieColor;
+        ctx.beginPath();
+        ctx.moveTo(cx - 9, torsoTopY + 8);
+        ctx.lineTo(cx + 9, torsoTopY + 8);
+        ctx.lineTo(cx + 12, torsoTopY + 76);
+        ctx.lineTo(cx, torsoTopY + 94);
+        ctx.lineTo(cx - 12, torsoTopY + 76);
+        ctx.closePath();
+        ctx.fill();
+        // Center coat seam
+        ctx.strokeStyle = INK; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.moveTo(cx, torsoTopY + 92); ctx.lineTo(cx, torsoTopY + 195); ctx.stroke();
+        // Pocket
+        ctx.strokeRect(cx + 18, torsoTopY + 98, 32, 26);
+      }
+
+      // 4. Big Iconic Round Peach Head (thick dark outline!)
+      ctx.fillStyle = "#f7cba0";
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 14;
+      ctx.beginPath();
+      ctx.arc(cx, headY, headR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Soft warm cheek blush
+      ctx.fillStyle = "rgba(240, 120, 105, 0.28)";
+      ctx.beginPath();
+      ctx.ellipse(cx - 56, headY + 26, 20, 12, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx + 56, headY + 26, 20, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 5. Hair / Hat per role
+      if (this.role === "fermi") {
+        // Neat dark 1940s physicist hair
+        ctx.fillStyle = "#2b221e";
+        ctx.beginPath();
+        ctx.arc(cx, headY - 12, headR + 2, Math.PI * 1.08, Math.PI * 1.92);
+        ctx.quadraticCurveTo(cx + 40, headY - 52, cx - 22, headY - 62);
+        ctx.quadraticCurveTo(cx - 72, headY - 45, cx - headR, headY - 28);
+        ctx.closePath();
+        ctx.fill();
+        ctx.lineWidth = 10; ctx.stroke();
+      } else if (this.role === "axeman") {
+        // Security Officer Cap with Gold Badge
+        ctx.fillStyle = "#1c3663";
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 11;
+        ctx.beginPath();
+        ctx.ellipse(cx, headY - 94, 106, 48, 0, Math.PI, Math.PI * 2);
+        ctx.lineTo(cx + 106, headY - 78);
+        ctx.lineTo(cx - 106, headY - 78);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        // Brim
+        ctx.fillStyle = "#141824";
+        roundRect(ctx, cx - 104, headY - 84, 208, 22, 10);
+        ctx.fill(); ctx.stroke();
+        // Gold emblem
+        ctx.fillStyle = "#ffd644";
+        ctx.beginPath(); ctx.arc(cx, headY - 106, 17, 0, Math.PI * 2); ctx.fill();
+        ctx.lineWidth = 6; ctx.stroke();
+      } else if (this.role === "scientist2") {
+        // Wild Einstein-ish grey hair puffs
+        ctx.fillStyle = "#d8dce6";
+        ctx.strokeStyle = INK; ctx.lineWidth = 10;
+        [[-88, -56, 36], [88, -56, 36], [-52, -96, 34], [52, -96, 34], [0, -108, 36]].forEach(([ox, oy, r]) => {
+          ctx.beginPath(); ctx.arc(cx + ox, headY + oy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        });
+      } else {
+        // Curly brown hair
+        ctx.fillStyle = "#5c3b24";
+        ctx.strokeStyle = INK; ctx.lineWidth = 10;
+        [[-68, -82, 30], [-25, -102, 32], [25, -102, 32], [68, -82, 30]].forEach(([ox, oy, r]) => {
+          ctx.beginPath(); ctx.arc(cx + ox, headY + oy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        });
+      }
+
+      // 6. Expressive Cartoon Eyes & Brows
+      const blink = ((t + phase) % 3.4) > 3.25;
+      const exL = cx - 36, exR = cx + 36, ey = headY - 4;
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 9;
+
+      if (emotion === "happy" || emotion === "smug") {
+        // Happy curved eyes (^ ^)
+        ctx.beginPath();
+        ctx.arc(exL, ey + 6, 20, Math.PI * 1.12, Math.PI * 1.88);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(exR, ey + 6, 20, Math.PI * 1.12, Math.PI * 1.88);
+        ctx.stroke();
+      } else if (blink) {
+        ctx.beginPath();
+        ctx.moveTo(exL - 20, ey); ctx.lineTo(exL + 20, ey);
+        ctx.moveTo(exR - 20, ey); ctx.lineTo(exR + 20, ey);
+        ctx.stroke();
+      } else if (emotion === "shock" || emotion === "panic") {
+        // Big wide white cartoon eyes with tiny pupils!
+        [exL, exR].forEach((ex) => {
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath(); ctx.arc(ex, ey, 26, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = INK;
+          const jx = emotion === "panic" ? Math.sin(t * 25 + phase) * 3 : 0;
+          ctx.beginPath(); ctx.arc(ex + jx + facing * 4, ey, 8, 0, Math.PI * 2); ctx.fill();
+        });
+        // Raised panicked eyebrows
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.moveTo(exL - 24, ey - 36); ctx.lineTo(exL + 16, ey - 46);
+        ctx.moveTo(exR - 16, ey - 46); ctx.lineTo(exR + 24, ey - 36);
+        ctx.stroke();
+      } else {
+        // Standard expressive eyes
+        [exL, exR].forEach((ex) => {
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath(); ctx.arc(ex, ey, 21, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = INK;
+          ctx.beginPath(); ctx.arc(ex + facing * 5, ey, 9, 0, Math.PI * 2); ctx.fill();
+        });
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.moveTo(exL - 20, ey - 32); ctx.lineTo(exL + 18, ey - 34);
+        ctx.moveTo(exR - 18, ey - 34); ctx.lineTo(exR + 20, ey - 32);
+        ctx.stroke();
+      }
+
+      // Fermi's iconic round physicist glasses
+      if (this.role === "fermi") {
+        ctx.strokeStyle = "#181722";
+        ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.arc(exL, ey, 29, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(exR, ey, 29, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(exL + 29, ey); ctx.lineTo(exR - 29, ey); ctx.stroke();
+      }
+
+      // 7. Animated Mouth (lip-synced to speech!)
+      const my = headY + 52;
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 8;
+      if (speaking) {
+        const openH = 12 + Math.abs(Math.sin(t * 21 + phase)) * 22;
+        ctx.fillStyle = "#6e1a24";
+        ctx.beginPath();
+        ctx.ellipse(cx, my, 25, openH, 0, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+        // Cute tongue
+        ctx.fillStyle = "#e85c6b";
+        ctx.beginPath();
+        ctx.ellipse(cx, my + openH * 0.45, 14, openH * 0.35, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (emotion === "shock" || emotion === "panic") {
+        ctx.fillStyle = "#6e1a24";
+        ctx.beginPath(); ctx.ellipse(cx, my + 4, 20, 26, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      } else if (emotion === "happy" || emotion === "smug") {
+        ctx.beginPath();
+        ctx.arc(cx, my - 10, 28, Math.PI * 0.15, Math.PI * 0.85);
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(cx - 22, my + 2);
+        ctx.quadraticCurveTo(cx, my - 6, cx + 22, my + 2);
+        ctx.stroke();
+      }
+
+      // Animated Cartoon Sweat Drops for Nervous / Panic / Shock
+      if (emotion === "panic" || emotion === "shock" || emotion === "nervous") {
+        const dropOff = ((t * 95 + phase * 30) % 42);
+        ctx.fillStyle = "#4cd3ff";
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 6;
+        const dx = cx + 82, dy = headY - 46 + dropOff;
+        ctx.beginPath();
+        ctx.moveTo(dx, dy - 18);
+        ctx.quadraticCurveTo(dx + 15, dy + 4, dx, dy + 16);
+        ctx.quadraticCurveTo(dx - 15, dy + 4, dx, dy - 18);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+      }
+
+      // 8. Handheld Props (AXE, BLUE CADMIUM BUCKET, PAPER CUP, GEIGER COUNTER!)
+      if (prop === "axe") {
+        const hx = lHand[0], hy = lHand[1];
+        const ang = pose === "axe_swing" ? (-0.25 - Math.sin(t * 11.5) * 0.55) : -0.45;
+        ctx.save();
+        ctx.translate(hx, hy);
+        ctx.rotate(ang);
+        // Wooden handle
+        ctx.fillStyle = "#a6642c";
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 9;
+        roundRect(ctx, -11, -185, 22, 235, 10);
+        ctx.fill(); ctx.stroke();
+        // Gleaming steel axe head facing LEFT toward center rope!
+        ctx.fillStyle = "#d5dfe9";
+        ctx.beginPath();
+        ctx.moveTo(12, -172);
+        ctx.lineTo(-72, -206);
+        ctx.quadraticCurveTo(-92, -152, -70, -100);
+        ctx.lineTo(12, -124);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        // Razor edge highlight
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 7;
+        ctx.beginPath();
+        ctx.moveTo(-64, -193);
+        ctx.quadraticCurveTo(-81, -152, -63, -112);
+        ctx.stroke();
+        ctx.restore();
+      } else if (prop === "bucket") {
+        const bx = cx, by = torsoTopY + 46 + Math.sin(t * 12 + phase) * 8;
+        ctx.save();
+        ctx.translate(bx, by);
+        ctx.rotate(Math.sin(t * 9 + phase) * 0.14);
+        // Sloshing blue cadmium water splashes above bucket
+        ctx.fillStyle = "#38d4ff";
+        ctx.strokeStyle = INK; ctx.lineWidth = 6;
+        [-32, 0, 34].forEach((ox, i) => {
+          const sy = -68 - Math.abs(Math.sin(t * 14 + i + phase)) * 22;
+          ctx.beginPath(); ctx.arc(ox, sy, 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        });
+        // Blue bucket trapezoid
+        ctx.fillStyle = "#1f88e5";
+        ctx.strokeStyle = INK; ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.moveTo(-64, -42); ctx.lineTo(64, -42);
+        ctx.lineTo(48, 56); ctx.lineTo(-48, 56);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        // Rim
+        ctx.fillStyle = "#6cc8ff";
+        ctx.beginPath(); ctx.ellipse(0, -42, 64, 15, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        // Label
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 20px 'DejaVu Sans', sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("KADMİYUM", 0, 14);
+        ctx.restore();
+      } else if (prop === "cup") {
+        const px = rHand[0], py = rHand[1] - 18;
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(facing * 0.12);
+        // Iconic white paper cup!
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = INK; ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.moveTo(-26, -30); ctx.lineTo(26, -30);
+        ctx.lineTo(18, 28); ctx.lineTo(-18, 28);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#d93434";
+        ctx.fillRect(-20, -10, 40, 10);
+        ctx.restore();
+      } else if (prop === "geiger") {
+        const gx = lHand[0], gy = lHand[1];
+        ctx.save();
+        ctx.translate(gx, gy);
+        ctx.fillStyle = "#ffd23f";
+        ctx.strokeStyle = INK; ctx.lineWidth = 8;
+        roundRect(ctx, -38, -28, 76, 54, 12);
+        ctx.fill(); ctx.stroke();
+        // Dial gauge
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath(); ctx.arc(0, -2, 18, Math.PI, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "#d92626"; ctx.lineWidth = 5;
+        const needle = -Math.PI * 0.5 + Math.sin(t * 18) * 0.7;
+        ctx.beginPath(); ctx.moveTo(0, 4); ctx.lineTo(Math.cos(needle) * 15, 4 + Math.sin(needle) * 15); ctx.stroke();
+        ctx.restore();
+      }
+
+      this.tex.needsUpdate = true;
+    }
+  }
+
+  const charFermi = new StickChar("fermi");
+  const charAxeman = new StickChar("axeman");
+  const charSci2 = new StickChar("scientist2");
+  const charSci3 = new StickChar("scientist3");
+
+  // -------------------------------------------------------------------------
+  // 2D HUD Layer: Pop-up Badges, Flash Cuts, Bold Synced Turkish Subtitles
+  // -------------------------------------------------------------------------
+  function drawBadge(ctx, text, cx, cy, bg, fg, scale = 1.0, tilt = 0) {
+    if (scale <= 0.02) return;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(tilt);
+    ctx.scale(scale, scale);
+
+    ctx.font = "bold 44px 'DejaVu Sans', sans-serif";
+    const tw = ctx.measureText(text).width;
+    const pw = tw + 68, ph = 84;
+
+    // Shadow
+    ctx.fillStyle = "rgba(0,0,0,0.38)";
+    roundRect(ctx, -pw / 2 + 6, -ph / 2 + 10, pw, ph, 42); ctx.fill();
+    // Thick dark outline
+    ctx.fillStyle = "#181722";
+    roundRect(ctx, -pw / 2 - 7, -ph / 2 - 7, pw + 14, ph + 14, 48); ctx.fill();
+    // Badge fill
+    ctx.fillStyle = bg;
+    roundRect(ctx, -pw / 2, -ph / 2, pw, ph, 42); ctx.fill();
+
+    ctx.fillStyle = fg;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, 0, 2);
+    ctx.restore();
+  }
+
+  function drawCircleIcon(ctx, sym, cx, cy, r, bg, fg, scale = 1.0) {
+    if (scale <= 0.02) return;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = "rgba(0,0,0,0.32)";
+    ctx.beginPath(); ctx.arc(6, 10, r + 6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#181722";
+    ctx.beginPath(); ctx.arc(0, 0, r + 8, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = bg;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = fg;
+    ctx.font = `bold ${Math.round(r * 1.2)}px 'DejaVu Sans', sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(sym, 0, 4);
+    ctx.restore();
+  }
+
+  function drawCaption(ctx, text, age) {
+    if (!text) return;
+    ctx.save();
+    const pop = age < 0.11 ? lerp(0.86, 1.04, easeOutBack(age / 0.11)) : 1.0;
+    const cy = 1525;
+    ctx.translate(W / 2, cy);
+    ctx.scale(pop, pop);
+
+    // Dynamic font sizing so long Turkish words never clip horizontally
+    let fsize = 74;
+    ctx.font = `900 ${fsize}px 'DejaVu Sans', sans-serif`;
+    while (ctx.measureText(text).width > 940 && fsize > 46) {
+      fsize -= 4;
+      ctx.font = `900 ${fsize}px 'DejaVu Sans', sans-serif`;
+    }
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.lineJoin = "round";
+
+    // Soft drop shadow
+    ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+    ctx.fillText(text, 5, 9);
+
+    // Thick dark comic outline (exact v1-v20 look!)
+    ctx.strokeStyle = "#111018";
+    ctx.lineWidth = 20;
+    ctx.strokeText(text, 0, 0);
+
+    // Crisp bright white fill
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(text, 0, 0);
+    ctx.restore();
+  }
+
+  // -------------------------------------------------------------------------
+  // Scene Boundaries (synchronized with story rhythm)
+  //   0: 0.00 - 0.15  Hook: Stadium Reactor + Axeman + Hanging SCRAM Rod!
+  //   1: 0.15 - 0.30  Setup: Dec 2, 1942 Enrico Fermi in Stagg Field Squash Court
+  //   2: 0.30 - 0.44  Board Navy: No Cooling, No Shield, 400 Tons Graphite!
+  //   3: 0.44 - 0.60  Board Crimson: Emergency Plan = AXE MAN (SCRAM!)
+  //   4: 0.60 - 0.74  Board Orange: Plan B = "Suicide Squad" with Cadmium Buckets!
+  //   5: 0.74 - 0.90  Board Emerald: 15:25 Nuclear Age Begins! Paper Cup Toast + SCRAM!
+  //   6: 0.90 - 1.00  Seamless Loop Return to Stagg Field Reactor!
+  // -------------------------------------------------------------------------
+  const CUTS = [0.0, 0.15, 0.30, 0.44, 0.60, 0.74, 0.90, 1.01];
+
+  function getSceneInfo(frac) {
+    for (let i = 0; i < CUTS.length - 1; i++) {
+      if (frac >= CUTS[i] && frac < CUTS[i + 1]) {
+        const localFrac = (frac - CUTS[i]) / (CUTS[i + 1] - CUTS[i]);
+        return { idx: i, startFrac: CUTS[i], localFrac };
+      }
+    }
+    return { idx: 6, startFrac: 0.90, localFrac: 1.0 };
+  }
+
+  window.AKILALMAZ_READY = true;
+
+  window.renderFrameAt = function(t, totalDur, captionText, captionAge, speaking) {
+    const frac = clamp(t / Math.max(0.01, totalDur), 0, 0.9999);
+    const { idx, startFrac, localFrac } = getSceneInfo(frac);
+    const tLocal = (frac - startFrac) * totalDur;
+
+    // Reset visibility
+    groupReactor.visible = false;
+    groupBoards.visible = false;
+    scene3RopeGroup.visible = false;
+    starsGroup.visible = false;
+    charFermi.group.visible = false;
+    charAxeman.group.visible = false;
+    charSci2.group.visible = false;
+    charSci3.group.visible = false;
+
+    // Gentle living reactor core pulse & rope sway
+    reactorGlow.intensity = 1.6 + 0.55 * Math.sin(t * 4.2);
+    scramAssembly.rotation.z = Math.sin(t * 2.2) * 0.045;
+    s3Rope.parent.rotation.z = Math.sin(t * 2.8) * 0.05;
+
+    // Default lighting warmth
+    scene.background.setHex(0x2a231b);
+    scene.fog.color.setHex(0x2a231b);
+    keyLight.color.setHex(0xfff1d2);
+    keyLight.intensity = 1.05;
+    reactorGlow.color.setHex(0x52ff7e);
+
+    // Clear HUD
+    hctx.clearRect(0, 0, W, H);
+
+    // -----------------------------------------------------------------------
+    // SCENE CHOREOGRAPHY (generous 9:16 portrait framing, zero clipping!)
+    // -----------------------------------------------------------------------
+    if (idx === 0) {
+      // HOOK: Stagg Field Squash Court + Reactor + Hanging SCRAM Rod + Axeman + Fermi!
+      groupReactor.visible = true;
+      charFermi.group.visible = true;
+      charAxeman.group.visible = true;
+
+      const camZ = lerp(12.2, 11.1, easeInOut(localFrac));
+      const camX = Math.sin(localFrac * Math.PI) * 0.35;
+      camera.position.set(camX, lerp(3.35, 3.55, localFrac), camZ);
+      camera.lookAt(0, 3.25, -0.8);
+
+      charFermi.setPos(-1.12, 0, 1.35, 0.96);
+      charFermi.draw(t, { emotion: "happy", pose: "point_up", speaking, facing: 1, phase: 0.2, prop: "geiger" });
+
+      charAxeman.setPos(1.18, 0, 1.35, 0.96);
+      charAxeman.draw(t, { emotion: "shock", pose: "axe_ready", speaking: false, facing: -1, phase: 1.5, prop: "axe" });
+
+      if (tLocal > 0.35) {
+        const s = easeOutBack((tLocal - 0.35) / 0.32);
+        drawCircleIcon(hctx, "?", 910, 310 + Math.sin(t * 5) * 10, 58, "#ffd644", "#181722", s);
+      }
+      if (tLocal > 1.8) {
+        const s = easeOutBack((tLocal - 1.8) / 0.35);
+        drawBadge(hctx, "ACİL FREN = BALTA!", 540, 200, "#d92626", "#ffffff", s, -0.02);
+      }
+    } else if (idx === 1) {
+      // SETUP: Dec 2, 1942 Enrico Fermi in Chicago Stadium Squash Court
+      groupReactor.visible = true;
+      charFermi.group.visible = true;
+      charSci2.group.visible = true;
+
+      // Dynamic 3D orbit pan around Chicago Pile-1 (keeps both characters cleanly inside 9:16 margins)
+      const ang = lerp(-0.08, 0.08, easeInOut(localFrac));
+      const dist = lerp(11.8, 11.0, localFrac);
+      camera.position.set(Math.sin(ang) * dist, 3.35, Math.cos(ang) * dist - 0.1);
+      camera.lookAt(0, 3.15, -1.0);
+
+      charFermi.setPos(-1.05, 0, 1.4, 0.98);
+      charFermi.draw(t, { emotion: "smug", pose: "idle", speaking, facing: 1, phase: 0.4, prop: "geiger" });
+
+      charSci2.setPos(1.15, 0, 1.25, 0.94);
+      charSci2.draw(t, { emotion: "shock", pose: "panic", speaking: false, facing: -1, phase: 2.1, prop: "none" });
+
+      const s = easeOutBack(tLocal / 0.35);
+      drawBadge(hctx, "2 ARALIK 1942 · CHICAGO", 540, 205, "#1d56a8", "#ffe066", s, 0.015);
+      if (tLocal > 2.2) {
+        const s2 = easeOutBack((tLocal - 2.2) / 0.32);
+        drawCircleIcon(hctx, "!", 900, 345 + Math.sin(t * 6) * 8, 56, "#ff6338", "#ffffff", s2);
+      }
+    } else if (idx === 2) {
+      // BOARD NAVY: No Cooling! No Radiation Shield! 400 Tons Graphite!
+      groupBoards.visible = true;
+      boardFaceMat.map = boardTex2;
+      boardFaceMat.needsUpdate = true;
+
+      charFermi.group.visible = true;
+      charSci2.group.visible = true;
+
+      camera.position.set(Math.sin(localFrac * Math.PI) * 0.28, 3.35, lerp(11.9, 11.1, easeInOut(localFrac)));
+      camera.lookAt(0, 3.55, -2.5);
+
+      charFermi.setPos(-1.12, 0, 1.25, 0.94);
+      charFermi.draw(t, { emotion: "happy", pose: "wave", speaking, facing: 1, phase: 0.1, prop: "none" });
+
+      charSci2.setPos(1.15, 0, 1.25, 0.94);
+      charSci2.draw(t, { emotion: "panic", pose: "panic", speaking: false, facing: -1, phase: 1.9, prop: "none" });
+
+      if (tLocal > 0.5) {
+        const s = easeOutBack((tLocal - 0.5) / 0.35);
+        drawBadge(hctx, "400 TON GRAFİT!", 540, 195, "#ffd644", "#181722", s, -0.02);
+      }
+    } else if (idx === 3) {
+      // BOARD CRIMSON: THE AXE MAN! (SCRAM!)
+      groupBoards.visible = true;
+      scene3RopeGroup.visible = true;
+      boardFaceMat.map = boardTex3;
+      boardFaceMat.needsUpdate = true;
+      keyLight.color.setHex(0xffd2b8);
+      reactorGlow.color.setHex(0xff3838);
+
+      charFermi.group.visible = true;
+      charAxeman.group.visible = true;
+
+      // Dramatic punch-in zoom with subtle tension shake!
+      const shake = Math.sin(t * 28) * 0.03 * clamp(localFrac * 2, 0, 1);
+      camera.position.set(shake, 3.35 + shake * 0.5, lerp(11.8, 10.7, easeInOut(localFrac)));
+      camera.lookAt(0, 3.55, -2.4);
+
+      charFermi.setPos(-1.22, 0, 1.15, 0.92);
+      charFermi.draw(t, { emotion: "nervous", pose: "point_up", speaking, facing: 1, phase: 0.6, prop: "none" });
+
+      charAxeman.setPos(1.12, 0, 1.4, 0.98);
+      charAxeman.draw(t, { emotion: "shock", pose: "axe_swing", speaking: false, facing: -1, phase: 0.2, prop: "axe" });
+
+      if (tLocal > 0.45) {
+        const s = easeOutBack((tLocal - 0.45) / 0.32);
+        drawBadge(hctx, "SCRAM · İPİ KES!", 540, 195, "#ffcf33", "#181722", s, 0.02);
+      }
+    } else if (idx === 4) {
+      // BOARD ORANGE: PLAN B — "SUICIDE SQUAD" WITH CADMIUM BUCKETS!
+      groupBoards.visible = true;
+      boardFaceMat.map = boardTex4;
+      boardFaceMat.needsUpdate = true;
+      keyLight.color.setHex(0xffe0a8);
+      reactorGlow.color.setHex(0xff9f2e);
+
+      charSci2.group.visible = true;
+      charSci3.group.visible = true;
+      charFermi.group.visible = true;
+
+      camera.position.set(Math.sin(t * 1.9) * 0.25, 3.35, lerp(12.2, 11.4, easeInOut(localFrac)));
+      camera.lookAt(0, 3.55, -2.4);
+
+      charSci2.setPos(-1.42, 0, 1.25, 0.84);
+      charSci2.draw(t, { emotion: "panic", pose: "bucket", speaking: false, facing: 1, phase: 0.3, prop: "bucket" });
+
+      charSci3.setPos(0.0, 0, 1.45, 0.88);
+      charSci3.draw(t, { emotion: "shock", pose: "bucket", speaking, facing: 1, phase: 1.4, prop: "bucket" });
+
+      charFermi.setPos(1.42, 0, 1.25, 0.84);
+      charFermi.draw(t, { emotion: "nervous", pose: "bucket", speaking: false, facing: -1, phase: 2.5, prop: "bucket" });
+
+      if (tLocal > 0.45) {
+        const s = easeOutBack((tLocal - 0.45) / 0.35);
+        drawBadge(hctx, "KADMİYUM KOVALARI!", 540, 195, "#1f88e5", "#ffffff", s, -0.02);
+      }
+    } else if (idx === 5) {
+      // BOARD EMERALD: 15:25 NUCLEAR AGE BEGINS! PAPER CUP CELEBRATION!
+      groupBoards.visible = true;
+      starsGroup.visible = true;
+      boardFaceMat.map = boardTex5;
+      boardFaceMat.needsUpdate = true;
+      keyLight.color.setHex(0xfff7dc);
+      reactorGlow.color.setHex(0x4dff88);
+
+      starMeshes.forEach((st) => {
+        st.mesh.rotation.y = t * 2.2 + st.phase;
+        st.mesh.rotation.x = t * 1.3 + st.phase;
+        st.mesh.position.y = st.baseY + Math.sin(t * 3.0 + st.phase) * 0.22;
+      });
+
+      charFermi.group.visible = true;
+      charAxeman.group.visible = true;
+
+      camera.position.set(0, 3.35, lerp(11.8, 10.9, easeInOut(localFrac)));
+      camera.lookAt(0, 3.55, -2.4);
+
+      charFermi.setPos(-1.05, 0, 1.35, 0.96);
+      charFermi.draw(t, { emotion: "happy", pose: "toast", speaking, facing: 1, phase: 0.3, prop: "cup" });
+
+      charAxeman.setPos(1.05, 0, 1.35, 0.96);
+      charAxeman.draw(t, { emotion: "happy", pose: "toast", speaking: false, facing: -1, phase: 1.1, prop: "cup" });
+
+      if (tLocal > 0.45) {
+        const s = easeOutBack((tLocal - 0.45) / 0.35);
+        drawBadge(hctx, "28 DAKİKA · BAŞARILI!", 540, 195, "#ffd644", "#181722", s, 0.015);
+      }
+    } else {
+      // SCENE 6: SEAMLESS LOOP RETURN TO STAGG FIELD REACTOR!
+      groupReactor.visible = true;
+      charFermi.group.visible = true;
+      charAxeman.group.visible = true;
+
+      camera.position.set(lerp(-0.25, 0.0, localFrac), lerp(3.5, 3.35, localFrac), lerp(11.3, 12.2, easeInOut(localFrac)));
+      camera.lookAt(0, 3.25, -0.8);
+
+      charFermi.setPos(-1.12, 0, 1.35, 0.96);
+      charFermi.draw(t, { emotion: "happy", pose: "cheer", speaking, facing: 1, phase: 0.2, prop: "geiger" });
+
+      charAxeman.setPos(1.18, 0, 1.35, 0.96);
+      charAxeman.draw(t, { emotion: "happy", pose: "axe_ready", speaking: false, facing: -1, phase: 1.5, prop: "axe" });
+    }
+
+    // Render 3D scene
+    renderer.render(scene, camera);
+
+    // Crisp white flash transition at scene cuts (exact v16-v20 style!)
+    if (idx > 0 && tLocal < 0.16) {
+      const alpha = (1.0 - tLocal / 0.16) * 0.72;
+      hctx.fillStyle = `rgba(255, 250, 238, ${alpha.toFixed(3)})`;
+      hctx.fillRect(0, 0, W, H);
+    }
+
+    // Crisp bold synced Turkish subtitle
+    drawCaption(hctx, captionText, captionAge);
+  };
+})();
+</script>
+</body>
+</html>

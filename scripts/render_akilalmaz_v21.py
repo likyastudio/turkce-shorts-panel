@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
-"""AKILALMAZ Video 21 — 1788 Karanşebeş: Kendi Kendine Savaşan 100.000 Kişilik Ordu.
+"""AKILALMAZ Video 21 — 2 Aralık 1942: Stadyum Altında Baltayla Kurulan İlk Nükleer Reaktör (Chicago Pile-1 / SCRAM).
 
-v1–v20 AKILALMAZ çizgi film tarzıyla birebir uyumlu 1080x1920 30fps dikey animasyon üreticisi:
-- ElevenLabs ERKAN sesi + milisaniye kelime zaman damgaları (/with-timestamps)
-- 2D kalın konturlu fasulye kafalı çizgi karakterler (Avusturyalı süvari, subay, Osmanlı gözcüsü)
-- 6 sahneli kurgu: Dev ahşap fıçı sahnesi + 3 kalın çerçeveli bilgi panosu + seamless loop kapanış
-- Kelime senkron kalın beyaz-siyah konturlu Türkçe altyazı + 6x3 QA Sheet
-- Otomatik videos.json güncellemesi, özel 9:16 kapak yükleme (/api/covers/upload) ve
-  2 Aralık 2026 Çarşamba 06:03 TR (2026-12-02T03:03:00+00:00) slotuna planlama.
+v1–v20 AKILALMAZ 3D-toon + 2D çöp adam çizgi film tarzıyla birebir uyumlu 1080x1920 30fps üretim motoru:
+- ElevenLabs ERKAN klon sesi (voice_id: gsfAMpj9oiFONXfvZJoE, model: eleven_v4) + kelime zaman damgaları
+- Canlı, neşeli marimba/Rhodes/bas/davul fon müziği (--music-db -12.0) + senkron çizgi film ses efektleri
+- Three.js 3D-toon sahne + kalın konturlu 2D çöp adam karakterler (Enrico Fermi, Baltalı Adam Norman Hilberry, İntihar Timi)
+- Kelime senkron gömülü kalın konturlu Türkçe altyazı + 6x3 QA Sheet
+- Cloud Run /api/covers/generate ile 9:16 Vertex AI kapak üretimi
+- studio.likyastudios.live videos.json güncellemesi + opsiyonel 2 Aralık 2026 06:03 TR planlama
 """
 from __future__ import annotations
 
+import argparse
 import base64
+import concurrent.futures
 import json
 import math
 import os
+import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -23,748 +27,201 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
+
+REPO_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import synth_bgm_sfx  # noqa: E402
 
 # ---------------------------------------------------------------------------
-# Video 21 Metadata & Script
+# Video 21 Metadata & Script (2 Aralık 1942 — Chicago Pile-1 / SCRAM!)
 # ---------------------------------------------------------------------------
-SLUG = "v21_kendi_kendine_savas"
-FILE_NAME = "Video21-Kendi-Kendine-Savasan-Ordu.mp4"
-TITLE = "Kendi Kendine Savaşan 100.000 Kişilik Ordu"
+SLUG = "v21_stadyum_nukleer_reaktor"
+OLD_V21_SLUG = "v21_kendi_kendine_savas"
+FILE_NAME = "Video21-Stadyum-Altindaki-Ilk-Nukleer-Reaktor.mp4"
+TITLE = "Stadyum Altında Baltayla Kurulan İlk Nükleer Reaktör"
 SCHEDULED_AT_UTC = "2026-12-02T03:03:00+00:00"  # 02.12.2026 Çar · 06:03 TR
 
-SCRIPT_TEXT = (
-    "Yüz bin kişilik dev bir ordu, düşman tek bir kurşun bile atmadan karanlıkta kendi kendini yendi!\n"
-    "Şaka yapmıyorum, Osmanlı ordusu iki gün sonra geldiğinde savaş çoktan bitmişti!\n"
-    "Bin yedi yüz seksen sekizde Avusturya ordusu, Osmanlı ile karşılaşmak için Karanşebeş yakınlarında kamp kurdu.\n"
-    "Gece keşfe çıkan süvariler nehir kıyısında birkaç fıçı içki buldu ve piyadelerle paylaşmak istemedi!\n"
-    "Tartışma büyüdü, karanlıkta yanlışlıkla bir el silah patladı.\n"
-    "Birileri panikle \"Türkler geldi!\" diye bağırınca yüz bin kişilik dev kampta kıyamet koptu!\n"
-    "Ordu farklı diller konuşan askerlerden oluşuyordu.\n"
-    "Alman subaylar \"Halt! Dur!\" diye bağırdı... ama diğer askerler bunu \"Allah! Allah!\" saldırısı sandı!\n"
-    "Karanlıkta kendi süvarilerini düşman sanıp top ateşi açtılar; imparator bile atından düşüp dereye yuvarlandı!\n"
-    "İki gün sonra Osmanlı ordusu kasabaya ulaştığında kimse yoktu, şehri tek kurşun sıkmadan aldı!\n"
-    "Ve askeri tarih bu akılalmaz geceyi hâlâ şöyle anlatır:"
+# Expressive Eleven v4 narration script with inline performance direction tags
+# (tags in [...] are automatically stripped before rendering Turkish captions)
+TTS_SCRIPT = (
+    "[excited] Dünyanın ilk nükleer reaktörünün, bir üniversite stadyumunun altında ve elinde balta tutan bir adamla çalıştırıldığını biliyor muydunuz?\n"
+    "[amused] Şaka yapmıyorum, acil durum düğmesi yoktu, sadece kalın bir halat ve keskin bir balta vardı!\n"
+    "[storytelling] İki Aralık bin dokuz yüz kırk ikide, Nobel ödüllü fizikçi Enrico Fermi, Chicago Üniversitesi stadyumunun altındaki eski tenis kortuna gizlice dev bir nükleer reaktör kurdu!\n"
+    "[curious] Üstelik ne soğutma sistemi ne de koruma duvarı vardı; dört yüz ton grafit tuğlayı üst üste yığdılar.\n"
+    "[amused, chuckles] Peki işler ters giderse ne olacaktı?\n"
+    "[excited] Balkonda bekleyen güvenlik görevlisi, elindeki baltayla halatı kesip acil fren çubuğunu aşağı bırakacaktı!\n"
+    "[surprised] Yetmedi; tepede üç bilim insanı ellerinde kovalarla bekliyordu! Reaktör taşarsa üzerine su döker gibi çözelti boşaltacaklardı!\n"
+    "[excited] Saat üçü yirmi beş geçe nükleer çağ resmen başladı! Neyse ki baltaya gerek kalmadı ve başarıyı kâğıt bardaklarla sessizce kutladılar.\n"
+    "[amused] Bugün tüm santrallerdeki \"SCRAM\" acil durdurma düğmesinin adı, hâlâ o \"Baltalı Adam\"dan gelir!\n"
+    "[storytelling] İşte tarihin en çılgın deneyi şöyle anlatılır:"
 )
+
+
+def strip_v4_tags(text: str) -> str:
+    cleaned = re.sub(r"\[[^\]]+\]\s*", "", text)
+    return re.sub(r"[ \t]+", " ", cleaned).strip()
+
+
+CLEAN_SCRIPT = strip_v4_tags(TTS_SCRIPT)
 
 META = {
     "youtube": {
-        "title": "Osmanlı Gelmeden Karanlıkta Kendi Kendini Yenen 100.000 Kişilik Ordu! ⚔️😂 #shorts",
+        "title": "Stadyum Altında Balta Tutan Adamla Kurulan İlk Nükleer Reaktör! 🪓☢️ #shorts",
         "description": (
-            "1788 Karanşebeş gecesinde 100.000 kişilik Avusturya ordusu, birkaç fıçı içki yüzünden çıkan "
-            "tartışmada karanlıkta kendi askerlerini düşman sanıp birbirine girdi! Alman subayların "
-            "'Halt! Dur!' bağırışı 'Allah!' saldırısı sanılınca kıyamet koptu. İki gün sonra gelen "
-            "Osmanlı ordusu kasabayı tek kurşun atmadan aldı!\n\n"
-            "👇 Tarihin en absürt yenilgisi bu olabilir mi? Yorumlara yaz!\n\n"
-            "#shorts #tarih #osmanlı #ilginçbilgiler #karanşebeş #gerçekhikaye #animasyon #keşfet"
+            "2 Aralık 1942'de Nobel ödüllü fizikçi Enrico Fermi, Chicago Üniversitesi futbol stadyumunun "
+            "altındaki eski squash kortunda dünyanın ilk nükleer reaktörü Chicago Pile-1'i çalıştırdı! "
+            "Ne soğutma sistemi ne de radyasyon kalkanı vardı: Acil durum freni halata bağlı bir çubuktu "
+            "ve balkonda elinde balta tutan Norman Hilberry bekliyordu! Bugün tüm nükleer santrallerdeki "
+            "'SCRAM' acil durdurma düğmesinin adı bile işte o 'Baltalı Adam' (Safety Control Rod Axe Man) "
+            "lakabından gelir!\n\n"
+            "👇 2 Aralık 1942'de o stadyumun tribününde oturur muydun? Yorumlara yaz!\n\n"
+            "#shorts #tarih #bilim #ilginçbilgiler #nükleer #scram #gerçekhikaye #animasyon #keşfet"
         ),
     },
     "instagram": {
         "caption": (
-            "100.000 kişilik dev ordu, düşman gelmeden KARANLIKTA KENDİ KENDİNİ YENDİ! ⚔️🛢️😂\n\n"
-            "1788'de Avusturya ordusu Karanşebeş'te kamp kurdu. Süvariler birkaç fıçı içki bulup "
-            "piyadelerle paylaşmayınca tartışma çıktı, yanlışlıkla bir el silah patladı.\n\n"
-            "Alman subaylar 'Halt! Dur!' diye bağırınca farklı diller konuşan askerler bunu 'Allah!' "
-            "saldırısı sandı! Kendi süvarilerine top açtılar, imparator bile atından dereye düştü. "
-            "İki gün sonra gelen Osmanlı ordusu şehri tek kurşun sıkmadan aldı!\n\n"
-            "Tarih seven arkadaşına gönder 👇\n\n"
-            "#reels #keşfet #tarih #osmanlı #ilginçbilgiler #gerçekhikayeler #animasyon #komiktarih"
+            "Dünyanın ilk nükleer reaktörü, bir futbol stadyumunun altında ELİNDE BALTA TUTAN BİR ADAMLA çalıştırıldı! 🪓☢️😂\n\n"
+            "2 Aralık 1942'de Enrico Fermi ve ekibi Chicago Üniversitesi stadyumunun altına 400 ton grafit tuğla yığdı. "
+            "Soğutma yoktu, koruma duvarı yoktu!\n\n"
+            "İşler ters giderse balkondaki adam baltayla halatı kesip acil fren çubuğunu düşürecek, tepedeki 'İntihar Timi' ise "
+            "kovalarla kadmiyum çözeltisi dökecekti! Bugün tüm santrallerdeki SCRAM düğmesinin adı hâlâ o 'Baltalı Adam'dan gelir!\n\n"
+            "Bu absürt bilim tarihini arkadaşına gönder 👇\n\n"
+            "#reels #keşfet #tarih #bilim #ilginçbilgiler #gerçekhikayeler #animasyon #akılalmaz"
         ),
     },
-    "cover_title": "100.000 ASKER KENDİNİ YENDİ!",
+    "cover_title": "STADYUM ALTINDA BALTALI REAKTÖR!",
     "flow_prompt": (
-        "Full-bleed vertical 9:16 cartoon comedy illustration, stylized 2D inked characters with thick "
-        "dark outlines under a starry moonlit 1788 European camp night beside a river bridge and glowing "
-        "campfires, two panicked Austrian soldiers colliding with a wooden barrel and brass bugle while "
-        "a smiling Ottoman scout watches from a distant hill with a spyglass, vibrant colors, no text."
+        "Playful colorful 3D Pixar-style cartoon vertical poster, 9:16 aspect ratio. Inside a warm wooden "
+        "1940s university stadium squash court, a gigantic stepped dark graphite-brick nuclear reactor pile "
+        "glowing softly emerald green in the center with a thick red emergency control rod hanging from a "
+        "taut rope above it. On the left a cheerful cartoon physicist with round glasses and white lab coat "
+        "pointing excitedly, on the right a wide-eyed comical cartoon security guard in a blue cap nervously "
+        "gripping a gleaming steel axe next to the rope, and two funny scientists peeking from above holding "
+        "blue buckets. Vivid humorous 3D-toon animation style, warm dramatic spotlighting, NO text, NO words, "
+        "NO letters, NO watermark."
     ),
 }
 
-REPO_DIR = Path(__file__).resolve().parent.parent
 OUT_DIR = REPO_DIR / "files" / SLUG / "out"
 WORK_DIR = REPO_DIR / "files" / SLUG / "work"
 VIDEOS_JSON = REPO_DIR / "videos.json"
+SCENE_HTML = Path(__file__).resolve().parent / "v21_scene.html"
 
 W, H = 1080, 1920
 FPS = 30
 
-# ---------------------------------------------------------------------------
-# Font Helpers
-# ---------------------------------------------------------------------------
-_FONT_CACHE: dict[tuple[str, int], ImageFont.FreeTypeFont] = {}
-
-
-def _find_font_path(bold: bool = True) -> str:
-    candidates = (
-        [
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-            "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
-        ]
-        if bold
-        else [
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-            "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
-        ]
-    )
-    for p in candidates:
-        if os.path.exists(p):
-            return p
-    return candidates[0]
-
-
-def get_font(size: int, bold: bool = True) -> ImageFont.FreeTypeFont:
-    key = ("b" if bold else "r", size)
-    if key not in _FONT_CACHE:
-        _FONT_CACHE[key] = ImageFont.truetype(_find_font_path(bold), size)
-    return _FONT_CACHE[key]
-
-
-def fit_text_font(draw: ImageDraw.ImageDraw, text: str, max_w: int, max_size: int, min_size: int = 26, bold: bool = True):
-    for sz in range(max_size, min_size - 1, -2):
-        f = get_font(sz, bold=bold)
-        bb = draw.textbbox((0, 0), text, font=f)
-        if (bb[2] - bb[0]) <= max_w:
-            return f
-    return get_font(min_size, bold=bold)
+# Match scene cuts in scripts/v21_scene.html
+SCENE_CUTS = [0.0, 0.15, 0.30, 0.44, 0.60, 0.74, 0.90]
 
 
 # ---------------------------------------------------------------------------
-# Color & Geometry Helpers
+# ElevenLabs ERKAN (eleven_v4) Voice Synthesis + Tag-Safe Word Timestamps
 # ---------------------------------------------------------------------------
-OUTLINE = (24, 24, 34)
-
-
-def lerp(a: float, b: float, t: float) -> float:
-    return a + (b - a) * max(0.0, min(1.0, t))
-
-
-def ease_out_back(t: float) -> float:
-    t = max(0.0, min(1.0, t))
-    c1 = 1.70158
-    c3 = c1 + 1
-    return 1 + c3 * ((t - 1) ** 3) + c1 * ((t - 1) ** 2)
-
-
-def draw_gradient_bg(img: Image.Image, top_rgb: tuple[int, int, int], bot_rgb: tuple[int, int, int], y0: int = 0, y1: int = H):
-    draw = ImageDraw.Draw(img)
-    span = max(1, y1 - y0)
-    # Step by 4px for blazing fast render speed (indistinguishable visually)
-    for y in range(y0, y1, 4):
-        f = (y - y0) / span
-        c = (
-            int(top_rgb[0] + (bot_rgb[0] - top_rgb[0]) * f),
-            int(top_rgb[1] + (bot_rgb[1] - top_rgb[1]) * f),
-            int(top_rgb[2] + (bot_rgb[2] - top_rgb[2]) * f),
-        )
-        draw.rectangle([0, y, W, min(y1, y + 4)], fill=c)
-
-
-def draw_stage_floor(draw: ImageDraw.ImageDraw, floor_y: int = 1420, night: bool = True):
-    if night:
-        base = (52, 42, 34)
-        plank_alt = (44, 35, 28)
-        line_c = (28, 22, 18)
-        top_edge = (95, 72, 48)
-    else:
-        base = (126, 86, 44)
-        plank_alt = (112, 74, 36)
-        line_c = (72, 46, 22)
-        top_edge = (168, 122, 64)
-
-    draw.rectangle([0, floor_y, W, H], fill=base)
-    draw.rectangle([0, floor_y, W, floor_y + 14], fill=top_edge)
-    draw.line([(0, floor_y), (W, floor_y)], fill=OUTLINE, width=6)
-
-    # Perspective wooden planks
-    cx = W // 2
-    for i in range(-6, 7):
-        x_top = cx + i * 115
-        x_bot = cx + i * 240
-        if i % 2 == 0:
-            draw.polygon([(x_top, floor_y + 14), (x_top + 115, floor_y + 14), (x_bot + 240, H), (x_bot, H)], fill=plank_alt)
-        draw.line([(x_top, floor_y + 14), (x_bot, H)], fill=line_c, width=4)
-    for y_row in (floor_y + 110, floor_y + 260, floor_y + 420):
-        draw.line([(0, y_row), (W, y_row)], fill=line_c, width=3)
-
-
-def draw_wood_wall_bg(img: Image.Image, warm_tint: tuple[int, int, int] = (158, 118, 66)):
-    draw_gradient_bg(
-        img,
-        (min(255, warm_tint[0] + 22), min(255, warm_tint[1] + 20), min(255, warm_tint[2] + 14)),
-        (max(0, warm_tint[0] - 32), max(0, warm_tint[1] - 28), max(0, warm_tint[2] - 22)),
-        0,
-        1425,
-    )
-    draw = ImageDraw.Draw(img)
-    for y in range(60, 1420, 95):
-        draw.line([(0, y), (W, y)], fill=(max(0, warm_tint[0] - 48), max(0, warm_tint[1] - 40), max(0, warm_tint[2] - 28)), width=4)
-    draw_stage_floor(draw, floor_y=1420, night=False)
-
-
-def draw_night_camp_bg(img: Image.Image, t: float, show_barrel: bool = True, sunrise: bool = False):
-    if sunrise:
-        draw_gradient_bg(img, (48, 86, 146), (234, 174, 96), 0, 1425)
-    else:
-        draw_gradient_bg(img, (16, 26, 62), (46, 64, 112), 0, 1425)
-    draw = ImageDraw.Draw(img)
-
-    # Twinkling stars
-    if not sunrise:
-        stars = [
-            (95, 90, 5), (210, 140, 4), (340, 75, 6), (480, 130, 4), (620, 82, 5),
-            (790, 118, 6), (920, 72, 4), (990, 165, 5), (140, 240, 4), (880, 235, 5),
-            (280, 200, 3), (710, 185, 4),
-        ]
-        for idx, (sx, sy, sr) in enumerate(stars):
-            pulse = 0.65 + 0.35 * math.sin(t * 3.5 + idx * 1.1)
-            r = max(2, int(sr * pulse))
-            draw.ellipse([sx - r, sy - r, sx + r, sy + r], fill=(255, 246, 198))
-
-        # Glowing crescent moon top-right
-        mx, my = 865, 210
-        draw.ellipse([mx - 95, my - 95, mx + 95, my + 95], fill=(64, 86, 142))
-        draw.ellipse([mx - 72, my - 72, mx + 72, my + 72], fill=(255, 238, 168), outline=OUTLINE, width=6)
-        draw.ellipse([mx - 42, my - 82, mx + 94, my + 58], fill=(26, 38, 82))
-    else:
-        # Warm rising sun
-        mx, my = 540, 320
-        draw.ellipse([mx - 150, my - 150, mx + 150, my + 150], fill=(255, 214, 112))
-        draw.ellipse([mx - 105, my - 105, mx + 105, my + 105], fill=(255, 236, 160))
-
-    # Distant rolling hills
-    hill_c1 = (32, 48, 72) if not sunrise else (72, 108, 92)
-    hill_c2 = (24, 38, 56) if not sunrise else (54, 88, 72)
-    draw.ellipse([-220, 920, 740, 1520], fill=hill_c1, outline=OUTLINE, width=6)
-    draw.ellipse([360, 880, 1340, 1540], fill=hill_c2, outline=OUTLINE, width=6)
-
-    # Stylized camp tents in mid-ground
-    tent_c = (212, 196, 164) if not sunrise else (238, 224, 194)
-    for tx, ty, sc in [(115, 1140, 1.0), (925, 1150, 0.92)]:
-        pts = [(tx, ty - int(130 * sc)), (tx - int(110 * sc), ty + int(60 * sc)), (tx + int(110 * sc), ty + int(60 * sc))]
-        draw.polygon(pts, fill=tent_c, outline=OUTLINE)
-        draw.line([pts[0], pts[1], pts[2], pts[0]], fill=OUTLINE, width=6)
-        # Tent door
-        door = [(tx, ty - int(35 * sc)), (tx - int(32 * sc), ty + int(60 * sc)), (tx + int(32 * sc), ty + int(60 * sc))]
-        draw.polygon(door, fill=(46, 36, 30), outline=OUTLINE)
-
-    # Giant iconic wooden schnapps barrel (AKILALMAZ signature hero prop like v16 bucket / v19 moon / v20 stopwatch!)
-    if show_barrel:
-        bob = int(math.sin(t * 2.2) * 8)
-        bx, by = 540, 720 + bob
-        bw, bh = 285, 390
-        # Soft warm aura behind barrel
-        draw.ellipse([bx - bw - 40, by - bh - 40, bx + bw + 40, by + bh + 40], fill=(72, 76, 116) if not sunrise else (246, 194, 116))
-        # Barrel body
-        draw.rounded_rectangle([bx - bw, by - bh, bx + bw, by + bh], radius=120, fill=(176, 112, 52), outline=OUTLINE, width=10)
-        # Vertical wood stave lines & highlight
-        draw.rounded_rectangle([bx - bw + 32, by - bh + 28, bx - bw + 110, by + bh - 28], radius=45, fill=(204, 138, 70))
-        for dx in (-180, -90, 0, 90, 180):
-            draw.line([(bx + dx, by - bh + 18), (bx + dx, by + bh - 18)], fill=(112, 68, 28), width=6)
-        # Metallic iron hoops
-        for hy in (-240, -105, 105, 240):
-            hw = bw - (18 if abs(hy) > 200 else -4)
-            draw.rounded_rectangle([bx - hw, by + hy - 22, bx + hw, by + hy + 22], radius=12, fill=(68, 76, 92), outline=OUTLINE, width=7)
-            # Rivets
-            for rx in (-hw + 40, -hw // 2, 0, hw // 2, hw - 40):
-                draw.ellipse([bx + rx - 7, by + hy - 7, bx + rx + 7, by + hy + 7], fill=(168, 178, 196))
-        # Wooden tap spout on front
-        draw.ellipse([bx - 36, by - 36, bx + 36, by + 36], fill=(122, 74, 34), outline=OUTLINE, width=6)
-        draw.rounded_rectangle([bx - 14, by - 14, bx + 52, by + 18], radius=10, fill=(218, 172, 72), outline=OUTLINE, width=5)
-
-    draw_stage_floor(draw, floor_y=1420, night=not sunrise)
-
-    # Campfire flickering glow left/right corners
-    if not sunrise:
-        flicker = 1.0 + 0.12 * math.sin(t * 14.0)
-        fx, fy = 125, 1410
-        draw.ellipse([fx - int(55 * flicker), fy - int(48 * flicker), fx + int(55 * flicker), fy + 16], fill=(246, 128, 32), outline=OUTLINE, width=5)
-        draw.ellipse([fx - int(32 * flicker), fy - int(32 * flicker), fx + int(32 * flicker), fy + 8], fill=(255, 224, 88))
-
-
-def draw_location_plaque(draw: ImageDraw.ImageDraw, title_top: str, title_sub: str, x: int = 58, y: int = 330):
-    box = [x, y, x + 430, y + 126]
-    draw.rounded_rectangle([box[0] + 6, box[1] + 8, box[2] + 6, box[3] + 8], radius=18, fill=(14, 18, 30))
-    draw.rounded_rectangle(box, radius=18, fill=(20, 44, 82), outline=(245, 200, 66), width=7)
-    f1 = fit_text_font(draw, title_top, 390, 40, 26, bold=True)
-    f2 = fit_text_font(draw, title_sub, 390, 24, 18, bold=True)
-    draw.text((x + 215, y + 42), title_top, font=f1, fill=(255, 214, 74), anchor="mm")
-    draw.text((x + 215, y + 92), title_sub, font=f2, fill=(235, 242, 255), anchor="mm")
-
-
-def draw_info_board(
-    draw: ImageDraw.ImageDraw,
-    bg_color: tuple[int, int, int],
-    headline: str,
-    lines: list[str],
-    badge_top: str,
-    badge_sub: str,
-    badge_color: tuple[int, int, int],
-    t_local: float,
-    sparkles: bool = False,
-):
-    """Exact signature AKILALMAZ framed storyboard card (v16/v19/v20 style), zero text clipping."""
-    pop = ease_out_back(min(1.0, t_local / 0.35))
-    scale = 0.86 + 0.14 * pop
-    cx, cy = W // 2, 460
-    bw, bh = int(950 * scale), int(580 * scale)
-    x0, y0 = cx - bw // 2, cy - bh // 2
-    x1, y1 = cx + bw // 2, cy + bh // 2
-
-    # Drop shadow
-    draw.rounded_rectangle([x0 + 12, y0 + 16, x1 + 12, y1 + 16], radius=26, fill=(26, 20, 14))
-    # Outer gold frame
-    draw.rounded_rectangle([x0, y0, x1, y1], radius=26, fill=(246, 200, 56), outline=OUTLINE, width=8)
-    # Inner colored board
-    pad = 18
-    draw.rounded_rectangle([x0 + pad, y0 + pad, x1 - pad, y1 - pad], radius=18, fill=bg_color, outline=OUTLINE, width=5)
-
-    # Headline
-    max_tw = (x1 - x0) - 96
-    f_head = fit_text_font(draw, headline, max_tw, 62, 34, bold=True)
-    draw.text((cx, y0 + int(bh * 0.22)), headline, font=f_head, fill=(255, 224, 92), anchor="mm", stroke_width=4, stroke_fill=OUTLINE)
-
-    # Divider line
-    draw.line([(x0 + 70, y0 + int(bh * 0.34)), (x1 - 70, y0 + int(bh * 0.34))], fill=(255, 224, 92), width=4)
-
-    # 3 crisp lines
-    y_positions = [0.49, 0.66, 0.83]
-    for idx, line in enumerate(lines[:3]):
-        color = (255, 255, 255) if idx < 2 else (255, 232, 146)
-        f_line = fit_text_font(draw, line, max_tw, 38, 22, bold=True)
-        draw.text((cx, y0 + int(bh * y_positions[idx])), line, font=f_line, fill=color, anchor="mm", stroke_width=3, stroke_fill=OUTLINE)
-
-    # Mini pill badge underneath the board
-    if badge_top:
-        b_pop = ease_out_back(min(1.0, max(0.0, (t_local - 0.18) / 0.32)))
-        if b_pop > 0.05:
-            pw, ph = int(310 * b_pop), int(108 * b_pop)
-            px0, py0 = cx - pw // 2, y1 + 26
-            px1, py1 = cx + pw // 2, py0 + ph
-            draw.rounded_rectangle([px0 + 6, py0 + 8, px1 + 6, py1 + 8], radius=20, fill=(24, 18, 12))
-            draw.rounded_rectangle([px0, py0, px1, py1], radius=20, fill=badge_color, outline=OUTLINE, width=6)
-            txt_c = (20, 20, 28) if sum(badge_color) > 420 else (255, 255, 255)
-            f_bt = fit_text_font(draw, badge_top, pw - 28, 32, 18, bold=True)
-            f_bs = fit_text_font(draw, badge_sub, pw - 28, 20, 14, bold=True)
-            draw.text((cx, py0 + int(ph * 0.38)), badge_top, font=f_bt, fill=txt_c, anchor="mm")
-            draw.text((cx, py0 + int(ph * 0.74)), badge_sub, font=f_bs, fill=txt_c, anchor="mm")
-
-            if sparkles:
-                for sx, sy, sr in [(px0 - 38, py0 + 20, 22), (px1 + 38, py0 + 18, 26), (px1 + 18, py1 + 10, 16)]:
-                    ang = t_local * 4.0
-                    s_r = int(sr * (0.85 + 0.25 * math.sin(ang + sx)))
-                    pts = [
-                        (sx, sy - s_r), (sx + s_r // 3, sy - s_r // 3),
-                        (sx + s_r, sy), (sx + s_r // 3, sy + s_r // 3),
-                        (sx, sy + s_r), (sx - s_r // 3, sy + s_r // 3),
-                        (sx - s_r, sy), (sx - s_r // 3, sy - s_r // 3),
-                    ]
-                    draw.polygon(pts, fill=(255, 232, 82), outline=OUTLINE)
-
-
-# ---------------------------------------------------------------------------
-# Signature AKILALMAZ 2D Cartoon Characters (Bean Heads + Thick Outlines)
-# ---------------------------------------------------------------------------
-def draw_character(
-    draw: ImageDraw.ImageDraw,
-    cx: int,
-    base_y: int,
-    role: str,
-    t: float,
-    emotion: str = "neutral",
-    speaking: bool = False,
-    arm_pose: str = "idle",
-    facing: int = 1,
-    prop: str | None = None,
-    phase: float = 0.0,
-):
-    """Draws an expressive AKILALMAZ 2D cartoon character with bean head, blinking eyes,
-    lip-sync mouth, stick limbs, period uniform, and props."""
-    bounce = int(abs(math.sin(t * 5.2 + phase)) * (16 if emotion == "panic" else 8))
-    shake_x = int(math.sin(t * 28.0 + phase) * 9) if emotion == "panic" else 0
-    x = cx + shake_x
-    y = base_y - bounce
-
-    # Ground shadow
-    draw.ellipse([cx - 105, base_y - 18, cx + 105, base_y + 26], fill=(22, 18, 16))
-
-    # Role palette
-    if role == "austrian_cavalry":
-        coat = (236, 236, 242)
-        sash = (212, 42, 42)
-        hat_c = (28, 44, 78)
-        hat_trim = (242, 198, 56)
-        skin = (245, 206, 168)
-    elif role == "austrian_officer":
-        coat = (36, 56, 98)
-        sash = (242, 198, 56)
-        hat_c = (24, 34, 58)
-        hat_trim = (242, 198, 56)
-        skin = (242, 200, 162)
-    else:  # ottoman_scout
-        coat = (18, 118, 86)
-        sash = (168, 36, 46)
-        hat_c = (246, 244, 236)
-        hat_trim = (186, 36, 46)
-        skin = (236, 190, 148)
-
-    # Legs & boots (stick limbs with thick outlines)
-    leg_swing = int(math.sin(t * 9.0 + phase) * 18) if emotion == "panic" else 0
-    hip_y = y - 145
-    l_foot = (x - 42 - leg_swing, base_y + 2)
-    r_foot = (x + 42 + leg_swing, base_y + 2)
-    draw.line([(x - 32, hip_y), l_foot], fill=OUTLINE, width=18)
-    draw.line([(x + 32, hip_y), r_foot], fill=OUTLINE, width=18)
-    draw.rounded_rectangle([l_foot[0] - 28, l_foot[1] - 18, l_foot[0] + 22, l_foot[1] + 10], radius=10, fill=(32, 28, 36), outline=OUTLINE, width=5)
-    draw.rounded_rectangle([r_foot[0] - 22, r_foot[1] - 18, r_foot[0] + 28, r_foot[1] + 10], radius=10, fill=(32, 28, 36), outline=OUTLINE, width=5)
-
-    # Torso (rounded trapezoid / bean tunic)
-    torso_top = y - 355
-    torso_bot = y - 135
-    draw.rounded_rectangle([x - 86, torso_top, x + 86, torso_bot], radius=48, fill=coat, outline=OUTLINE, width=8)
-    # Diagonal military sash
-    draw.line([(x - 66, torso_top + 28), (x + 68, torso_bot - 22)], fill=sash, width=28)
-    draw.line([(x - 66, torso_top + 14), (x + 68, torso_bot - 36)], fill=OUTLINE, width=4)
-    draw.line([(x - 66, torso_top + 42), (x + 68, torso_bot - 8)], fill=OUTLINE, width=4)
-    # Gold belt buckle / buttons
-    for by_btn in (torso_top + 65, torso_top + 115, torso_top + 165):
-        draw.ellipse([x - 7, by_btn - 7, x + 7, by_btn + 7], fill=(246, 202, 62), outline=OUTLINE, width=3)
-
-    # Arms (expressive poses)
-    sh_y = torso_top + 52
-    wave = int(math.sin(t * 10.0 + phase) * 28)
-    if arm_pose == "panic":
-        l_hand = (x - 145, sh_y - 120 + wave)
-        r_hand = (x + 145, sh_y - 115 - wave)
-    elif arm_pose == "hold_barrel":
-        l_hand = (x - 55, sh_y + 42)
-        r_hand = (x + 55, sh_y + 42)
-    elif arm_pose == "point":
-        l_hand = (x - 130, sh_y + 50)
-        r_hand = (x + 160 * facing, sh_y - 55 + wave // 2)
-    elif arm_pose == "spyglass":
-        l_hand = (x - 110, sh_y + 55)
-        r_hand = (x - 52, sh_y - 95)
-    elif arm_pose == "cheer":
-        l_hand = (x - 140, sh_y - 105 + wave // 2)
-        r_hand = (x + 140, sh_y - 105 - wave // 2)
-    else:
-        l_hand = (x - 125, sh_y + 55 + wave // 3)
-        r_hand = (x + 125, sh_y + 35 - wave // 3)
-
-    draw.line([(x - 74, sh_y), l_hand], fill=OUTLINE, width=16)
-    draw.line([(x + 74, sh_y), r_hand], fill=OUTLINE, width=16)
-    draw.ellipse([l_hand[0] - 18, l_hand[1] - 18, l_hand[0] + 18, l_hand[1] + 18], fill=skin, outline=OUTLINE, width=5)
-    draw.ellipse([r_hand[0] - 18, r_hand[1] - 18, r_hand[0] + 18, r_hand[1] + 18], fill=skin, outline=OUTLINE, width=5)
-
-    # Mini held prop
-    if prop == "mini_barrel":
-        mx, my = x, sh_y + 48
-        draw.rounded_rectangle([mx - 58, my - 66, mx + 58, my + 66], radius=24, fill=(176, 112, 52), outline=OUTLINE, width=6)
-        draw.line([(mx - 55, my - 26), (mx + 55, my - 26)], fill=(70, 78, 92), width=10)
-        draw.line([(mx - 55, my + 26), (mx + 55, my + 26)], fill=(70, 78, 92), width=10)
-    elif prop == "bugle":
-        bx, by = r_hand[0], r_hand[1] - 10
-        draw.polygon([(bx, by), (bx - 95, by - 40), (bx - 95, by + 26)], fill=(244, 198, 58), outline=OUTLINE)
-        draw.line([(bx, by), (bx - 95, by - 40), (bx - 95, by + 26), (bx, by)], fill=OUTLINE, width=5)
-    elif prop == "spyglass":
-        sx, sy = r_hand[0] - 10, r_hand[1] - 12
-        draw.line([(sx + 25, sy + 12), (sx - 92, sy - 22)], fill=(238, 190, 56), width=26)
-        draw.line([(sx + 25, sy + 12), (sx - 92, sy - 22)], fill=OUTLINE, width=5)
-        draw.ellipse([sx - 108, sy - 38, sx - 76, sy - 6], fill=(130, 212, 245), outline=OUTLINE, width=5)
-
-    # Head (signature bean/oval cartoon head)
-    head_cy = torso_top - 96
-    head_rx, head_ry = 98, 108
-    draw.ellipse([x - head_rx, head_cy - head_ry, x + head_rx, head_cy + head_ry], fill=skin, outline=OUTLINE, width=8)
-    # Soft cheek blush
-    draw.ellipse([x - 74, head_cy + 14, x - 44, head_cy + 34], fill=(242, 166, 152))
-    draw.ellipse([x + 44, head_cy + 14, x + 74, head_cy + 34], fill=(242, 166, 152))
-
-    # Eyes (blinking + emotional sizing)
-    blink_cycle = (t + phase) % 3.6
-    is_blink = 3.42 < blink_cycle < 3.56 and emotion != "panic"
-    ex_off = 34
-    ey = head_cy - 12
-    erx = 24 if emotion == "panic" else 20
-    ery = 30 if emotion == "panic" else 25
-    look_x = 6 * facing
-
-    for sgn in (-1, 1):
-        ex = x + sgn * ex_off
-        if is_blink:
-            draw.line([(ex - 18, ey), (ex + 18, ey)], fill=OUTLINE, width=7)
-        elif emotion == "happy":
-            draw.arc([ex - 20, ey - 14, ex + 20, ey + 18], start=190, end=350, fill=OUTLINE, width=7)
-        else:
-            draw.ellipse([ex - erx, ey - ery, ex + erx, ey + ery], fill=(255, 255, 255), outline=OUTLINE, width=5)
-            pr = 7 if emotion == "panic" else 9
-            draw.ellipse([ex + look_x - pr, ey - pr, ex + look_x + pr, ey + pr], fill=OUTLINE)
-            draw.ellipse([ex + look_x - 3, ey - 5, ex + look_x + 2, ey], fill=(255, 255, 255))
-
-    # Eyebrows
-    if emotion == "angry":
-        draw.line([(x - 56, ey - 38), (x - 14, ey - 24)], fill=OUTLINE, width=8)
-        draw.line([(x + 56, ey - 38), (x + 14, ey - 24)], fill=OUTLINE, width=8)
-    elif emotion == "panic":
-        draw.arc([x - 62, ey - 54, x - 12, ey - 24], start=190, end=350, fill=OUTLINE, width=7)
-        draw.arc([x + 12, ey - 54, x + 62, ey - 24], start=190, end=350, fill=OUTLINE, width=7)
-    elif emotion == "amused":
-        draw.line([(x - 56, ey - 34), (x - 16, ey - 38)], fill=OUTLINE, width=7)
-        draw.arc([x + 12, ey - 48, x + 58, ey - 22], start=190, end=350, fill=OUTLINE, width=7)
-
-    # Ottoman mustache for scout
-    if role == "ottoman_scout":
-        draw.arc([x - 42, head_cy + 16, x + 2, head_cy + 46], start=190, end=350, fill=(44, 30, 22), width=10)
-        draw.arc([x - 2, head_cy + 16, x + 42, head_cy + 46], start=190, end=350, fill=(44, 30, 22), width=10)
-
-    # Mouth (speaking lip-sync or emotional expression)
-    my = head_cy + 44
-    mouth_open = speaking and (math.sin(t * 22.0 + phase) > -0.15)
-    if emotion == "panic":
-        mh = 30 if mouth_open else 22
-        draw.ellipse([x - 24, my - mh // 2, x + 24, my + mh], fill=(138, 32, 42), outline=OUTLINE, width=6)
-        draw.arc([x - 14, my + 4, x + 14, my + mh], start=180, end=360, fill=(235, 110, 118), width=6)
-    elif mouth_open:
-        draw.ellipse([x - 22, my - 10, x + 22, my + 24], fill=(138, 32, 42), outline=OUTLINE, width=6)
-    elif emotion in ("happy", "amused"):
-        draw.arc([x - 32, my - 18, x + 32, my + 24], start=15, end=165, fill=OUTLINE, width=7)
-    else:
-        draw.arc([x - 26, my - 12, x + 26, my + 16], start=15, end=165, fill=OUTLINE, width=6)
-
-    # Hat / Turban
-    hat_y = head_cy - 68
-    if role == "ottoman_scout":
-        # Classic stylized Ottoman turban
-        draw.ellipse([x - 108, hat_y - 78, x + 108, hat_y + 34], fill=hat_c, outline=OUTLINE, width=8)
-        draw.ellipse([x - 52, hat_y - 94, x + 52, hat_y - 16], fill=hat_trim, outline=OUTLINE, width=7)
-        draw.line([(x - 86, hat_y - 26), (x + 86, hat_y - 2)], fill=(208, 202, 190), width=6)
-        draw.ellipse([x - 14, hat_y - 52, x + 14, hat_y - 24], fill=(246, 202, 58), outline=OUTLINE, width=5)
-    else:
-        # 18th-century Austrian bicorne military hat
-        pts = [
-            (x - 134, hat_y + 18),
-            (x - 74, hat_y - 78),
-            (x, hat_y - 96),
-            (x + 74, hat_y - 78),
-            (x + 134, hat_y + 18),
-        ]
-        draw.polygon(pts, fill=hat_c, outline=OUTLINE)
-        draw.line(pts + [pts[0]], fill=OUTLINE, width=8)
-        draw.line([(x - 114, hat_y + 6), (x, hat_y - 74), (x + 114, hat_y + 6)], fill=hat_trim, width=8)
-        # Cockade badge
-        draw.ellipse([x - 18, hat_y - 54, x + 18, hat_y - 18], fill=(224, 48, 48), outline=OUTLINE, width=4)
-        draw.ellipse([x - 8, hat_y - 44, x + 8, hat_y - 28], fill=(255, 255, 255))
-
-
-def draw_floating_badge(draw: ImageDraw.ImageDraw, x: int, y: int, symbol: str, t: float, fill=(255, 214, 56)):
-    r = 46 + int(math.sin(t * 7.0) * 5)
-    draw.ellipse([x - r, y - r, x + r, y + r], fill=fill, outline=OUTLINE, width=7)
-    f = get_font(54, bold=True)
-    draw.text((x, y + 2), symbol, font=f, fill=OUTLINE, anchor="mm")
-
-
-def draw_captions(draw: ImageDraw.ImageDraw, text: str, t_in_chunk: float):
-    """Bold AKILALMAZ captions centered in the safe lower-middle zone (matching v16–v20)."""
-    if not text.strip():
-        return
-    pop = 0.92 + 0.08 * ease_out_back(min(1.0, t_in_chunk / 0.14))
-    max_sz = int(68 * pop)
-    f = fit_text_font(draw, text, W - 130, max_sz, 38, bold=True)
-    draw.text((W // 2, 1048), text, font=f, fill=(255, 255, 255), anchor="mm", stroke_width=10, stroke_fill=(16, 16, 24))
-
-
-# ---------------------------------------------------------------------------
-# Scene Choreography (6 Dynamic Scenes across full duration)
-# ---------------------------------------------------------------------------
-def build_scene_boundaries(total_dur: float) -> list[tuple[float, float, str]]:
-    """Splits the video proportionally to the narration beats."""
-    return [
-        (0.00 * total_dur, 0.17 * total_dur, "hook"),
-        (0.17 * total_dur, 0.38 * total_dur, "barrel_fight"),
-        (0.38 * total_dur, 0.58 * total_dur, "halt_misunderstanding"),
-        (0.58 * total_dur, 0.77 * total_dur, "friendly_fire"),
-        (0.77 * total_dur, 0.93 * total_dur, "ottoman_victory"),
-        (0.93 * total_dur, 1.05 * total_dur, "loop_outro"),
-    ]
-
-
-def render_frame(t: float, total_dur: float, active_caption: str, caption_age: float, speaking: bool) -> Image.Image:
-    scenes = build_scene_boundaries(total_dur)
-    scene_name = "hook"
-    s_start = 0.0
-    for st, en, name in scenes:
-        if st <= t < en:
-            scene_name = name
-            s_start = st
-            break
-    t_local = max(0.0, t - s_start)
-
-    img = Image.new("RGB", (W, H), (20, 26, 48))
-
-    if scene_name == "hook":
-        draw_night_camp_bg(img, t, show_barrel=True, sunrise=False)
-        draw = ImageDraw.Draw(img)
-        draw_location_plaque(draw, "AVUSTURYA · 1788", "KARANŞEBEŞ GECESİ", x=56, y=280)
-        draw_floating_badge(draw, 880, 420, "!", t, fill=(255, 206, 54))
-        draw_character(draw, 330, 1790, "austrian_cavalry", t, emotion="panic", speaking=speaking, arm_pose="hold_barrel", facing=1, prop="mini_barrel", phase=0.2)
-        draw_character(draw, 760, 1790, "austrian_officer", t, emotion="panic", speaking=False, arm_pose="panic", facing=-1, phase=1.7)
-
-    elif scene_name == "barrel_fight":
-        draw_night_camp_bg(img, t, show_barrel=True, sunrise=False)
-        draw = ImageDraw.Draw(img)
-        draw_location_plaque(draw, "AVUSTURYA · 1788", "NEHİR KENARI KAMPI", x=48, y=280)
-        # Pop-in date card cleanly beside location plaque (zero overlap)
-        dp = ease_out_back(min(1.0, t_local / 0.35))
-        if dp > 0.1:
-            dx0, dy0 = 515, 268
-            draw.rounded_rectangle([dx0 + 6, dy0 + 8, dx0 + 276, dy0 + 154], radius=22, fill=(14, 18, 30))
-            draw.rounded_rectangle([dx0, dy0, dx0 + 270, dy0 + 146], radius=22, fill=(248, 250, 255), outline=OUTLINE, width=7)
-            draw.rounded_rectangle([dx0, dy0, dx0 + 270, dy0 + 46], radius=16, fill=(28, 66, 122), outline=OUTLINE, width=5)
-            draw.text((dx0 + 135, dy0 + 23), "KARANŞEBEŞ", font=get_font(20, True), fill=(255, 224, 92), anchor="mm")
-            draw.text((dx0 + 135, dy0 + 96), "1788", font=get_font(58, True), fill=OUTLINE, anchor="mm")
-        draw_floating_badge(draw, 895, 342, "?", t, fill=(255, 214, 56))
-        draw_character(draw, 325, 1790, "austrian_cavalry", t, emotion="angry", speaking=speaking, arm_pose="hold_barrel", facing=1, prop="mini_barrel", phase=0.5)
-        draw_character(draw, 760, 1790, "austrian_officer", t, emotion="angry", speaking=not speaking, arm_pose="point", facing=-1, prop="bugle", phase=2.0)
-
-    elif scene_name == "halt_misunderstanding":
-        draw_wood_wall_bg(img, warm_tint=(162, 122, 68))
-        draw = ImageDraw.Draw(img)
-        draw_info_board(
-            draw,
-            bg_color=(16, 62, 114),
-            headline="1788 KARANŞEBEŞ!",
-            lines=[
-                'ALMAN SUBAY: "HALT! DUR!" DEDİ',
-                'ASKERLER "ALLAH!" SALDIRISI SANDI',
-                "100.000 ASKER KARANLIKTA KARIŞTI",
-            ],
-            badge_top="BÜYÜK PANİK!",
-            badge_sub="100.000 ASKER",
-            badge_color=(250, 206, 54),
-            t_local=t_local,
-        )
-        draw_character(draw, 325, 1790, "austrian_cavalry", t, emotion="panic", speaking=False, arm_pose="panic", facing=1, phase=0.3)
-        draw_character(draw, 760, 1790, "austrian_officer", t, emotion="angry", speaking=speaking, arm_pose="point", facing=-1, prop="bugle", phase=1.4)
-
-    elif scene_name == "friendly_fire":
-        draw_wood_wall_bg(img, warm_tint=(134, 88, 52))
-        draw = ImageDraw.Draw(img)
-        draw_info_board(
-            draw,
-            bg_color=(164, 24, 30),
-            headline="KENDİ KENDİNE SAVAŞ!",
-            lines=[
-                "KENDİ SÜVARİLERİNE TOP AÇTILAR",
-                "İMPARATOR ATINDAN DEREYE DÜŞTÜ",
-                "ORTADA TEK BİR DÜŞMAN YOKTU!",
-            ],
-            badge_top="0 DÜŞMAN!",
-            badge_sub="KARANLIKTA KAOS",
-            badge_color=(42, 188, 224),
-            t_local=t_local,
-        )
-        # Dramatic comic sparks below captions
-        for idx, (sx, sy) in enumerate([(120, 1265), (960, 1265), (540, 1345)]):
-            r = 24 + int(abs(math.sin(t * 12 + idx)) * 16)
-            draw.ellipse([sx - r, sy - r, sx + r, sy + r], fill=(255, 146, 36), outline=OUTLINE, width=5)
-            draw.ellipse([sx - r // 2, sy - r // 2, sx + r // 2, sy + r // 2], fill=(255, 236, 98))
-        draw_character(draw, 315, 1790, "austrian_cavalry", t, emotion="panic", speaking=speaking, arm_pose="panic", facing=1, phase=0.1)
-        draw_character(draw, 770, 1790, "austrian_officer", t, emotion="panic", speaking=speaking, arm_pose="panic", facing=-1, phase=2.2)
-
-    elif scene_name == "ottoman_victory":
-        draw_wood_wall_bg(img, warm_tint=(144, 118, 66))
-        draw = ImageDraw.Draw(img)
-        draw_info_board(
-            draw,
-            bg_color=(14, 108, 82),
-            headline="2 GÜN SONRA OSMANLI GELDİ!",
-            lines=[
-                "SAVAŞ ÇOKTAN BİTMİŞTİ",
-                "KASABA TEK KURŞUNSUZ ALINDI",
-                "TARİHİN EN ABSÜRT YENİLGİSİ",
-            ],
-            badge_top="TEK KURŞUNSUZ!",
-            badge_sub="OSMANLI ZAFERİ",
-            badge_color=(250, 206, 54),
-            t_local=t_local,
-            sparkles=True,
-        )
-        draw_character(draw, 325, 1790, "austrian_cavalry", t, emotion="panic", speaking=False, arm_pose="idle", facing=1, phase=0.8)
-        draw_character(draw, 755, 1790, "ottoman_scout", t, emotion="amused", speaking=speaking, arm_pose="spyglass", facing=-1, prop="spyglass", phase=1.2)
-
-    else:  # loop_outro (returns seamlessly to opening visual!)
-        draw_night_camp_bg(img, t, show_barrel=True, sunrise=False)
-        draw = ImageDraw.Draw(img)
-        draw_location_plaque(draw, "AVUSTURYA · 1788", "KARANŞEBEŞ GECESİ", x=56, y=280)
-        draw_character(draw, 330, 1790, "austrian_cavalry", t, emotion="happy", speaking=speaking, arm_pose="cheer", facing=1, phase=0.2)
-        draw_character(draw, 760, 1790, "austrian_officer", t, emotion="amused", speaking=False, arm_pose="idle", facing=-1, phase=1.7)
-
-    # Crisp white flash transition at scene cuts (matching v16/v19/v20!)
-    if t > 0.25 and t_local < 0.16:
-        alpha = int(175 * (1.0 - t_local / 0.16))
-        flash = Image.new("RGBA", (W, H), (255, 250, 238, alpha))
-        img = Image.alpha_composite(img.convert("RGBA"), flash).convert("RGB")
-        draw = ImageDraw.Draw(img)
-
-    # Active Turkish captions
-    draw_captions(draw, active_caption, caption_age)
-    return img
-
-
-# ---------------------------------------------------------------------------
-# ElevenLabs ERKAN Voice Synthesis + Word Timestamps
-# ---------------------------------------------------------------------------
-def synthesize_erkan_voice(text: str, out_mp3: Path) -> tuple[float, list[dict[str, Any]]]:
-    import requests
-
-    el_key = os.environ["ELEVENLABS_API_KEY"].strip()
-    voice_id = os.getenv("ELEVENLABS_VOICE_ID", "gsfAMpj9oiFONXfvZJoE")  # ERKAN
-    model_id = os.getenv("ELEVENLABS_MODEL", "eleven_multilingual_v2")
-
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/with-timestamps"
-    r = requests.post(
-        url,
-        headers={"xi-api-key": el_key, "Content-Type": "application/json"},
-        json={
-            "text": text,
-            "model_id": model_id,
-            "voice_settings": {"stability": 0.48, "similarity_boost": 0.80, "style": 0.35},
-        },
-        timeout=120,
-    )
-    r.raise_for_status()
-    data = r.json()
-    out_mp3.parent.mkdir(parents=True, exist_ok=True)
-    out_mp3.write_bytes(base64.b64decode(data["audio_base64"]))
-
-    align = data.get("alignment") or data.get("normalized_alignment") or {}
-    chars = align.get("characters", [])
-    starts = align.get("character_start_times_seconds", [])
-    ends = align.get("character_end_times_seconds", [])
+def parse_alignment_words(align: dict[str, Any]) -> list[dict[str, Any]]:
+    """Builds clean spoken word chunks from ElevenLabs character alignment, stripping [...] tags."""
+    chars = align.get("characters") or []
+    starts = align.get("character_start_times_seconds") or []
+    ends = align.get("character_end_times_seconds") or []
 
     words: list[dict[str, Any]] = []
     cur: list[str] = []
-    w_st, w_en = None, None
+    w_st: float | None = None
+    w_en: float | None = None
+    in_bracket = False
+
     for ch, st, en in zip(chars, starts, ends):
+        if ch == "[":
+            if cur and w_st is not None and w_en is not None:
+                words.append({"word": "".join(cur), "start": w_st, "end": w_en})
+                cur, w_st, w_en = [], None, None
+            in_bracket = True
+            continue
+        if ch == "]":
+            in_bracket = False
+            continue
+        if in_bracket:
+            continue
+
         if ch.strip():
             if w_st is None:
                 w_st = float(st)
             cur.append(ch)
             w_en = float(en)
         else:
-            if cur:
+            if cur and w_st is not None and w_en is not None:
                 words.append({"word": "".join(cur), "start": w_st, "end": w_en})
                 cur, w_st, w_en = [], None, None
-    if cur:
+
+    if cur and w_st is not None and w_en is not None:
         words.append({"word": "".join(cur), "start": w_st, "end": w_en})
+
+    # Safety filter against any stray bracket fragments
+    return [w for w in words if w["word"] and not w["word"].startswith("[")]
+
+
+def synthesize_erkan_voice(text: str, out_mp3: Path) -> tuple[float, list[dict[str, Any]]]:
+    import requests
+
+    el_key = os.environ["ELEVENLABS_API_KEY"].strip()
+    voice_id = os.getenv("ELEVENLABS_VOICE_ID", "gsfAMpj9oiFONXfvZJoE")  # ERKAN
+    model_id = os.getenv("ELEVENLABS_MODEL", "eleven_v4")
+
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/with-timestamps"
+    headers = {"xi-api-key": el_key, "Content-Type": "application/json"}
+
+    # Try eleven_v4 with expressive stability (0.40); fallback cleanly to default settings if needed
+    payloads = [
+        {
+            "text": text,
+            "model_id": model_id,
+            "language_code": "tr",
+            "voice_settings": {"stability": 0.40},
+        },
+        {
+            "text": text,
+            "model_id": model_id,
+            "voice_settings": {"stability": 0.50},
+        },
+        {
+            "text": strip_v4_tags(text),
+            "model_id": model_id,
+        },
+    ]
+
+    last_err = None
+    data = None
+    for idx, payload in enumerate(payloads):
+        r = requests.post(url, headers=headers, json=payload, timeout=150)
+        if r.ok:
+            data = r.json()
+            print(f"  -> ElevenLabs OK (model={model_id}, attempt={idx + 1})")
+            break
+        last_err = f"HTTP {r.status_code}: {r.text[:300]}"
+        print(f"  ! ElevenLabs attempt {idx + 1} failed: {last_err}")
+
+    if data is None:
+        raise RuntimeError(f"ElevenLabs synthesis failed: {last_err}")
+
+    out_mp3.parent.mkdir(parents=True, exist_ok=True)
+    out_mp3.write_bytes(base64.b64decode(data["audio_base64"]))
+
+    align = data.get("alignment") or data.get("normalized_alignment") or {}
+    words = parse_alignment_words(align)
 
     dur_str = subprocess.check_output(
         ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", str(out_mp3)],
         text=True,
     ).strip()
-    return float(dur_str), words
+    duration = float(dur_str)
+
+    # Fallback even word distribution if alignment was empty
+    if not words:
+        raw_words = CLEAN_SCRIPT.split()
+        step = duration / max(1, len(raw_words))
+        words = [{"word": w, "start": i * step, "end": (i + 1) * step} for i, w in enumerate(raw_words)]
+
+    return duration, words
 
 
 def group_word_chunks(words: list[dict[str, Any]], chunk_size: int = 2) -> list[dict[str, Any]]:
@@ -772,8 +229,7 @@ def group_word_chunks(words: list[dict[str, Any]], chunk_size: int = 2) -> list[
     i = 0
     while i < len(words):
         grp = words[i : i + chunk_size]
-        # Allow 3 short words together if total length <= 18 chars
-        if i + 2 < len(words) and sum(len(w["word"]) for w in words[i : i + 3]) <= 16:
+        if i + 2 < len(words) and sum(len(w["word"]) for w in words[i : i + 3]) <= 17:
             grp = words[i : i + 3]
             i += 3
         else:
@@ -793,92 +249,200 @@ def lookup_caption(chunks: list[dict[str, Any]], t: float) -> tuple[str, float, 
     return "", 0.0, False
 
 
-def build_qa_sheet(sample_frames: list[Image.Image], out_jpg: Path):
-    cols = 6
-    rows = max(1, math.ceil(len(sample_frames) / cols))
+# ---------------------------------------------------------------------------
+# Headless Chrome + Three.js Parallel Frame Renderer
+# ---------------------------------------------------------------------------
+def _find_chrome_executable() -> str | None:
+    for p in (
+        "/usr/bin/google-chrome",
+        "/usr/bin/google-chrome-stable",
+        "/usr/bin/chromium",
+        "/usr/bin/chromium-browser",
+    ):
+        if os.path.exists(p):
+            return p
+    return None
+
+
+def _render_chunk_worker(args: tuple[int, int, int, float, list[dict[str, Any]], str, str]) -> int:
+    """Renders frame range [start_f, end_f) in an isolated Headless Chrome WebGL2 instance."""
+    worker_id, start_f, end_f, total_dur, chunks, frames_dir, scene_uri = args
+    from playwright.sync_api import sync_playwright
+
+    chrome_exe = _find_chrome_executable()
+    launch_kwargs: dict[str, Any] = {
+        "headless": True,
+        "args": [
+            "--use-gl=angle",
+            "--use-angle=swiftshader",
+            "--enable-webgl",
+            "--ignore-gpu-blocklist",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+        ],
+    }
+    if chrome_exe:
+        launch_kwargs["executable_path"] = chrome_exe
+
+    out_dir = Path(frames_dir)
+    rendered = 0
+    with sync_playwright() as p:
+        browser = p.chromium.launch(**launch_kwargs)
+        page = browser.new_page(viewport={"width": W, "height": H})
+        page.goto(scene_uri, wait_until="load", timeout=60000)
+        page.wait_for_function("window.AKILALMAZ_READY === true", timeout=30000)
+
+        for fidx in range(start_f, end_f):
+            t = fidx / FPS
+            cap, age, speaking = lookup_caption(chunks, t)
+            page.evaluate(
+                "([t, dur, cap, age, sp]) => window.renderFrameAt(t, dur, cap, age, sp)",
+                [t, total_dur, cap, age, speaking],
+            )
+            frame_path = out_dir / f"f_{fidx:05d}.jpg"
+            page.screenshot(path=str(frame_path), type="jpeg", quality=92)
+            rendered += 1
+            if rendered % 120 == 0:
+                print(f"  [worker {worker_id}] {rendered}/{end_f - start_f} kare")
+
+        browser.close()
+    return rendered
+
+
+def build_qa_sheet_from_dir(frames_dir: Path, total_frames: int, out_jpg: Path) -> None:
+    cols, rows = 6, 3
     tw, th = 270, 480
     sheet = Image.new("RGB", (cols * tw, rows * th), (12, 12, 16))
-    for idx, im in enumerate(sample_frames):
-        r, c = divmod(idx, cols)
+    indices = [int(i * (total_frames - 1) / 17) for i in range(18)]
+    for pos, fidx in enumerate(indices):
+        fp = frames_dir / f"f_{fidx:05d}.jpg"
+        if not fp.exists():
+            continue
+        im = Image.open(fp).convert("RGB")
+        r, c = divmod(pos, cols)
         sheet.paste(im.resize((tw, th), Image.Resampling.LANCZOS), (c * tw, r * th))
     out_jpg.parent.mkdir(parents=True, exist_ok=True)
     sheet.save(out_jpg, "JPEG", quality=88, optimize=True)
 
 
+def build_sfx_timeline(total_dur: float) -> list[tuple[float, str]]:
+    """Places crisp cartoon SFX on every scene cut and story highlight."""
+    events: list[tuple[float, str]] = [
+        (0.35, "pop"),
+        (1.85, "pop_hi"),
+        # Scene 1: Dec 2, 1942 Chicago Pile-1 + Geiger counter!
+        (SCENE_CUTS[1] * total_dur, "whoosh"),
+        (SCENE_CUTS[1] * total_dur + 0.30, "pop"),
+        (SCENE_CUTS[1] * total_dur + 1.40, "geiger"),
+        # Scene 2: Navy info board (No cooling, no shield)
+        (SCENE_CUTS[2] * total_dur, "whoosh"),
+        (SCENE_CUTS[2] * total_dur + 0.60, "ding"),
+        # Scene 3: Crimson AXE MAN board + metallic axe clang!
+        (SCENE_CUTS[3] * total_dur, "whoosh"),
+        (SCENE_CUTS[3] * total_dur + 0.45, "axe"),
+        (SCENE_CUTS[3] * total_dur + 2.80, "axe"),
+        # Scene 4: Orange Bucket Squad ("İntihar Timi") + comedic boing!
+        (SCENE_CUTS[4] * total_dur, "whoosh"),
+        (SCENE_CUTS[4] * total_dur + 0.45, "boing"),
+        # Scene 5: Emerald Victory Board (15:25 Nuclear Age + Paper Cup Toast!)
+        (SCENE_CUTS[5] * total_dur, "whoosh"),
+        (SCENE_CUTS[5] * total_dur + 0.40, "sparkle"),
+        # Scene 6: Seamless loop return
+        (SCENE_CUTS[6] * total_dur, "whoosh"),
+    ]
+    return events
+
+
 # ---------------------------------------------------------------------------
-# Full Production Render (Pipes raw RGB to FFmpeg + mixes ERKAN + music)
+# Full Production Pipeline
 # ---------------------------------------------------------------------------
-def produce_video():
+def produce_video(music_db: float = -12.0, workers: int = 4) -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     WORK_DIR.mkdir(parents=True, exist_ok=True)
 
     voice_path = WORK_DIR / "voice.mp3"
+    bgm_sfx_path = WORK_DIR / "bgm_sfx.wav"
     mp4_path = OUT_DIR / FILE_NAME
     qa_path = OUT_DIR / "qa_sheet.jpg"
 
-    print(f"[1/4] ElevenLabs ERKAN sesi üretiliyor ({SLUG})...")
-    duration, words = synthesize_erkan_voice(SCRIPT_TEXT, voice_path)
+    print(f"[1/5] ElevenLabs ERKAN (eleven_v4) sesi üretiliyor ({SLUG})...")
+    duration, words = synthesize_erkan_voice(TTS_SCRIPT, voice_path)
     total_dur = duration + 0.45
     total_frames = int(math.ceil(total_dur * FPS))
     chunks = group_word_chunks(words, chunk_size=2)
     print(f"  -> Süre: {duration:.2f}s ({total_frames} kare), {len(words)} kelime, {len(chunks)} altyazı parçası")
 
-    print("[2/4] 1080x1920 30fps 2D çizgi film render ediliyor...")
-    af = (
-        f"[1:a]loudnorm=I=-15.5:TP=-1.5:LRA=9[v];"
-        f"aevalsrc=0.035*sin(2*PI*110*t)+0.022*sin(2*PI*164.81*t)+0.018*sin(2*PI*220*t)+0.012*sin(2*PI*329.63*t)*abs(sin(PI*2*t)):s=44100:d={total_dur:.2f},"
-        f"lowpass=f=480,volume=-13dB,afade=t=in:st=0:d=1.0,afade=t=out:st={max(0, total_dur - 1.0):.2f}:d=1.0[m];"
-        f"[v][m]amix=inputs=2:duration=first:dropout_transition=2,alimiter=limit=0.95[aout]"
-    )
-    cmd = [
-        "ffmpeg", "-y", "-v", "warning",
-        "-f", "rawvideo", "-vcodec", "rawvideo",
-        "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS),
-        "-i", "-",
-        "-i", str(voice_path),
-        "-filter_complex", af,
-        "-map", "0:v", "-map", "[aout]",
-        "-t", f"{total_dur:.2f}",
-        "-c:v", "libx264", "-preset", "medium", "-crf", "20",
-        "-pix_fmt", "yuv420p", "-r", str(FPS),
-        "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart",
-        str(mp4_path),
-    ]
-    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
-    assert proc.stdin is not None
+    print(f"[2/5] Canlı arka plan müziği + çizgi film SFX sentezleniyor (--music-db {music_db:.1f})...")
+    sfx_events = build_sfx_timeline(total_dur)
+    synth_bgm_sfx.build_music_and_sfx_wav(bgm_sfx_path, total_dur + 0.25, sfx_events, bgm_gain_db=0.0)
 
-    qa_indices = {int(i * (total_frames - 1) / 17) for i in range(18)}
-    qa_frames: list[Image.Image] = []
+    print(f"[3/5] 1080x1920 30fps 3D-Toon + 2D Çöp Adam sahneleri render ediliyor ({workers} paralel işçi)...")
+    t0 = time.time()
+    scene_uri = SCENE_HTML.resolve().as_uri()
+    with tempfile.TemporaryDirectory(prefix="v21_frames_") as tmp:
+        frames_dir = Path(tmp)
+        n_workers = max(1, min(workers, total_frames))
+        chunk_len = math.ceil(total_frames / n_workers)
+        tasks = []
+        for wid in range(n_workers):
+            sf = wid * chunk_len
+            ef = min(total_frames, sf + chunk_len)
+            if sf < ef:
+                tasks.append((wid, sf, ef, total_dur, chunks, str(frames_dir), scene_uri))
 
-    for fidx in range(total_frames):
-        t = fidx / FPS
-        cap, age, speaking = lookup_caption(chunks, t)
-        frame = render_frame(t, total_dur, cap, age, speaking)
-        proc.stdin.write(frame.tobytes())
-        if fidx in qa_indices:
-            qa_frames.append(frame.copy())
-        if fidx % 300 == 0:
-            print(f"  -> Kare {fidx}/{total_frames} ({int(100 * fidx / total_frames)}%)")
+        with concurrent.futures.ProcessPoolExecutor(max_workers=n_workers) as pool:
+            futs = [pool.submit(_render_chunk_worker, t_arg) for t_arg in tasks]
+            for fut in concurrent.futures.as_completed(futs):
+                fut.result()
 
-    proc.stdin.close()
-    rc = proc.wait()
-    if rc != 0:
-        raise RuntimeError(f"ffmpeg exit code {rc}")
+        print(f"  -> {total_frames} kare {time.time() - t0:.1f}s içinde tamamlandı.")
 
-    print("[3/4] QA Sheet oluşturuluyor...")
-    build_qa_sheet(qa_frames, qa_path)
+        print("[4/5] QA Sheet ve final MP4 (ERKAN + -12dB müzik/SFX miks) oluşturuluyor...")
+        build_qa_sheet_from_dir(frames_dir, total_frames, qa_path)
 
-    print("[4/4] videos.json güncelleniyor...")
+        # Mix normalized ERKAN voice (-15.5 LUFS) with lively stereo BGM+SFX at --music-db
+        # (BGM normalized to -14 dBFS RMS, so applying `music_db` puts music ~12 dB beneath voice)
+        af = (
+            f"[1:a]loudnorm=I=-15.5:TP=-1.5:LRA=9,aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[v];"
+            f"[2:a]volume={music_db:.1f}dB,aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[m];"
+            f"[v][m]amix=inputs=2:duration=first:dropout_transition=2:normalize=0,alimiter=limit=0.95[aout]"
+        )
+        cmd = [
+            "ffmpeg", "-y", "-v", "warning",
+            "-framerate", str(FPS),
+            "-i", str(frames_dir / "f_%05d.jpg"),
+            "-i", str(voice_path),
+            "-i", str(bgm_sfx_path),
+            "-filter_complex", af,
+            "-map", "0:v", "-map", "[aout]",
+            "-t", f"{total_dur:.3f}",
+            "-c:v", "libx264", "-preset", "medium", "-crf", "19",
+            "-pix_fmt", "yuv420p", "-r", str(FPS),
+            "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart",
+            str(mp4_path),
+        ]
+        subprocess.run(cmd, check=True)
+
+    # Clean up temporary large wav in work/ (keep voice.mp3 matching v1-v20)
+    if bgm_sfx_path.exists():
+        bgm_sfx_path.unlink()
+
+    print("[5/5] Eski v21 temizleniyor ve videos.json güncelleniyor...")
+    old_dir = REPO_DIR / "files" / OLD_V21_SLUG
+    if old_dir.exists() and old_dir.is_dir():
+        shutil.rmtree(old_dir)
+        print(f"  -> Eski klasör kaldırıldı: {old_dir.name}")
+
     videos = json.loads(VIDEOS_JSON.read_text(encoding="utf-8")) if VIDEOS_JSON.exists() else []
-    videos = [v for v in videos if v.get("slug") != SLUG]
+    videos = [v for v in videos if v.get("slug") not in (SLUG, OLD_V21_SLUG)]
     size_mb = round(mp4_path.stat().st_size / (1024 * 1024), 1)
     entry = {
         "slug": SLUG,
         "title": TITLE,
         "status": "Hazır",
-        "script": SCRIPT_TEXT,
+        "script": CLEAN_SCRIPT,
         "meta": META,
-        "words": len(SCRIPT_TEXT.split()),
+        "words": len(CLEAN_SCRIPT.split()),
         "frames": total_frames,
         "voice": f"files/{SLUG}/work/voice.mp3",
         "qa": f"files/{SLUG}/out/qa_sheet.jpg",
@@ -895,7 +459,42 @@ def produce_video():
     print(f"✅ Tamamlandı: {mp4_path} ({size_mb} MB, {total_dur:.1f}s)")
 
 
-def upload_cover_and_schedule():
+def generate_vertex_cover() -> str:
+    """Calls Cloud Run /api/covers/generate to create a 9:16 Vertex AI cover and saves a local copy."""
+    import requests
+
+    api_url = os.getenv("LIKYA_API_URL", "https://likya-crosspost-api-64i7umkgnq-ew.a.run.app").rstrip("/")
+    api_key = os.environ["LIKYA_API_KEY"].strip()
+    headers = {"X-API-Key": api_key, "Content-Type": "application/json"}
+
+    print(f"[Kapak] Cloud Run /api/covers/generate ile 9:16 Vertex AI kapak üretiliyor ({SLUG})...")
+    r = requests.post(
+        f"{api_url}/api/covers/generate",
+        headers=headers,
+        json={"key": SLUG, "prompt": META["flow_prompt"], "aspect_ratio": "9:16"},
+        timeout=150,
+    )
+    r.raise_for_status()
+    data = r.json()
+    img_url = data["image_url"]
+    print(f"  -> Vertex AI kapak hazır: {img_url}")
+
+    # Save crisp JPG copy alongside video outputs so panel/git also has a local preview
+    img_resp = requests.get(img_url, timeout=60)
+    img_resp.raise_for_status()
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    tmp_png = OUT_DIR / "_cover_raw.png"
+    tmp_png.write_bytes(img_resp.content)
+    im = Image.open(tmp_png).convert("RGB")
+    cover_jpg = OUT_DIR / "cover.jpg"
+    im.save(cover_jpg, "JPEG", quality=92, optimize=True)
+    tmp_png.unlink(missing_ok=True)
+    print(f"  -> Yerel önizleme kaydedildi: {cover_jpg} ({im.width}x{im.height})")
+    return img_url.split("?")[0]
+
+
+def schedule_for_dec2() -> None:
+    """Schedules the new v21 into 2 Aralık 2026 Çarşamba 06:03 TR (replaces old v21 schedule if present)."""
     import requests
 
     api_url = os.getenv("LIKYA_API_URL", "https://likya-crosspost-api-64i7umkgnq-ew.a.run.app").rstrip("/")
@@ -903,28 +502,18 @@ def upload_cover_and_schedule():
     site_base = os.getenv("SITE_BASE_URL", "https://studio.likyastudios.live").rstrip("/")
     headers = {"X-API-Key": api_key}
 
-    cover_path = OUT_DIR / "cover.jpg"
+    # Check if old v21_kendi_kendine_savas is occupying 2026-12-02 and remove it before scheduling
+    r_list = requests.get(f"{api_url}/api/schedule", headers=headers, params={"brand": "akilalmaz"}, timeout=30)
+    if r_list.ok:
+        for post in r_list.json().get("posts", []):
+            if post.get("video_id") == OLD_V21_SLUG and post.get("status") in ("Planlandı", "Hata"):
+                print(f"  -> Eski v21 plan kaydı #{post['id']} ({OLD_V21_SLUG}) kaldırılıyor...")
+                requests.delete(f"{api_url}/api/schedule/{post['id']}", headers=headers, timeout=30)
+
+    video_abs_url = f"{site_base}/files/{SLUG}/out/{FILE_NAME}"
     cover_url = f"{api_url}/api/covers/{SLUG}.png"
 
-    # 1. Upload our bespoke 9:16 cartoon cover to Cloud Run GCS
-    if cover_path.exists():
-        print(f"[1/3] Özel 9:16 kapak yükleniyor ({cover_path.name})...")
-        with cover_path.open("rb") as fh:
-            r = requests.post(
-                f"{api_url}/api/covers/upload",
-                headers=headers,
-                data={"key": SLUG},
-                files={"file": (cover_path.name, fh, "image/jpeg")},
-                timeout=90,
-            )
-            r.raise_for_status()
-            up = r.json()
-            cover_url = up.get("image_url") or cover_url
-            print(f"  -> Kapak GCS'de hazır: {cover_url}")
-
-    # 2. Wait for GitHub Pages to serve the new MP4
-    video_abs_url = f"{site_base}/files/{SLUG}/out/{FILE_NAME}"
-    print(f"[2/3] Video yayını bekleniyor: {video_abs_url}")
+    print(f"[Planlama] Video yayını bekleniyor: {video_abs_url}")
     for attempt in range(40):
         try:
             hr = requests.head(video_abs_url, timeout=20, allow_redirects=True)
@@ -937,8 +526,7 @@ def upload_cover_and_schedule():
     else:
         raise SystemExit("Video GitHub Pages üzerinde 10 dk içinde erişilebilir olmadı.")
 
-    # 3. Schedule for 02.12.2026 Çar · 06:03 TR
-    print(f"[3/3] 2 Aralık 2026 (06:03 TR) slotuna planlanıyor...")
+    print("[Planlama] 2 Aralık 2026 Çarşamba (06:03 TR) slotuna planlanıyor...")
     payload = {
         "brand": "akilalmaz",
         "video_id": SLUG,
@@ -955,7 +543,7 @@ def upload_cover_and_schedule():
         f"{api_url}/api/schedule",
         headers={**headers, "Content-Type": "application/json"},
         json=payload,
-        timeout=120,
+        timeout=150,
     )
     if sr.status_code == 409:
         print("  -> Video zaten planlı (409), atlandı.")
@@ -966,30 +554,66 @@ def upload_cover_and_schedule():
     print(f"✅ Planlandı: #{post.get('id')} — {post.get('label_tr')} | YT yüklendi: {res.get('yt_uploaded')}")
 
 
-def render_local_preview():
-    """Fast local QA preview (no ElevenLabs/ffmpeg required) to visually inspect all 6 scenes."""
-    fake_dur = 50.0
+def render_local_preview() -> None:
+    """Fast local QA preview (renders 18 frames across all 7 3D-toon scenes into a 6x3 QA sheet)."""
+    from playwright.sync_api import sync_playwright
+
+    fake_dur = 52.0
     sample_caps = [
-        "Yüz bin kişilik", "dev bir ordu,", "Osmanlı ordusu",
-        "iki gün sonra", "Avusturya ordusu,", "birkaç fıçı içki",
-        "Tartışma büyüdü,", "Halt! Dur! diye", "Allah! saldırısı sandı!",
-        "kendi süvarilerini", "top ateşi açtılar;", "dereye yuvarlandı!",
-        "İki gün sonra", "Osmanlı ordusu", "tek kurşun sıkmadan",
-        "şehri aldı!", "Ve askeri tarih", "hâlâ şöyle anlatır:",
+        "Dünyanın ilk", "nükleer reaktörü", "elinde balta tutan",
+        "2 Aralık 1942", "Enrico Fermi,", "stadyumun altında",
+        "soğutma sistemi yok,", "dört yüz ton", "grafit tuğlayı",
+        "elindeki baltayla", "halatı kesip", "fren çubuğunu",
+        "tepede üç", "bilim insanı", "kovalarla bekliyordu!",
+        "nükleer çağ", "kâğıt bardaklarla", "şöyle anlatılır:",
     ]
-    frames = []
-    for i in range(18):
-        t = i * (fake_dur / 17.5)
-        frames.append(render_frame(t, fake_dur, sample_caps[i], 0.15, speaking=(i % 2 == 0)))
-    preview_path = Path(tempfile.gettempdir()) / f"{SLUG}_qa_preview.jpg"
-    build_qa_sheet(frames, preview_path)
-    print(f"Preview QA sheet saved: {preview_path}")
+    chrome_exe = _find_chrome_executable()
+    launch_kwargs: dict[str, Any] = {
+        "headless": True,
+        "args": ["--use-gl=angle", "--use-angle=swiftshader", "--enable-webgl", "--ignore-gpu-blocklist", "--no-sandbox"],
+    }
+    if chrome_exe:
+        launch_kwargs["executable_path"] = chrome_exe
+
+    with tempfile.TemporaryDirectory() as tmp:
+        td = Path(tmp)
+        with sync_playwright() as p:
+            b = p.chromium.launch(**launch_kwargs)
+            page = b.new_page(viewport={"width": W, "height": H})
+            page.goto(SCENE_HTML.resolve().as_uri(), wait_until="load", timeout=60000)
+            page.wait_for_function("window.AKILALMAZ_READY === true", timeout=30000)
+            for i in range(18):
+                t = (i + 0.35) * (fake_dur / 18.0)
+                page.evaluate(
+                    "([t, dur, cap, age, sp]) => window.renderFrameAt(t, dur, cap, age, sp)",
+                    [t, fake_dur, sample_caps[i], 0.14, (i % 2 == 0)],
+                )
+                page.screenshot(path=str(td / f"f_{i:05d}.jpg"), type="jpeg", quality=92)
+            b.close()
+
+        preview_path = Path(tempfile.gettempdir()) / f"{SLUG}_qa_preview.jpg"
+        build_qa_sheet_from_dir(td, 18, preview_path)
+        print(f"Preview QA sheet saved: {preview_path}")
+
+
+def main() -> None:
+    p = argparse.ArgumentParser(description="AKILALMAZ v21 — 2 Aralık 1942 Chicago Pile-1 Üretici")
+    p.add_argument("--music-db", type=float, default=-12.0, help="Arka plan müzik seviyesi (dB, varsayılan -12.0)")
+    p.add_argument("--workers", type=int, default=4, help="Paralel 3D render işçi sayısı")
+    p.add_argument("--preview", action="store_true", help="Hızlı yerel 6x3 3D-toon QA önizlemesi üret")
+    p.add_argument("--generate-cover", action="store_true", help="Cloud Run /api/covers/generate ile 9:16 Vertex AI kapak üret")
+    p.add_argument("--publish-schedule", action="store_true", help="2 Aralık 2026 06:03 TR slotuna planla")
+    args = p.parse_args()
+
+    if args.preview:
+        render_local_preview()
+    elif args.generate_cover:
+        generate_vertex_cover()
+    elif args.publish_schedule:
+        schedule_for_dec2()
+    else:
+        produce_video(music_db=args.music_db, workers=args.workers)
 
 
 if __name__ == "__main__":
-    if "--preview" in sys.argv:
-        render_local_preview()
-    elif "--publish-schedule" in sys.argv:
-        upload_cover_and_schedule()
-    else:
-        produce_video()
+    main()

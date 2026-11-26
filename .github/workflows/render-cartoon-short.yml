@@ -1,16 +1,28 @@
-name: AKILALMAZ 2D Çizgi Film Üretimi (v21)
+name: AKILALMAZ 3D-Toon Çizgi Film Üretimi (v21)
 
 on:
   workflow_dispatch:
     inputs:
       script_path:
-        description: 'Çalıştırılacak 2D çizgi film üretim scripti'
+        description: 'Çalıştırılacak 3D-toon üretim scripti'
         required: true
         default: 'scripts/render_akilalmaz_v21.py'
-      publish_schedule:
-        description: 'Kapağı yükle ve 2 Aralık 06:03 TR slotuna planla'
+      music_db:
+        description: 'Arka plan müzik seviyesi (dB)'
+        required: true
+        default: '-12.0'
+      generate_cover:
+        description: 'Cloud Run /api/covers/generate ile 9:16 Vertex AI kapak üret'
         type: boolean
         default: true
+      publish_schedule:
+        description: '2 Aralık 2026 Çarşamba 06:03 TR slotuna planla'
+        type: boolean
+        default: false
+      schedule_only:
+        description: 'Sadece planlamayı çalıştır (videoyu yeniden render etme)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -27,31 +39,44 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install FFmpeg, DejaVu fonts & Python deps
+      - name: Install FFmpeg, Fonts & Python Deps
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
-          pip install --quiet requests pillow
+          pip install --quiet requests pillow numpy playwright
+          if ! command -v google-chrome >/dev/null 2>&1; then
+            python3 -m playwright install chromium
+          fi
 
-      - name: Render 2D Cartoon Short (ERKAN Voice + 1080x1920 30fps)
+      - name: Render 3D-Toon + 2D Cartoon Short (ERKAN eleven_v4 + -12dB BGM/SFX + 1080x1920 30fps)
+        if: ${{ inputs.schedule_only != true }}
         env:
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
-        run: python3 "${{ inputs.script_path }}"
+          ELEVENLABS_VOICE_ID: 'gsfAMpj9oiFONXfvZJoE'
+          ELEVENLABS_MODEL: 'eleven_v4'
+        run: python3 "${{ inputs.script_path }}" --music-db "${{ inputs.music_db }}" --workers 4
+
+      - name: Generate 9:16 Vertex AI Cover via Cloud Run /api/covers/generate
+        if: ${{ inputs.schedule_only != true && inputs.generate_cover != false }}
+        env:
+          LIKYA_API_KEY: ${{ secrets.LIKYA_API_KEY }}
+        run: python3 "${{ inputs.script_path }}" --generate-cover
 
       - name: Commit & Publish to studio.likyastudios.live
+        if: ${{ inputs.schedule_only != true }}
         run: |
           git config user.name "AKILALMAZ Studio Bot"
           git config user.email "bot@likyastudios.live"
-          git add files/ videos.json
-          git commit -m "Video 21 hazır: 1788 Karanşebeş — Kendi Kendine Savaşan 100.000 Kişilik Ordu"
+          git add -A files/ videos.json
+          git diff --cached --quiet || git commit -m "Video 21 hazır: 2 Aralık 1942 — Stadyum Altında Baltayla Kurulan İlk Nükleer Reaktör (eleven_v4 + 3D-toon)"
           for i in 1 2 3; do
             git pull --rebase origin main && git push origin HEAD:main && exit 0
             sleep 5
           done
           exit 1
 
-      - name: Upload 9:16 Cover & Schedule for 2 Aralık (06:03 TR)
-        if: ${{ inputs.publish_schedule != false }}
+      - name: Schedule for 2 Aralık 2026 Çarşamba (06:03 TR)
+        if: ${{ inputs.publish_schedule == true || inputs.schedule_only == true }}
         env:
           LIKYA_API_KEY: ${{ secrets.LIKYA_API_KEY }}
         run: python3 "${{ inputs.script_path }}" --publish-schedule

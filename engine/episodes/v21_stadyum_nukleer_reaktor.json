@@ -1,0 +1,316 @@
+{
+  "slug": "v21_stadyum_nukleer_reaktor",
+  "mp4_name": "Video21-Stadyum-Altindaki-Ilk-Nukleer-Reaktor.mp4",
+  "title": "Stadyum Altında Baltayla Kurulan İlk Nükleer Reaktör",
+  "youtube_title": "Stadyum Altında Baltayla Kurulan İlk Nükleer Reaktör! (2 Aralık 1942) #shorts",
+  "youtube_desc": "2 Aralık 1942'de Chicago Üniversitesi stadyumunun altında kurulan dünyanın ilk nükleer reaktörünün (Chicago Pile-1) akıl almaz güvenlik planı: Elinde balta tutan bir güvenlik görevlisi! 🪓⚛️\n\nBugün hâlâ tüm nükleer santrallerdeki acil kapatma düğmesinin adı olan SCRAM teriminin gerçek hikâyesi.\n\n#tarih #bilim #ilginçbilgiler #akılalmaz #shorts",
+  "ig_caption": "2 Aralık 1942: Dünyanın ilk nükleer reaktörü bir üniversite stadyumunun altında, elinde balta tutan bir güvenlik görevlisiyle kuruldu! 🪓⚛️ #tarih #bilim #ilginçbilgiler #reels",
+  "stability": 0.5,
+  "bpm": 122,
+  "music_seed": 21,
+  "script_v4": "[excited] Dünyanın ilk nükleer reaktörünün, bir üniversite stadyumunun altında ve elinde balta tutan bir güvenlik görevlisiyle kurulduğunu biliyor muydunuz? [surprised] Hiç bilgisayar yoktu; tüm acil durum planı tek bir ipe ve keskin bir baltaya bağlıydı! [curious] Peki bu çılgın deney nasıl yapıldı? [storytelling] İki Aralık bin dokuz yüz kırk ikide fizikçi Enrico Fermi, Chicago Üniversitesi'nde gizli bir ekip topladı. Stadyumun altındaki eski kortta dört yüz ton grafit blok elle üst üste yığıldı. [dramatic] Peki reaksiyon kontrolden çıkarsa ne olacaktı? Fizikçi Norman Hilberry yukarıda elinde gerçek bir baltayla bekliyordu! [amused, chuckles] Sorun çıkarsa halatı kesecek, güvenlik çubuğu düşecekti; ona 'Balta Adamı' lakabı takıldı! [excited] Saat on beşi yirmi beş geçe tarihin ilk nükleer zincirleme reaksiyonu başladı! [amused] O baltalı ip yüzünden bugün hâlâ tüm santrallerdeki acil kapatma düğmesinin adı SCRAM! [storytelling] İşte atom çağını başlatan bu hikâye şöyle anlatılır:",
+  "stage": {
+    "fogColor": "#efc45a",
+    "skyTop": "#cf9d42",
+    "skyMid": "#f5ce62",
+    "skyBot": "#eda92a",
+    "groundA": "#75853d",
+    "groundB": "#5e6c30",
+    "stoneA": "#7a6c49",
+    "stoneB": "#5e5336",
+    "stoneGrout": "#322a1b",
+    "curbColor": "#bd923a",
+    "plasterA": "#c2a666",
+    "plasterB": "#b39553",
+    "plasterSpot": "#9c7e3e",
+    "sign": {
+      "title": "CHİCAGO • 1942",
+      "subtitle": "2 ARALIK • İLK NÜKLEER REAKTÖR",
+      "bg": "#0b4da2",
+      "border": "#ffd60a",
+      "titleColor": "#ffd60a",
+      "subColor": "#ffffff"
+    },
+    "boards": [
+      {
+        "header": "STADYUM ALTI REAKTÖR!",
+        "line1": "400 TON GRAFİT BLOK",
+        "line2": "45.000 KARA TUĞLA ELLE YIĞILDI",
+        "line3": "GİZLİ DENEY: CHİCAGO PİLE-1",
+        "bg": "#0c3c78",
+        "accent": "#4dabf7",
+        "headerColor": "#ffd60a",
+        "desk": true
+      },
+      {
+        "header": "ACİL PLAN: BALTA!",
+        "line1": "İPİ KES, ÇUBUK DÜŞSÜN!",
+        "line2": "HİÇBİR BİLGİSAYAR YOKTU!",
+        "line3": "LAKABI: BALTA ADAMI!",
+        "bg": "#9b111e",
+        "accent": "#ff6b6b",
+        "headerColor": "#ffd60a",
+        "desk": false
+      },
+      {
+        "header": "15:25 ZİNCİR BAŞLADI!",
+        "line1": "TARİHİN İLK NÜKLEER REAKTÖRÜ",
+        "line2": "ACİL KAPATMA DÜĞMESİ: SCRAM",
+        "line3": "2 ARALIK 1942 — ATOM ÇAĞI!",
+        "bg": "#114b34",
+        "accent": "#40c057",
+        "headerColor": "#51cf66",
+        "desk": true
+      }
+    ]
+  },
+  "heroProp": {
+    "kind": "reactor"
+  },
+  "characters": [
+    {
+      "id": "fermi",
+      "coat": "#e9ecef",
+      "pants": "#2b303a",
+      "skin": "#f4be91",
+      "hat": "hair",
+      "hatColor": "#495057",
+      "glasses": "glasses",
+      "collar": true,
+      "collarColor": "#ffffff",
+      "tie": "#c92a2a",
+      "labcoat": true,
+      "seed": 3
+    },
+    {
+      "id": "guard",
+      "coat": "#1d3557",
+      "pants": "#16243a",
+      "skin": "#f0b484",
+      "hat": "hardhat",
+      "hatColor": "#ffd60a",
+      "hatAccent": "#e0a800",
+      "collar": true,
+      "collarColor": "#e9ecef",
+      "sash": "#ffd60a",
+      "seed": 7
+    }
+  ],
+  "fx": {
+    "year": { "year": "1942", "place": "2 ARALIK" },
+    "mark": { "symbol": "?", "bg": "#ffd60a" },
+    "badges": {
+      "hookBadge": { "top": "BALTA + İP!", "bottom": "ACİL DURUM PLANI", "bg": "#e63946", "fg": "#ffffff" },
+      "board1Badge": { "top": "400 TON", "bottom": "GRAFİT TUĞLA!", "bg": "#ffd60a", "fg": "#1b141c" },
+      "board2Badge": { "top": "SCRAM!", "bottom": "BALTA ADAMI!", "bg": "#22b8cf", "fg": "#1b141c" },
+      "recordBadge": { "top": "REKOR!", "bottom": "2 ARALIK 1942", "bg": "#40c057", "fg": "#1b141c" }
+    }
+  },
+  "scenes": [
+    {
+      "id": "s0",
+      "note": "Hook Outdoor (x=0)",
+      "fallback_frac": 0.0,
+      "flash": false,
+      "camA": [0.0, 2.02, 6.15],
+      "camB": [0.0, 2.10, 5.65],
+      "lookA": [0.0, 1.98, -2.2],
+      "lookB": [0.0, 2.06, -2.2],
+      "focusDist": 5.8,
+      "focusRange": 2.7,
+      "maxBlur": 2.6,
+      "actors": {
+        "fermi": { "x": -0.60, "z": 0.2, "face": "grin", "armL": "hip", "armR": "point", "propL": "clipboard", "talk": true },
+        "guard": { "x": 0.60, "z": 0.2, "face": "shock", "armL": "up", "armR": "wave", "propR": "axe", "sweat": true, "talk": false }
+      }
+    },
+    {
+      "id": "s1",
+      "note": "Quick Final Flash (x=180)",
+      "anchor": "Hiç bilgisayar",
+      "fallback_frac": 0.14,
+      "flash": true,
+      "cutSfx": "whoosh",
+      "camA": [180.0, 2.15, 4.95],
+      "camB": [180.0, 2.22, 4.5],
+      "lookA": [180.0, 2.12, -4.4],
+      "lookB": [180.0, 2.20, -4.4],
+      "focusDist": 6.5,
+      "focusRange": 5.0,
+      "maxBlur": 1.4,
+      "actors": {
+        "fermi": { "x": 179.42, "z": -0.65, "face": "shock", "armL": "up", "armR": "up", "talk": true },
+        "guard": { "x": 180.58, "z": -0.65, "face": "pained", "armL": "facepalm", "armR": "up", "propR": "axe", "sweat": true, "talk": false }
+      },
+      "fx": [
+        { "id": "hookBadge", "pos": [180.0, 1.72, -2.6], "scale": 0.72, "delay": 0.14, "sfx": "pop" }
+      ]
+    },
+    {
+      "id": "s2",
+      "note": "Question Mark Close-Up (x=0)",
+      "anchor": "Peki bu",
+      "fallback_frac": 0.24,
+      "flash": true,
+      "cutSfx": "whoosh",
+      "camA": [0.1, 1.92, 4.75],
+      "camB": [0.1, 1.98, 4.25],
+      "lookA": [0.1, 1.88, -2.0],
+      "lookB": [0.1, 1.94, -2.0],
+      "focusDist": 4.5,
+      "focusRange": 2.4,
+      "maxBlur": 2.8,
+      "actors": {
+        "fermi": { "hidden": true },
+        "guard": { "x": 0.1, "z": 0.2, "face": "nervous", "armL": "shrug", "armR": "shrug", "propR": "axe", "sweat": true, "talk": true }
+      },
+      "fx": [
+        { "id": "mark", "pos": [0.15, 2.92, -0.25], "scale": 0.80, "delay": 0.10, "sfx": "pop" }
+      ]
+    },
+    {
+      "id": "s3",
+      "note": "Year Card + Intro (x=0)",
+      "anchor": "İki Aralık",
+      "fallback_frac": 0.33,
+      "flash": true,
+      "cutSfx": "whoosh",
+      "camA": [0.0, 2.05, 5.95],
+      "camB": [0.0, 2.0, 5.45],
+      "lookA": [0.0, 2.02, -2.2],
+      "lookB": [0.0, 1.98, -2.2],
+      "focusDist": 6.0,
+      "focusRange": 5.5,
+      "maxBlur": 1.2,
+      "actors": {
+        "fermi": { "x": -0.58, "z": 0.2, "face": "smile", "armL": "hip", "armR": "up", "propL": "clipboard", "talk": true },
+        "guard": { "x": 0.58, "z": 0.2, "face": "nervous", "armL": "hang", "armR": "wave", "propR": "axe", "sweat": true, "talk": false }
+      },
+      "fx": [
+        { "id": "year", "pos": [0.55, 3.05, -1.6], "scale": 0.88, "delay": 0.14, "sfx": "pop" }
+      ]
+    },
+    {
+      "id": "s4",
+      "note": "Board 1 — 400 Ton Graphite Pile (x=60)",
+      "anchor": "Stadyumun altındaki",
+      "fallback_frac": 0.45,
+      "flash": true,
+      "cutSfx": "whoosh",
+      "camA": [60.0, 2.15, 4.95],
+      "camB": [60.0, 2.22, 4.45],
+      "lookA": [60.0, 2.12, -4.4],
+      "lookB": [60.0, 2.20, -4.4],
+      "focusDist": 6.5,
+      "focusRange": 5.5,
+      "maxBlur": 1.1,
+      "actors": {
+        "fermi": { "x": 59.42, "z": -0.65, "face": "grin", "armL": "up", "armR": "point", "propL": "geiger", "talk": true },
+        "guard": { "x": 60.58, "z": -0.65, "face": "shock", "armL": "up", "armR": "hip", "propR": "axe", "talk": false }
+      },
+      "fx": [
+        { "id": "board1Badge", "pos": [60.0, 1.72, -2.6], "scale": 0.74, "delay": 0.18, "sfx": "pop" }
+      ]
+    },
+    {
+      "id": "s5",
+      "note": "Board 2a — Emergency Plan: Axe (x=120)",
+      "anchor": "Peki reaksiyon",
+      "fallback_frac": 0.56,
+      "flash": true,
+      "cutSfx": "whoosh",
+      "camA": [120.0, 2.12, 4.85],
+      "camB": [120.0, 2.18, 4.35],
+      "lookA": [120.0, 2.14, -4.4],
+      "lookB": [120.0, 2.22, -4.4],
+      "focusDist": 6.2,
+      "focusRange": 5.5,
+      "maxBlur": 1.1,
+      "actors": {
+        "fermi": { "hidden": true },
+        "guard": { "x": 120.0, "z": -0.55, "face": "nervous", "armL": "shrug", "armR": "up", "propR": "axe", "sweat": true, "hop": 14, "talk": true }
+      }
+    },
+    {
+      "id": "s6",
+      "note": "Board 2b — Balta Adami SCRAM (x=120)",
+      "anchor": "Sorun çıkarsa",
+      "fallback_frac": 0.67,
+      "flash": false,
+      "camA": [120.0, 2.18, 4.45],
+      "camB": [120.0, 2.12, 4.85],
+      "lookA": [120.0, 2.18, -4.4],
+      "lookB": [120.0, 2.12, -4.4],
+      "focusDist": 6.2,
+      "focusRange": 5.5,
+      "maxBlur": 1.1,
+      "actors": {
+        "fermi": { "x": 119.42, "z": -0.65, "face": "laugh", "armL": "up", "armR": "up", "talk": true },
+        "guard": { "x": 120.58, "z": -0.65, "face": "shock", "armL": "up", "armR": "wave", "propR": "axe", "sweat": true, "hop": 16, "talk": false }
+      },
+      "fx": [
+        { "id": "board2Badge", "pos": [120.0, 1.72, -2.6], "scale": 0.76, "delay": 0.14, "sfx": "boing" }
+      ]
+    },
+    {
+      "id": "s7",
+      "note": "Final Board 3a — 15:25 Chain Reaction (x=180)",
+      "anchor": "Saat on beşi",
+      "fallback_frac": 0.77,
+      "flash": true,
+      "cutSfx": "whoosh",
+      "camA": [180.0, 2.15, 4.95],
+      "camB": [180.0, 2.22, 4.45],
+      "lookA": [180.0, 2.12, -4.4],
+      "lookB": [180.0, 2.20, -4.4],
+      "focusDist": 6.4,
+      "focusRange": 5.5,
+      "maxBlur": 1.1,
+      "actors": {
+        "fermi": { "x": 179.42, "z": -0.65, "face": "smile", "armL": "up", "armR": "up", "propL": "geiger", "hop": 14, "talk": true },
+        "guard": { "x": 180.58, "z": -0.65, "face": "relief", "armL": "facepalm", "armR": "hip", "propR": "axe", "sweat": true, "talk": false }
+      }
+    },
+    {
+      "id": "s8",
+      "note": "Final Board 3b — SCRAM Record + Sparkles (x=180)",
+      "anchor": "O baltalı",
+      "fallback_frac": 0.85,
+      "flash": false,
+      "camA": [180.0, 2.22, 4.45],
+      "camB": [180.0, 2.26, 4.2],
+      "lookA": [180.0, 2.20, -4.4],
+      "lookB": [180.0, 2.24, -4.4],
+      "focusDist": 6.4,
+      "focusRange": 5.8,
+      "maxBlur": 0.9,
+      "actors": {
+        "fermi": { "x": 179.42, "z": -0.65, "face": "laugh", "armL": "up", "armR": "up", "hop": 16, "talk": true },
+        "guard": { "x": 180.58, "z": -0.65, "face": "grin", "armL": "up", "armR": "wave", "propR": "axe", "talk": false }
+      },
+      "fx": [
+        { "id": "recordBadge", "pos": [180.0, 1.72, -2.5], "scale": 0.78, "delay": 0.12, "sfx": "ding" }
+      ],
+      "sparkles": [180.0, 1.72, -2.35]
+    },
+    {
+      "id": "s9",
+      "note": "Seamless Loop Return (exact s0 framing x=0)",
+      "anchor": "İşte atom",
+      "fallback_frac": 0.93,
+      "flash": true,
+      "cutSfx": "whoosh",
+      "camA": [0.0, 2.10, 5.65],
+      "camB": [0.0, 2.02, 6.15],
+      "lookA": [0.0, 2.06, -2.2],
+      "lookB": [0.0, 1.98, -2.2],
+      "focusDist": 5.8,
+      "focusRange": 2.7,
+      "maxBlur": 2.6,
+      "actors": {
+        "fermi": { "x": -0.60, "z": 0.2, "face": "grin", "armL": "hip", "armR": "point", "propL": "clipboard", "talk": true },
+        "guard": { "x": 0.60, "z": 0.2, "face": "shock", "armL": "up", "armR": "wave", "propR": "axe", "sweat": true, "talk": false }
+      }
+    }
+  ]
+}

@@ -301,7 +301,8 @@
 
   /* Stage */
   .stage { display: grid; grid-template-columns: minmax(270px, 340px) minmax(0, 1fr); gap: 26px; align-items: start; }
-  @media (max-width: 1180px) { .stage { grid-template-columns: minmax(0, 1fr); } .monitor-wrap { max-width: 420px; } }
+  .stage.wide { grid-template-columns: minmax(420px, 560px) minmax(0, 1fr); }
+  @media (max-width: 1180px) { .stage, .stage.wide { grid-template-columns: minmax(0, 1fr); } .monitor-wrap { max-width: 420px; } .stage.wide .monitor-wrap { max-width: 100%; } }
 
   .monitor-wrap { display: flex; flex-direction: column; gap: 12px; }
   .player {
@@ -313,6 +314,7 @@
     border: 1px solid var(--ink);
     box-shadow: 6px 6px 0 rgba(21, 20, 15, 0.12);
   }
+  .player.wide { aspect-ratio: 16 / 9; }
   .player video { width: 100%; height: 100%; object-fit: contain; background: #000; }
   .monitor-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .monitor-foot { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; }
@@ -1534,10 +1536,11 @@ function renderDetail(full, tabOnly) {
   }
 
   const hasCov = !!getCoverUrl(v.slug);
+  const isWide = (Number(v.width) || 0) > (Number(v.height) || 0);
   el.innerHTML = `
-    <div class="stage">
+    <div class="stage${isWide ? ' wide' : ''}">
       <div class="monitor-wrap">
-        <div class="player">${v.video
+        <div class="player${isWide ? ' wide' : ''}">${v.video
           ? `<video data-slug="${v.slug}" data-upd="${esc(v.updated||'')}" src="${v.video}?v=${encodeURIComponent(v.updated)}" controls playsinline loop preload="metadata"></video>`
           : `<div class="ph">Video henüz hazır değil.<br><span class="badge ${badge(v.status)}" style="margin-top:8px">${v.status}</span></div>`}
         </div>

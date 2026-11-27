@@ -51,6 +51,7 @@ def main() -> None:
     p.add_argument("--cover-prompt", default="", help="Yedek: Vertex AI 9:16 kapak promptu (kapak dosyası yoksa veya yüklenemezse kullanılır)")
     p.add_argument("--scheduled-at", default="", help="Özel ISO tarih/saat (örn. 2026-11-26T06:04:00+03:00). Boşsa 06:01-06:07 TR otomatik seçilir.")
     p.add_argument("--no-yt-sync", action="store_true", help="YouTube Studio ön-yüklemesini atla")
+    p.add_argument("--youtube-only", action="store_true", help="Sadece YouTube kanalına planla (16:9 uzun videolar için Instagram'ı hariç tut)")
     p.add_argument("--api-key", default="", help="X-API-Key (opsiyonel, LIKYA_API_KEY env'den okunur)")
     args = p.parse_args()
 
@@ -112,6 +113,21 @@ def main() -> None:
     elif cover_url is None:
         print("[2/3] Kapak verilmedi, atlandı.")
 
+    account_ids = None
+    if args.youtube_only:
+        r_acc = requests.get(f"{API_URL}/api/accounts", headers=hdr, timeout=30)
+        r_acc.raise_for_status()
+        accs = r_acc.json().get("accounts") or []
+        yt_accs = [
+            a for a in accs
+            if (a.get("platform") or "").upper() == "YT"
+            and (a.get("brand") or "akilalmaz").strip().lower() == args.brand.lower()
+        ]
+        if not yt_accs:
+            sys.exit(f"HATA: '{args.brand}' markası için bağlı YouTube hesabı bulunamadı!")
+        account_ids = [int(a["id"]) for a in yt_accs]
+        print(f"  ✓ Yalnızca YouTube seçildi (IG hariç): {[a.get('account_name') for a in yt_accs]} (ids={account_ids})")
+
     print(f"[3/3] {args.brand} yayın kuyruğuna planlanıyor...")
     payload = {
         "brand": args.brand,
@@ -119,22 +135,25 @@ def main() -> None:
         "video_url": video_url,
         "title": args.title,
         "description": args.desc or args.title,
-        "ig_caption": args.ig or args.desc or args.title,
+        "ig_caption": "" if args.youtube_only else (args.ig or args.desc or args.title),
         "cover_url": cover_url,
         "auto_next_slot": not bool(args.scheduled_at),
         "scheduled_at": args.scheduled_at or None,
         "sync_youtube_now": not args.no_yt_sync,
     }
+    if account_ids:
+        payload["account_ids"] = account_ids
     r_sch = requests.post(
         f"{API_URL}/api/schedule",
         headers={**hdr, "Content-Type": "application/json"},
         json=payload,
-        timeout=60,
+        timeout=300,
     )
     r_sch.raise_for_status()
-    post = r_sch.json()["post"]
+    res_json = r_sch.json()
+    post = res_json["post"]
     print(f"  ✓ Planlandı! Marka: {post['brand']} | Saat: {post['label_tr']} | Kayıt #{post['id']}")
-    print("  ✓ YouTube Studio ön-planlama + 7/24 Instagram zamanlayıcı aktif!")
+    print(f"  ✓ yt_uploaded={res_json.get('yt_uploaded')} | yt_sync={res_json.get('yt_sync')}")
 
 
 if __name__ == "__main__":

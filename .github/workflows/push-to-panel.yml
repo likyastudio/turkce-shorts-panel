@@ -4,8 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       slug:
-        description: 'Video slug (ör. v27_sariyer_aslan_kedi)'
-        required: true
+        description: 'Video slug (ör. long01_1453_karadan_gemiler veya v27_sariyer_aslan_kedi; boşsa sadece bekleyen senkron çalışır)'
+        required: false
+        default: ''
       scheduled_at:
         description: 'Özel ISO saat (boşsa sıradaki 06:01-06:07 TR slotu otomatik seçilir)'
         required: false
@@ -14,6 +15,14 @@ on:
         description: 'YouTube Studio ön-yüklemesini hemen dene'
         type: boolean
         default: true
+      youtube_only:
+        description: 'Sadece YouTube kanalına planla (16:9 uzun videolar için Instagram hariç)'
+        type: boolean
+        default: false
+      sync_pending_queue:
+        description: 'Bekleyen kapak görsellerini (sync-covers) ve kota dahilinde bekleyen YT kuyruğunu (sync-youtube-all) paylaş'
+        type: boolean
+        default: false
 
 jobs:
   push_to_panel:
@@ -30,50 +39,91 @@ jobs:
       - name: Install requests
         run: pip install --no-cache-dir requests
 
-      - name: Upload MP4 + 9:16 Cover & Schedule via likya_push.py
+      - name: Upload MP4 + Cover & Schedule via likya_push.py + Sync Pending Covers/Queue
         env:
           LIKYA_API_KEY: ${{ secrets.LIKYA_API_KEY }}
           TARGET_SLUG: ${{ inputs.slug }}
           SCHEDULED_AT: ${{ inputs.scheduled_at }}
           SYNC_YT: ${{ inputs.sync_youtube_now }}
+          YT_ONLY: ${{ inputs.youtube_only }}
+          SYNC_PENDING: ${{ inputs.sync_pending_queue }}
         run: |
           python3 - <<'PY'
           import json, os, subprocess, sys
           from pathlib import Path
+          import requests
 
-          slug = os.environ["TARGET_SLUG"].strip()
-          videos = json.loads(Path("videos.json").read_text(encoding="utf-8"))
-          item = next((v for v in videos if v.get("slug") == slug), None)
-          if not item:
-              sys.exit(f"ERROR: slug '{slug}' not found in videos.json")
+          API_URL = "https://likya-crosspost-api-64i7umkgnq-ew.a.run.app"
+          HDR = {"X-API-Key": os.environ["LIKYA_API_KEY"].strip()}
 
-          mp4 = item["video"]
-          meta = item.get("meta") or {}
-          yt = meta.get("youtube") or {}
-          ig = meta.get("instagram") or {}
-          title = yt.get("title") or item["title"]
-          desc = yt.get("description") or title
-          ig_cap = ig.get("caption") or desc
-          cover_file = f"files/{slug}/out/cover.jpg"
+          def print_schedule_summary(tag: str):
+              r = requests.get(f"{API_URL}/api/schedule", headers=HDR, timeout=30)
+              r.raise_for_status()
+              data = r.json()
+              q = data.get("yt_quota_today") or {}
+              posts = data.get("posts") or []
+              print(f"\n=== [{tag}] YT Kota: {q.get('used')}/{q.get('limit')} | Toplam Kayıt: {len(posts)} ===")
+              for p in posts:
+                  if p.get("status") in ("Planlandı", "Yayınlanıyor", "Hata") or not p.get("yt_uploaded") or not p.get("yt_thumb_synced"):
+                      print(
+                          f"  #{p['id']} [{p.get('brand')}] {p.get('video_id')} | {p.get('label_tr')} | "
+                          f"st={p.get('status')} | yt={p.get('yt_uploaded')} | thumb={p.get('yt_thumb_synced')} | "
+                          f"cov={bool(p.get('cover_url'))} | url={p.get('yt_video_url') or '-'}"
+                      )
 
-          cmd = [
-              sys.executable, "claude-code-kit/likya_push.py",
-              "--brand", "akilalmaz",
-              "--video", mp4,
-              "--video-id", slug,
-              "--title", title,
-              "--desc", desc,
-              "--ig", ig_cap,
-          ]
-          if Path(cover_file).is_file():
-              cmd += ["--cover-file", cover_file]
-          if meta.get("flow_prompt"):
-              cmd += ["--cover-prompt", meta["flow_prompt"]]
-          if os.environ.get("SCHEDULED_AT", "").strip():
-              cmd += ["--scheduled-at", os.environ["SCHEDULED_AT"].strip()]
-          if os.environ.get("SYNC_YT", "true").lower() == "false":
-              cmd += ["--no-yt-sync"]
+          print_schedule_summary("BEFORE")
 
-          print("Running:", " ".join(cmd[:8]), "...")
-          subprocess.check_call(cmd)
+          slug = os.environ.get("TARGET_SLUG", "").strip()
+          if slug:
+              videos = json.loads(Path("videos.json").read_text(encoding="utf-8"))
+              item = next((v for v in videos if v.get("slug") == slug), None)
+              if not item:
+                  sys.exit(f"ERROR: slug '{slug}' not found in videos.json")
+
+              mp4 = item["video"]
+              meta = item.get("meta") or {}
+              yt = meta.get("youtube") or {}
+              ig = meta.get("instagram") or {}
+              title = yt.get("title") or item["title"]
+              desc = yt.get("description") or title
+              ig_cap = ig.get("caption") or desc
+              cover_file = f"files/{slug}/out/cover.jpg"
+
+              cmd = [
+                  sys.executable, "claude-code-kit/likya_push.py",
+                  "--brand", "akilalmaz",
+                  "--video", mp4,
+                  "--video-id", slug,
+                  "--title", title,
+                  "--desc", desc,
+                  "--ig", ig_cap,
+              ]
+              if Path(cover_file).is_file():
+                  cmd += ["--cover-file", cover_file]
+              if meta.get("flow_prompt"):
+                  cmd += ["--cover-prompt", meta["flow_prompt"]]
+              if os.environ.get("SCHEDULED_AT", "").strip():
+                  cmd += ["--scheduled-at", os.environ["SCHEDULED_AT"].strip()]
+              if os.environ.get("SYNC_YT", "true").lower() == "false":
+                  cmd += ["--no-yt-sync"]
+              if os.environ.get("YT_ONLY", "false").lower() == "true":
+                  cmd += ["--youtube-only"]
+
+              print("\n[PUSH] Running:", " ".join(cmd[:10]), "...")
+              subprocess.check_call(cmd)
+
+          if os.environ.get("SYNC_PENDING", "false").lower() == "true":
+              print("\n[SYNC 1/3] Bekleyen kapak görselleri senkronize ediliyor (/api/schedule/sync-covers)...")
+              r_cov = requests.post(f"{API_URL}/api/schedule/sync-covers", headers=HDR, timeout=240)
+              print("  sync-covers HTTP", r_cov.status_code, r_cov.text[:1200])
+
+              print("\n[SYNC 2/3] Kuyrukta bekleyen planlı videolar YouTube Studio'ya yükleniyor (/api/schedule/sync-youtube-all)...")
+              r_yt = requests.post(f"{API_URL}/api/schedule/sync-youtube-all", headers=HDR, timeout=260)
+              print("  sync-youtube-all HTTP", r_yt.status_code, r_yt.text[:1200])
+
+              print("\n[SYNC 3/3] Zamanlayıcı tick kontrolü (/api/scheduler/tick)...")
+              r_tick = requests.post(f"{API_URL}/api/scheduler/tick", headers=HDR, timeout=260)
+              print("  scheduler/tick HTTP", r_tick.status_code, r_tick.text[:1200])
+
+          print_schedule_summary("AFTER")
           PY

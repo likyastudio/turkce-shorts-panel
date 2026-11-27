@@ -640,6 +640,7 @@
     <button id="btn-videos" class="nav-on" onclick="setView('videos')"><span class="roman">I.</span>Videolar</button>
     <button id="btn-covers" onclick="setView('covers')"><span class="roman">II.</span>Kapak Stüdyosu</button>
     <button id="btn-schedule" onclick="setView('schedule')"><span class="roman">III.</span>Yayın Planı</button>
+    <button id="btn-viral" onclick="setView('viral')"><span class="roman">🔥</span>Viral Kontrol</button>
     <button id="btn-reports" onclick="setView('reports')"><span class="roman">IV.</span>Raporlar</button>
     <button id="btn-channel" onclick="setView('channel')"><span class="roman">V.</span>Kanal Kurulumu</button>
     <button id="btn-settings" onclick="setView('settings')"><span class="roman">VI.</span>Ayarlar</button>
@@ -663,7 +664,9 @@ let videos = [], kit = null, sel = null, tab = 'social', view = 'videos', sig = 
 let accounts = [], pubByVideo = {}, apiHealth = null;
 let savedCovers = {}, generatingCovers = {}, coverSyncing = false;
 let scheduledPosts = [], nextSlot = null, nextByBrand = {}, schedRule = '', ytQuotaToday = { used: 0, limit: 5 };
-let activeBrandFilter = 'all', coverBrandFilter = 'all', videoBrandFilter = 'all';
+let activeBrandFilter = 'all', coverBrandFilter = 'all', videoBrandFilter = 'all', viralBrandFilter = 'all';
+let viralSelectedSlug = null, viralStudioMode = 'audit';
+let viralDraft = { brand: 'akilalmaz', title: '', hook: '', ytDesc: '', igCap: '', duration: 48 };
 let analyticsData = null, analyticsLoading = false, analyticsError = null, analyticsBrandFilter = 'all';
 let searchQuery = '', studioKey = 'brand_logo';
 const copyStore = {};
@@ -1348,7 +1351,7 @@ async function clearScheduleErrorsInner(brand) {
 
 function setView(v) {
   view = v;
-  ['videos', 'covers', 'schedule', 'reports', 'channel', 'settings'].forEach(k => {
+  ['videos', 'covers', 'schedule', 'viral', 'reports', 'channel', 'settings'].forEach(k => {
     const el = document.getElementById('btn-' + k);
     if (el) el.classList.toggle('nav-on', v === k);
   });
@@ -1774,11 +1777,191 @@ function renderViralAuditTab(v) {
   `;
 }
 
+function setViralBrandFilter(b) {
+  viralBrandFilter = b;
+  if (view === 'viral') renderViralStudio(document.getElementById('app'));
+}
+function selectViralVideo(slug) {
+  viralSelectedSlug = slug;
+  viralStudioMode = 'audit';
+  if (view === 'viral') renderViralStudio(document.getElementById('app'));
+}
+function setViralStudioMode(mode) {
+  viralStudioMode = mode;
+  if (view === 'viral') renderViralStudio(document.getElementById('app'));
+}
+function openInViralStudio(slug, brand = 'all') {
+  closeModal();
+  if (brand && brand !== 'all') viralBrandFilter = brand;
+  viralSelectedSlug = slug;
+  viralStudioMode = 'audit';
+  setView('viral');
+}
+function buildDraftVideoObj() {
+  const words = (viralDraft.hook || '').trim().split(/\s+/).filter(Boolean).length;
+  return {
+    slug: 'taslak_test',
+    brand: viralDraft.brand || 'akilalmaz',
+    title: viralDraft.title || 'Yeni Video Taslağı',
+    duration: Number(viralDraft.duration || 0),
+    width: 1080,
+    height: 1920,
+    words: words ? words * 8 : 0,
+    script: viralDraft.hook || '',
+    meta: {
+      youtube: { title: viralDraft.title || '', description: viralDraft.ytDesc || '' },
+      instagram: { caption: viralDraft.igCap || '' },
+    },
+    scheduledPost: null,
+  };
+}
+function updateViralDraft(field, val) {
+  viralDraft[field] = val;
+  const out = document.getElementById('viral-draft-result');
+  if (out) out.innerHTML = renderViralAuditTab(buildDraftVideoObj());
+}
+
+function renderViralStudio(el) {
+  const allVids = getAllWorkspaceVideos();
+  const visible = viralBrandFilter === 'all'
+    ? allVids
+    : allVids.filter(v => (v.brand || 'akilalmaz') === viralBrandFilter);
+  const scored = visible.map(v => ({ v, audit: computeViralAudit(v) }));
+  const avgScore = scored.length ? Math.round(scored.reduce((a, x) => a + x.audit.score, 0) / scored.length) : 0;
+  const readyCount = scored.filter(x => x.audit.score >= 82).length;
+  const warnCount = scored.filter(x => x.audit.score < 82).length;
+
+  const currentPair = scored.find(x => x.v.slug === viralSelectedSlug) || scored[0] || null;
+  if (currentPair) viralSelectedSlug = currentPair.v.slug;
+
+  el.innerHTML = `
+    <div class="workspace-full">
+      <div class="studio-hero">
+        <div>
+          <div class="eyebrow">VYRAL CONTENT SKILLS · 4 MARKA VİRAL DENETİM STÜDYOSU</div>
+          <h2>🔥 Viral <span class="serif">Kontrol</span> & Hook Stüdyosu</h2>
+          <p>Kurulu <b>viral-hooks</b>, <b>viral-youtube-shorts</b>, <b>viral-instagram-reels</b> ve <b>viral-captions-and-ctas</b> kurallarıyla tüm videoların ilk 3 saniye kancasını, VVSA temposunu, hashtag dengesini ve sabitlenmiş ilk yorumlarını denetleyin.</p>
+        </div>
+        <div class="row">
+          <button class="btn ${viralStudioMode==='audit'?'primary':''}" onclick="setViralStudioMode('audit')">📊 Video Denetimi (${visible.length})</button>
+          <button class="btn ${viralStudioMode==='tester'?'primary':''}" onclick="setViralStudioMode('tester')">🧪 Canlı Taslak / Hook Testi</button>
+        </div>
+      </div>
+
+      ${viralStudioMode === 'tester' ? `
+        <div class="grid2" style="align-items:start">
+          <div class="panel">
+            <h3 style="margin:0 0 12px;font-size:17px;font-weight:800">🧪 Yayın Öncesi Canlı Taslak Testi</h3>
+            <div class="panel-sub" style="margin-bottom:14px">Yeni videonuzun başlığını, ilk 3 saniye açılış cümlesini ve açıklamalarını yazın; sağda anlık 0–100 Viral Skor + alternatif kanca ve sabitlenmiş ilk yorum üretilsin.</div>
+            <div class="fld">
+              <label for="vd_brand">Marka</label>
+              <select id="vd_brand" onchange="updateViralDraft('brand', this.value)">
+                ${BRANDS_LIST.map(b => `<option value="${b.id}" ${viralDraft.brand===b.id?'selected':''}>${b.icon} ${b.label}</option>`).join('')}
+              </select>
+            </div>
+            <div class="fld">
+              <label for="vd_title">YouTube Shorts Başlığı <span class="hint">≤ 60 karakter + #shorts</span></label>
+              <input id="vd_title" type="text" placeholder="Örn: 12 Bin Yıllık Tapınakta Bulunan İmkânsız Sembol! #shorts" value="${esc(viralDraft.title)}" oninput="updateViralDraft('title', this.value)">
+            </div>
+            <div class="fld">
+              <label for="vd_hook">İlk 1–3 Saniye Sözlü Açılış Kancası <span class="hint">≤ 20 kelime, doğrudan olayla gir</span></label>
+              <textarea id="vd_hook" rows="2" placeholder="Örn: Yüzüne limon suyu sürüp kameralara görünmez olduğunu sanan bu adam iki bankayı maskesiz soydu." oninput="updateViralDraft('hook', this.value)">${esc(viralDraft.hook)}</textarea>
+            </div>
+            <div class="fld">
+              <label for="vd_dur">Tahmini Video Süresi (saniye)</label>
+              <input id="vd_dur" type="number" min="5" max="600" value="${Number(viralDraft.duration || 48)}" oninput="updateViralDraft('duration', Number(this.value || 0))">
+            </div>
+            <div class="fld">
+              <label for="vd_yt">YouTube Açıklaması & Etiketler <span class="hint">3–5 odaklı hashtag</span></label>
+              <textarea id="vd_yt" rows="3" placeholder="Kısa merak uyandıran açıklama + tartışma sorusu + #shorts #tarih #ilginçbilgiler" oninput="updateViralDraft('ytDesc', this.value)">${esc(viralDraft.ytDesc)}</textarea>
+            </div>
+            <div class="fld">
+              <label for="vd_ig">Instagram Reels Açıklaması <span class="hint">YT'den farklı, gönderim/kaydetme odaklı</span></label>
+              <textarea id="vd_ig" rows="3" placeholder="Arkadaşına gönderilecek kısa Reels metni + soru + 3–5 niş etiket" oninput="updateViralDraft('igCap', this.value)">${esc(viralDraft.igCap)}</textarea>
+            </div>
+          </div>
+          <div class="panel" id="viral-draft-result">
+            ${renderViralAuditTab(buildDraftVideoObj())}
+          </div>
+        </div>
+      ` : `
+        <div class="style-pills" style="margin-bottom:16px">
+          <button class="style-pill ${viralBrandFilter==='all'?'on':''}" onclick="setViralBrandFilter('all')">Tümü (${allVids.length})</button>
+          ${BRANDS_LIST.map(b => {
+            const c = allVids.filter(v => (v.brand || 'akilalmaz') === b.id).length;
+            return `<button class="style-pill ${viralBrandFilter===b.id?'on':''}" onclick="setViralBrandFilter('${b.id}')">${b.icon} ${b.label} (${c})</button>`;
+          }).join('')}
+        </div>
+
+        <div class="grid3">
+          <div class="panel">
+            <div class="block-label">Ortalama Viral Skor</div>
+            <div style="font-size:24px;font-weight:800;margin-top:6px;color:var(--coral)" class="mono">${avgScore} / 100</div>
+            <div class="panel-sub" style="margin-top:4px">${visible.length} video analiz edildi</div>
+          </div>
+          <div class="panel">
+            <div class="block-label">Yayına Hazır (≥ 82)</div>
+            <div style="font-size:24px;font-weight:800;margin-top:6px;color:var(--ok)" class="mono">${readyCount}</div>
+            <div class="panel-sub" style="margin-top:4px">Güçlü kanca, temiz CTA ve kapak uyumu</div>
+          </div>
+          <div class="panel">
+            <div class="block-label">İyileştirme Fırsatı (&lt; 82)</div>
+            <div style="font-size:24px;font-weight:800;margin-top:6px;color:var(--warn)" class="mono">${warnCount}</div>
+            <div class="panel-sub" style="margin-top:4px">Hashtag, kapak veya açılış kancası güçlendirilebilir</div>
+          </div>
+        </div>
+
+        ${currentPair ? `
+          <div class="workspace-videos">
+            <aside class="sidebar">
+              <div class="sidebar-head">
+                <span>Videolar · Viral Skor</span>
+                <span class="mono">${scored.length}</span>
+              </div>
+              <div class="queue-list">
+                ${scored.map(({ v, audit }) => {
+                  const cov = getCoverUrl(v.slug, v.scheduledPost?.cover_url || '');
+                  const bObj = BRANDS_LIST.find(x => x.id === (v.brand || 'akilalmaz'));
+                  return `
+                    <div class="q-item ${v.slug === currentPair.v.slug ? 'active' : ''}" onclick="selectViralVideo('${escJsAttr(v.slug)}')">
+                      <div class="q-thumb">${cov ? `<img src="${esc(cov)}" alt="">` : `${bObj?.icon || '⚡'}`}</div>
+                      <div class="q-meta">
+                        <div class="q-title">${esc(v.title)}</div>
+                        <div class="q-sub">
+                          <span>${bObj?.icon || '⚡'}</span>
+                          <span style="font-weight:700;color:${audit.grade.color}">${audit.score}/100</span>
+                          <span>· ${v.scheduledPost ? (v.scheduledPost.yt_uploaded ? 'YT Planlı' : v.scheduledPost.status) : 'Arşiv'}</span>
+                        </div>
+                      </div>
+                    </div>`;
+                }).join('')}
+              </div>
+            </aside>
+            <section class="panel">
+              <div class="panel-head">
+                <div>
+                  <h3 style="margin:0;font-size:19px;font-weight:800">${esc(currentPair.v.title)}</h3>
+                  <div class="panel-sub mono">${esc(brandLabel(currentPair.v.brand || 'akilalmaz'))} · ${esc(currentPair.v.slug)}</div>
+                </div>
+                <div class="row">
+                  <button class="btn sm" onclick="sel='${escJsAttr(currentPair.v.slug)}';tab='viral';setView('videos')">▶ Videoda Aç</button>
+                  <button class="btn sm" onclick="openInCoverStudio('${escJsAttr(currentPair.v.slug)}', '${escJsAttr(currentPair.v.brand || 'akilalmaz')}')">🎨 Kapak Stüdyosu</button>
+                </div>
+              </div>
+              ${renderViralAuditTab(currentPair.v)}
+            </section>
+          </div>
+        ` : `<div class="panel ph">Bu marka için henüz video bulunamadı. Yukarıdaki <b>🧪 Canlı Taslak / Hook Testi</b> modunda yeni taslağınızı hemen test edebilirsiniz.</div>`}
+      `}
+    </div>`;
+}
+
 function renderAll(force) {
   if (!getCfg().session) return;
   const app = document.getElementById('app');
   if (view === 'covers') { renderCoverStudio(app); return; }
   if (view === 'schedule') { renderSchedule(app); return; }
+  if (view === 'viral') { renderViralStudio(app); return; }
   if (view === 'reports') { renderReports(app); return; }
   if (view === 'channel') { renderChannel(app); return; }
   if (view === 'settings') { renderSettings(app); return; }
@@ -3004,6 +3187,7 @@ function renderScheduleCard(p, platformScope, apiUrl) {
         <button class="btn sm primary" ${!apiUrl || isGen ? 'disabled' : ''} onclick="openScheduleCoverModal(${Number(p.id)})">
           ${isGen ? '<span class="spinner"></span> Kapak…' : '🎨 Kapak'}
         </button>
+        <button class="btn sm" onclick="openInViralStudio('${escJsAttr(p.video_id)}', '${escJsAttr(brand)}')">🔥 Viral</button>
         ${p.status === 'Hata' ? `<button class="btn sm ink-btn" onclick="reschedulePost(${Number(p.id)})">🔁 Sıradaki Slota Planla</button>` : ''}
         ${platformScope !== 'IG' && !p.yt_uploaded && p.status === 'Planlandı' ? `<button class="btn sm ink-btn" onclick="syncPostToYouTube(${Number(p.id)})">YT'ye Planla</button>` : ''}
         ${p.status === 'Planlandı' || p.status === 'Hata' ? `<button class="btn sm" onclick="runScheduleNow(${Number(p.id)})">Şimdi Yayınla</button>` : ''}
@@ -3527,6 +3711,7 @@ async function boot() {
   if (location.hash.startsWith('#settings')) view = 'settings';
   else if (location.hash.startsWith('#covers')) view = 'covers';
   else if (location.hash.startsWith('#schedule')) view = 'schedule';
+  else if (location.hash.startsWith('#viral')) view = 'viral';
   else if (location.hash.startsWith('#reports')) view = 'reports';
   startPanel();
 }

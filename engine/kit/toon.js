@@ -177,7 +177,151 @@ function drawHeldProp(ctx, prop, hx, hy, side, t) {
     ctx.arc(22, -26, 10, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
+  } else if (prop === 'rope') {
+    // Thick hemp hauling rope running off-frame (ships pulled over land)
+    ctx.strokeStyle = INK;
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 22;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(70, -40, 190, -150);
+    ctx.stroke();
+    ctx.strokeStyle = '#d4a373';
+    ctx.lineWidth = 12;
+    ctx.stroke();
+    ctx.strokeStyle = '#8b5a2b';
+    ctx.lineWidth = 3;
+    for (let i = 1; i < 9; i++) {
+      const u = i / 9;
+      const x = 2 * (1 - u) * u * 70 + u * u * 190;
+      const y = 2 * (1 - u) * u * -40 + u * u * -150;
+      ctx.beginPath();
+      ctx.moveTo(x - 5, y + 5);
+      ctx.lineTo(x + 5, y - 5);
+      ctx.stroke();
+    }
+  } else if (prop === 'sword') {
+    // Curved Ottoman kılıç
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 6;
+    ctx.fillStyle = '#dee2e6';
+    ctx.beginPath();
+    ctx.moveTo(-6, -20);
+    ctx.quadraticCurveTo(-4, -110, 34, -156);
+    ctx.quadraticCurveTo(14, -100, 8, -20);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#ffd60a';
+    roundRectPath(ctx, -22, -24, 44, 12, 5);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#6f4518';
+    roundRectPath(ctx, -7, -12, 14, 34, 5);
+    ctx.fill();
+    ctx.stroke();
+  } else if (prop === 'bucket') {
+    // Bucket of grease / animal fat for the log slipway
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(0, -40, 34, Math.PI, 0);
+    ctx.stroke();
+    ctx.fillStyle = '#8d6e4a';
+    ctx.beginPath();
+    ctx.moveTo(-36, -40);
+    ctx.lineTo(-28, 20);
+    ctx.lineTo(28, 20);
+    ctx.lineTo(36, -40);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#ffe8a3';
+    ctx.beginPath();
+    ctx.ellipse(0, -40, 36, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = '#495057';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-32, -14);
+    ctx.lineTo(32, -14);
+    ctx.stroke();
+  } else if (prop === 'scroll') {
+    // Unrolled parchment plan / route map
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 6;
+    ctx.fillStyle = '#fff3bf';
+    ctx.fillRect(-46, -86, 92, 92);
+    ctx.strokeRect(-46, -86, 92, 92);
+    ctx.fillStyle = '#d4a373';
+    roundRectPath(ctx, -54, -96, 108, 16, 8);
+    ctx.fill();
+    ctx.stroke();
+    roundRectPath(ctx, -54, 0, 108, 16, 8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = '#c92a2a';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([8, 6]);
+    ctx.beginPath();
+    ctx.moveTo(-34, -14);
+    ctx.quadraticCurveTo(0, -90, 34, -30);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  } else if (prop === 'torch') {
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 6;
+    ctx.fillStyle = '#6f4518';
+    roundRectPath(ctx, -8, -70, 16, 92, 5);
+    ctx.fill();
+    ctx.stroke();
+    const fl = 1 + Math.sin(t * 13) * 0.12;
+    ctx.fillStyle = '#ff922b';
+    ctx.beginPath();
+    ctx.moveTo(-20, -70);
+    ctx.quadraticCurveTo(-24, -110 * fl, 0, -138 * fl);
+    ctx.quadraticCurveTo(24, -110 * fl, 20, -70);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#ffe066';
+    ctx.beginPath();
+    ctx.ellipse(0, -92, 9, 18 * fl, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
+  ctx.restore();
+}
+
+// Optional inked beard around the chin (mouth stays visible)
+function drawBeard(ctx, color, hx, hy) {
+  const c = typeof color === 'string' ? color : '#3b2a1e';
+  ctx.save();
+  ctx.fillStyle = c;
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = OW * 0.85;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(hx - 92, hy + 2);
+  ctx.quadraticCurveTo(hx - 86, hy + 112, hx, hy + 138);
+  ctx.quadraticCurveTo(hx + 86, hy + 112, hx + 92, hy + 2);
+  ctx.quadraticCurveTo(hx + 76, hy + 44, hx + 44, hy + 58);
+  ctx.quadraticCurveTo(hx, hy + 74, hx - 44, hy + 58);
+  ctx.quadraticCurveTo(hx - 76, hy + 44, hx - 92, hy + 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  // Mustache
+  ctx.beginPath();
+  ctx.moveTo(hx, hy + 22);
+  ctx.quadraticCurveTo(hx - 30, hy + 12, hx - 46, hy + 30);
+  ctx.quadraticCurveTo(hx - 24, hy + 30, hx, hy + 26);
+  ctx.quadraticCurveTo(hx + 24, hy + 30, hx + 46, hy + 30);
+  ctx.quadraticCurveTo(hx + 30, hy + 12, hx, hy + 22);
+  ctx.closePath();
+  ctx.fill();
+  ctx.lineWidth = 5;
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -614,6 +758,70 @@ function drawHat(ctx, hat, hatColor, hatAccent, hx, hy, hr) {
         ctx.restore();
       }
     }
+  } else if (hat === 'kavuk') {
+    // Ottoman sultan's large bulbous white turban (Fatih) with red cone top + jewel plume
+    ctx.fillStyle = hatAccent || '#c92a2a';
+    ctx.beginPath();
+    ctx.moveTo(hx - 34, topY - 40);
+    ctx.quadraticCurveTo(hx, topY - 118, hx + 34, topY - 40);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = hatColor || '#f8f9fa';
+    ctx.beginPath();
+    ctx.ellipse(hx, topY - 8, 112, 60, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    // Wrap folds
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = '#adb5bd';
+    for (let i = -2; i <= 2; i++) {
+      ctx.beginPath();
+      ctx.ellipse(hx + i * 6, topY - 8, 96 - Math.abs(i) * 8, 44 - Math.abs(i) * 4, 0.35 * i, Math.PI * 1.1, Math.PI * 1.9);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = OW;
+    ctx.beginPath();
+    ctx.ellipse(hx, topY - 8, 112, 60, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    // Golden jewel sorguç
+    ctx.fillStyle = '#ffd60a';
+    ctx.beginPath();
+    ctx.arc(hx + 4, topY - 30, 13, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 5;
+    ctx.stroke();
+    ctx.fillStyle = '#f8f9fa';
+    ctx.beginPath();
+    ctx.ellipse(hx + 16, topY - 62, 9, 26, 0.45, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  } else if (hat === 'bork') {
+    // Janissary white felt börk: tall cap folding back + gold kaşıklık on the front
+    ctx.fillStyle = hatColor || '#f8f9fa';
+    ctx.beginPath();
+    ctx.moveTo(hx - 70, topY + 22);
+    ctx.lineTo(hx - 52, topY - 92);
+    ctx.quadraticCurveTo(hx + 10, topY - 128, hx + 96, topY - 40);
+    ctx.quadraticCurveTo(hx + 132, topY + 10, hx + 118, topY + 70);
+    ctx.quadraticCurveTo(hx + 82, topY + 30, hx + 70, topY + 22);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = hatAccent || '#e6a800';
+    roundRectPath(ctx, hx - 76, topY + 6, 152, 26, 10);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(hx - 16, topY + 8);
+    ctx.lineTo(hx - 10, topY - 46);
+    ctx.lineTo(hx + 10, topY - 46);
+    ctx.lineTo(hx + 16, topY + 8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.lineWidth = 6;
+    ctx.stroke();
   } else if (hat === 'hair') {
     // Classic scientist/Fermi swept hair tuft
     ctx.fillStyle = hatColor || '#495057';
@@ -1077,6 +1285,7 @@ export function drawCharacter(ctx, spec, state) {
   const blink = blinkAt(t, seed);
   const talkAmp = state.talk ? (0.45 + 0.55 * Math.abs(Math.sin(t * 17.5 + seed))) : 0;
   drawFace(ctx, state.face || 'neutral', headX, headY, blink, talkAmp, t);
+  if (spec.beard) drawBeard(ctx, spec.beard, headX, headY);
   if (spec.glasses) drawGlasses(ctx, spec.glasses, headX, headY);
 
   // 6. HAT

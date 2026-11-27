@@ -15,15 +15,24 @@ import {
   lerp,
   lerpVec,
 } from './toonbase.js';
+import { EXTRA_HEROES } from './heroes_extra.js';
 
 /**
  * Builds story-specific 3D heroProps at Zone 0 (z = -8.6).
  * Returns an animate(t) callback for living 3D motion on every frame.
  */
-function buildHeroProp(stage, heroSpec) {
-  const { heroGroup, tbox, tcyl, toonMat } = stage;
+function buildHeroProp(stage, heroSpec, group = null) {
+  const { tbox, tcyl, toonMat } = stage;
+  const heroGroup = group || stage.heroGroup;
   const kind = (heroSpec && heroSpec.kind) || 'clock';
   const animators = [];
+
+  if (EXTRA_HEROES[kind]) {
+    animators.push(EXTRA_HEROES[kind]({ THREE, heroGroup, tbox, tcyl, toonMat, spec: heroSpec }));
+    return (t) => {
+      for (const fn of animators) fn(t);
+    };
+  }
 
   if (kind === 'reactor') {
     // Giant 3D Chicago Pile-1 Graphite Nuclear Reactor + Overhead Safety Rope & Red Fire Axe!
@@ -229,8 +238,25 @@ function buildHeroProp(stage, heroSpec) {
 export function bootEpisode(episode) {
   try {
     const canvas = document.getElementById('c');
-    const stage = createToonStage(canvas, episode.stage || {});
-    const animateHero = buildHeroProp(stage, episode.heroProp || { kind: 'reactor' });
+    const stageCfg = Object.assign({}, episode.stage || {});
+    if (episode.width) stageCfg.width = episode.width;
+    if (episode.height) stageCfg.height = episode.height;
+    const stage = createToonStage(canvas, stageCfg);
+    const heroAnimators = [buildHeroProp(stage, episode.heroProp || { kind: 'reactor' })];
+    for (const oz of stage.outdoorHeroGroups || []) {
+      heroAnimators.push(buildHeroProp(stage, oz.spec, oz.group));
+    }
+    const animateHero = (t) => {
+      for (const fn of heroAnimators) fn(t);
+    };
+    const defaultSky = [
+      stageCfg.skyTop || '#d4a34a',
+      stageCfg.skyMid || '#f7d060',
+      stageCfg.skyBot || '#f0b429',
+      stageCfg.fogColor || '#f2c652',
+      1.0,
+    ];
+    let lastSkyKey = '';
 
     // Create 2D character cards
     const cards = {};
@@ -289,6 +315,14 @@ export function bootEpisode(episode) {
       // Subtle handheld breathing micro-sway so frame is never frozen
       camPos[0] += Math.sin(t * 1.9) * 0.035;
       camPos[1] += Math.cos(t * 2.3) * 0.025;
+
+      // Per-scene sky/fog/light override (e.g. night haul) — falls back to stage defaults
+      const skyArgs = sc.sky || defaultSky;
+      const skyKey = skyArgs.join('|');
+      if (skyKey !== lastSkyKey) {
+        stage.setSky(...skyArgs);
+        lastSkyKey = skyKey;
+      }
 
       // Animate 3D Hero Prop
       animateHero(t);
@@ -364,7 +398,7 @@ export function bootEpisode(episode) {
       stage.renderPost({
         camPos,
         camLook,
-        fov: sc.fov || 40,
+        fov: sc.fov || episode.defaultFov || 40,
         sat: sc.sat ?? 1.08,
         vig: sc.vig ?? 0.34,
         flash,

@@ -1,0 +1,206 @@
+name: AKILALMAZ 16:9 Uzun Video Paralel Render
+
+on:
+  workflow_dispatch:
+    inputs:
+      episode:
+        description: 'Bölüm JSON dosyası (ör. engine/episodes/long01_1453_karadan_gemiler.json)'
+        required: true
+        default: 'engine/episodes/long01_1453_karadan_gemiler.json'
+      music_db:
+        description: 'BGM seviyesi (dB)'
+        required: true
+        default: '-12.0'
+      sfx_db:
+        description: 'SFX seviyesi (dB)'
+        required: true
+        default: '-6.4'
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      slug: ${{ steps.prep.outputs.slug }}
+      mp4_name: ${{ steps.prep.outputs.mp4_name }}
+      total_frames: ${{ steps.prep.outputs.total_frames }}
+      width: ${{ steps.prep.outputs.width }}
+      height: ${{ steps.prep.outputs.height }}
+      duration: ${{ steps.prep.outputs.duration }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python deps & FFmpeg
+        run: |
+          pip install --no-cache-dir requests numpy static-ffmpeg
+          python3 - <<'PY'
+          import os, static_ffmpeg
+          ff, _ = static_ffmpeg.run.get_or_fetch_platform_executables_else_raise()
+          with open(os.environ["GITHUB_PATH"], "a") as fh:
+              fh.write(os.path.dirname(ff) + "\n")
+          PY
+
+      - name: Prepare TTS, Mix & 16:9 Scene Bundle
+        id: prep
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+        run: |
+          set -euo pipefail
+          EP="${{ inputs.episode }}"
+          SLUG=$(python3 -c "import json; print(json.load(open('${EP}'))['slug'])")
+          BUILD_DIR="/tmp/akil_long/${SLUG}"
+          mkdir -p "${BUILD_DIR}/work"
+
+          REUSE_FLAG=""
+          if [ -f "files/${SLUG}/work/voice.mp3" ] && [ -f "files/${SLUG}/work/timestamps.json" ]; then
+            echo "Reusing committed voice.mp3 + timestamps.json for ${SLUG}"
+            cp "files/${SLUG}/work/voice.mp3" "${BUILD_DIR}/work/voice.mp3"
+            cp "files/${SLUG}/work/timestamps.json" "${BUILD_DIR}/work/timestamps.json"
+            REUSE_FLAG="--reuse-voice"
+          fi
+
+          python3 engine/build_long.py \
+            --episode "${EP}" \
+            --build-dir "${BUILD_DIR}" \
+            --music-db "${{ inputs.music_db }}" \
+            --sfx-db "${{ inputs.sfx_db }}" \
+            --prepare-only ${REUSE_FLAG}
+
+          python3 - <<PY >> "$GITHUB_OUTPUT"
+          import json
+          m = json.load(open("${BUILD_DIR}/work/meta.json"))
+          for k in ["slug", "mp4_name", "total_frames", "width", "height", "duration"]:
+              print(f"{k}={m[k]}")
+          PY
+
+      - name: Upload prepared scene & audio bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: prep-bundle
+          path: |
+            /tmp/akil_long/${{ steps.prep.outputs.slug }}/scene
+            /tmp/akil_long/${{ steps.prep.outputs.slug }}/work/mix_raw.wav
+            /tmp/akil_long/${{ steps.prep.outputs.slug }}/work/captions.ass
+            /tmp/akil_long/${{ steps.prep.outputs.slug }}/work/voice.mp3
+            /tmp/akil_long/${{ steps.prep.outputs.slug }}/work/timestamps.json
+            /tmp/akil_long/${{ steps.prep.outputs.slug }}/work/meta.json
+          retention-days: 3
+
+  render:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Download prepared bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: prep-bundle
+          path: /tmp/akil_long/${{ needs.prepare.outputs.slug }}
+
+      - name: Render shard ${{ matrix.shard }}/8 via SwiftShader CDP
+        run: |
+          set -euo pipefail
+          SLUG="${{ needs.prepare.outputs.slug }}"
+          TOTAL="${{ needs.prepare.outputs.total_frames }}"
+          SHARD="${{ matrix.shard }}"
+          SHARDS=8
+          START=$(( TOTAL * SHARD / SHARDS ))
+          END=$(( TOTAL * (SHARD + 1) / SHARDS ))
+          echo "Shard ${SHARD}/${SHARDS}: frames ${START}..$((END-1)) (total ${TOTAL})"
+
+          CHROME_BIN=$(which google-chrome || which chromium-browser || which chromium)
+          export CHROME_BIN
+          export WORKERS=4
+          export RESUME=0
+          export VW="${{ needs.prepare.outputs.width }}"
+          export VH="${{ needs.prepare.outputs.height }}"
+          export CHUNK_SIZE=500
+
+          node engine/kit/render_cdp.mjs \
+            --scene="/tmp/akil_long/${SLUG}/scene" \
+            --root="$PWD/engine" \
+            --out="/tmp/akil_long/${SLUG}/frames_shard" \
+            --start="${START}" \
+            --end="${END}" \
+            --workers=4
+
+      - name: Upload shard frames
+        uses: actions/upload-artifact@v4
+        with:
+          name: frames-shard-${{ matrix.shard }}
+          path: /tmp/akil_long/${{ needs.prepare.outputs.slug }}/frames_shard
+          compression-level: 0
+          retention-days: 2
+
+  assemble:
+    needs: [prepare, render]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python & FFmpeg
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install FFmpeg & DejaVu fonts
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+          ffmpeg -version | head -n 1
+
+      - name: Download prepared bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: prep-bundle
+          path: /tmp/akil_long/${{ needs.prepare.outputs.slug }}
+
+      - name: Download & merge all 8 frame shards
+        uses: actions/download-artifact@v4
+        with:
+          pattern: frames-shard-*
+          path: /tmp/akil_long/${{ needs.prepare.outputs.slug }}/frames
+          merge-multiple: true
+
+      - name: Verify frame completeness & encode 1920x1080 MP4 + QA
+        run: |
+          set -euo pipefail
+          SLUG="${{ needs.prepare.outputs.slug }}"
+          TOTAL="${{ needs.prepare.outputs.total_frames }}"
+          MP4="${{ needs.prepare.outputs.mp4_name }}"
+          BUILD_DIR="/tmp/akil_long/${SLUG}"
+          COUNT=$(find "${BUILD_DIR}/frames" -maxdepth 1 -name 'f*.jpg' | wc -l)
+          echo "Merged frames: ${COUNT} / expected: ${TOTAL}"
+          test "${COUNT}" -eq "${TOTAL}"
+          bash engine/kit/finish_long.sh "${BUILD_DIR}" "${MP4}"
+          ls -lh "${BUILD_DIR}/out/"
+
+      - name: Upload final 16:9 MP4 & QA sheet
+        uses: actions/upload-artifact@v4
+        with:
+          name: long-output-${{ needs.prepare.outputs.slug }}
+          path: |
+            /tmp/akil_long/${{ needs.prepare.outputs.slug }}/out
+            /tmp/akil_long/${{ needs.prepare.outputs.slug }}/work/voice.mp3
+            /tmp/akil_long/${{ needs.prepare.outputs.slug }}/work/timestamps.json
+            /tmp/akil_long/${{ needs.prepare.outputs.slug }}/work/meta.json
+          retention-days: 14

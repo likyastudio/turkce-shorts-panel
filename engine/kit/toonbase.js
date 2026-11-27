@@ -261,8 +261,11 @@ export function lerpVec(a, b, t) {
  * Creates the full 4-zone AKILALMAZ 3D-Toon stage + post-processing pipeline.
  */
 export function createToonStage(canvas, config) {
-  canvas.width = W;
-  canvas.height = H;
+  // Default = exact v9–v20 Shorts 540x960; long-form 16:9 passes width=960, height=540
+  const SW = config.width || W;
+  const SH = config.height || H;
+  canvas.width = SW;
+  canvas.height = SH;
 
   const renderer = new THREE.WebGLRenderer({
     canvas,
@@ -270,7 +273,7 @@ export function createToonStage(canvas, config) {
     preserveDrawingBuffer: true,
     powerPreference: 'high-performance',
   });
-  renderer.setSize(W, H, false);
+  renderer.setSize(SW, SH, false);
   renderer.setPixelRatio(1);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -282,7 +285,7 @@ export function createToonStage(canvas, config) {
   const sceneFog = new THREE.Fog(fogColor, 18, 56);
   scene.fog = sceneFog;
 
-  const camera = new THREE.PerspectiveCamera(40, W / H, 0.08, 1500);
+  const camera = new THREE.PerspectiveCamera(40, SW / SH, 0.08, 1500);
 
   // 2-Tone Cel Gradient
   const celGrad = makeCelGradient();
@@ -419,8 +422,10 @@ export function createToonStage(canvas, config) {
   const zoneOffsets = [60, 120, 180];
   const zoneGroups = [z0];
   const boardsCfg = config.boards || [];
+  const nBoards = Math.max(3, boardsCfg.length);
+  for (let zi = 3; zi < nBoards; zi++) zoneOffsets.push(60 * (zi + 1));
 
-  for (let zi = 0; zi < 3; zi++) {
+  for (let zi = 0; zi < nBoards; zi++) {
     const gx = zoneOffsets[zi];
     const zg = new THREE.Group();
     zg.position.set(gx, 0, 0);
@@ -469,6 +474,30 @@ export function createToonStage(canvas, config) {
       const deskTop = tbox(3.38, 0.12, 1.32, '#5e361c', 0, 0.96, -1.55, true);
       zg.add(deskTop);
     }
+  }
+
+  // === EXTRA OUTDOOR DIORAMA ZONES (long-form): config.outdoor = [{ x, groundA, groundB, path }] ===
+  const outdoorHeroGroups = [];
+  for (const oz of config.outdoor || []) {
+    const og = new THREE.Group();
+    og.position.set(oz.x, 0, 0);
+    scene.add(og);
+    zoneGroups.push(og);
+    const gTex = makeGroundTex(oz.groundA || config.groundA || '#7a8a3e', oz.groundB || config.groundB || '#627030', 19 + oz.x);
+    const g = new THREE.Mesh(new THREE.PlaneGeometry(56, 56), toonMat('#ffffff', gTex));
+    g.rotation.x = -Math.PI / 2;
+    g.position.set(0, -0.02, -4);
+    g.receiveShadow = true;
+    og.add(g);
+    if (oz.path !== false) {
+      const p = tbox(6.5, 0.22, 14, stoneMat, 0, -0.11, -1.5, true);
+      p.castShadow = false;
+      og.add(p);
+    }
+    const hg = new THREE.Group();
+    hg.position.set(0, 0, -8.6);
+    og.add(hg);
+    outdoorHeroGroups.push({ x: oz.x, spec: oz.hero || {}, group: hg });
   }
 
   // === 2D INKED CHARACTER CARD CLASS ===
@@ -622,21 +651,21 @@ export function createToonStage(canvas, config) {
   }
 
   // === 3-STAGE POST-PROCESSING PIPELINE ===
-  const rtColor = new THREE.WebGLRenderTarget(W, H, {
+  const rtColor = new THREE.WebGLRenderTarget(SW, SH, {
     type: THREE.HalfFloatType,
     minFilter: THREE.LinearFilter,
     magFilter: THREE.LinearFilter,
     depthBuffer: true,
   });
 
-  const rtNd = new THREE.WebGLRenderTarget(W, H, {
+  const rtNd = new THREE.WebGLRenderTarget(SW, SH, {
     type: THREE.HalfFloatType,
     minFilter: THREE.NearestFilter,
     magFilter: THREE.NearestFilter,
     depthBuffer: true,
   });
 
-  const rtInk = new THREE.WebGLRenderTarget(W, H, {
+  const rtInk = new THREE.WebGLRenderTarget(SW, SH, {
     type: THREE.HalfFloatType,
     minFilter: THREE.LinearFilter,
     magFilter: THREE.LinearFilter,
@@ -649,7 +678,7 @@ export function createToonStage(canvas, config) {
   const inkUniforms = {
     tColor: { value: rtColor.texture },
     tNd: { value: rtNd.texture },
-    uTexel: { value: new THREE.Vector2(1 / W, 1 / H) },
+    uTexel: { value: new THREE.Vector2(1 / SW, 1 / SH) },
     uSat: { value: 1.08 },
     uVig: { value: 0.36 },
     uFlash: { value: 0.0 },
@@ -666,7 +695,7 @@ export function createToonStage(canvas, config) {
   const dofUniforms = {
     tInk: { value: rtInk.texture },
     tNd: { value: rtNd.texture },
-    uTexel: { value: new THREE.Vector2(1 / W, 1 / H) },
+    uTexel: { value: new THREE.Vector2(1 / SW, 1 / SH) },
     uFocusDist: { value: 5.5 },
     uFocusRange: { value: 3.2 },
     uMaxBlur: { value: 2.8 },
@@ -767,7 +796,19 @@ export function createToonStage(canvas, config) {
     tbox,
     tcyl,
     heroGroup,
+    outdoorHeroGroups,
     zoneGroups,
+    setSky(top, mid, bot, fog, light = 1.0) {
+      skyMat.uniforms.uTop.value.set(top);
+      skyMat.uniforms.uMid.value.set(mid);
+      skyMat.uniforms.uBot.value.set(bot);
+      if (fog) {
+        fogColor.set(fog);
+        sceneFog.color.set(fog);
+      }
+      hemi.intensity = 0.92 * light;
+      sun.intensity = 1.38 * light;
+    },
     createCard,
     fxFactory,
     placeFx,

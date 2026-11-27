@@ -216,6 +216,13 @@ async function main() {
   const url = `http://127.0.0.1:${port}/scene/index.html`;
 
   try {
+    if (args.frames) {
+      const pick = args.frames.split(',').map((s) => Number(s.trim())).filter((n) => Number.isFinite(n));
+      console.log(`[CDP] Preview rendering ${pick.length} selected frames (${VW}x${VH})...`);
+      await runWorker(0, pick, url);
+      console.log(`[CDP] Preview done in ${OUT_DIR}`);
+      return;
+    }
     // Process in chunks of CHUNK_SIZE (default 850) to keep SwiftShader memory fresh
     for (let cStart = START; cStart < END; cStart += CHUNK_SIZE) {
       const cEnd = Math.min(END, cStart + CHUNK_SIZE);

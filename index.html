@@ -443,6 +443,29 @@
     .sched-actions { grid-column: 1 / -1; justify-content: flex-start; }
   }
 
+  .brand-mini-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+  .brand-mini-pills button {
+    padding: 4px 8px; font-size: 11px; font-weight: 700; border-radius: 999px;
+    background: var(--bone); border: 1px solid var(--line); color: var(--ink-mute);
+  }
+  .brand-mini-pills button.on { background: var(--ink); border-color: var(--ink); color: var(--bone); }
+
+  /* Viral Audit (Vyral Content Skills) */
+  .viral-score-card {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    padding: 16px 18px; background: var(--paper-warm); border: 1px solid var(--line-strong);
+    border-radius: var(--radius-md); margin-bottom: 14px;
+  }
+  .viral-score-num { font-family: "JetBrains Mono", monospace; font-size: 32px; font-weight: 800; line-height: 1; }
+  .viral-check-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .viral-check-item {
+    display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; align-items: start;
+    padding: 10px 12px; background: var(--paper-warm); border: 1px solid var(--line); border-radius: var(--radius-sm);
+    font-size: 13px;
+  }
+  .viral-check-item b { display: block; color: var(--ink); font-size: 13px; }
+  .viral-check-item .sub { color: var(--ink-mute); font-size: 12px; margin-top: 2px; line-height: 1.45; }
+
   /* Cover Workbench */
   .cover-bench { display: flex; flex-direction: column; gap: 14px; }
   .cover-preview-stage {
@@ -640,7 +663,7 @@ let videos = [], kit = null, sel = null, tab = 'social', view = 'videos', sig = 
 let accounts = [], pubByVideo = {}, apiHealth = null;
 let savedCovers = {}, generatingCovers = {}, coverSyncing = false;
 let scheduledPosts = [], nextSlot = null, nextByBrand = {}, schedRule = '', ytQuotaToday = { used: 0, limit: 5 };
-let activeBrandFilter = 'all', coverBrandFilter = 'all';
+let activeBrandFilter = 'all', coverBrandFilter = 'all', videoBrandFilter = 'all';
 let analyticsData = null, analyticsLoading = false, analyticsError = null, analyticsBrandFilter = 'all';
 let searchQuery = '', studioKey = 'brand_logo';
 const copyStore = {};
@@ -1402,16 +1425,353 @@ async function loadInner(force) {
     ]);
     if (!force && ns === sig) return;
     sig = ns; videos = data;
-    if (!sel || !videos.find(v => v.slug === sel)) sel = (videos.find(v => v.video) || videos[0] || {}).slug;
-    const ready = videos.filter(v => v.video).length;
+    const allVids = getAllWorkspaceVideos();
+    if (!sel || !allVids.find(v => v.slug === sel)) sel = (allVids.find(v => v.video) || allVids[0] || {}).slug;
+    const ready = allVids.filter(v => v.video).length;
     const covCount = Object.keys(savedCovers).length;
     const planCount = scheduledPosts.filter(p => p.status === 'Planlandı').length;
     const apiTxt = apiHealth?.ok ? ` · ${apiHealth.db.toUpperCase()} (${accounts.length} kanal)` : '';
-    document.getElementById('sum').textContent = `${ready}/${videos.length} video · ${covCount} kapak · ${planCount} planlı${apiTxt}`;
+    document.getElementById('sum').textContent = `${ready}/${allVids.length} video · ${covCount} kapak · ${planCount} planlı${apiTxt}`;
     renderAll(force);
   } catch (e) {
     document.getElementById('sum').textContent = 'Bağlantı hatası: ' + e;
   }
+}
+
+function getAllWorkspaceVideos() {
+  const out = [];
+  const seen = new Set();
+  const schedByNorm = new Map();
+  for (const p of scheduledPosts) {
+    if (!p?.video_id) continue;
+    const nk = safeCoverKey(p.video_id);
+    const prev = schedByNorm.get(nk);
+    if (!prev || (p.yt_uploaded && !prev.yt_uploaded) || (p.status === 'Planlandı' && prev.status !== 'Planlandı')) {
+      schedByNorm.set(nk, p);
+    }
+  }
+  const archiveByNorm = new Map(videos.map(v => [safeCoverKey(v.slug), v]));
+
+  // 1. Uploaded / scheduled videos from /api/schedule (4 brands, not already in videos.json)
+  for (const p of scheduledPosts) {
+    if (!p?.video_id) continue;
+    const nk = safeCoverKey(p.video_id);
+    if (seen.has(nk) || archiveByNorm.has(nk)) continue;
+    seen.add(nk);
+    const brand = p.brand || 'akilalmaz';
+    out.push({
+      slug: p.video_id,
+      brand,
+      title: p.title || p.video_id,
+      status: p.status || 'Planlandı',
+      video: p.video_url || '',
+      fileName: `${p.video_id}.mp4`,
+      updated: p.updated_at || p.scheduled_at || '',
+      duration: 0,
+      width: 1080,
+      height: 1920,
+      sizeMB: 0,
+      words: 0,
+      script: '',
+      meta: {
+        youtube: { title: p.title || p.video_id, description: p.description || '' },
+        instagram: { caption: p.ig_caption || p.description || '' },
+        flow_prompt: buildDefaultCoverPrompt(brand, p.title, p.description || p.ig_caption || ''),
+      },
+      scheduledPost: p,
+      source: 'schedule',
+    });
+  }
+
+  // 2. Archive videos from videos.json (enriched with matching scheduled post)
+  for (const v of videos) {
+    const nk = safeCoverKey(v.slug);
+    if (seen.has(nk)) continue;
+    seen.add(nk);
+    const sch = schedByNorm.get(nk) || null;
+    out.push({
+      ...v,
+      brand: sch?.brand || v.brand || 'akilalmaz',
+      scheduledPost: sch,
+      source: 'archive',
+    });
+  }
+  return out;
+}
+
+function findWorkspaceVideo(slug) {
+  return getAllWorkspaceVideos().find(v => v.slug === slug) || null;
+}
+
+function setVideoBrandFilter(b) {
+  videoBrandFilter = b;
+  const bar = document.getElementById('v-brand-bar');
+  if (bar) {
+    bar.querySelectorAll('button').forEach(btn => btn.classList.toggle('on', btn.dataset.b === b));
+  }
+  renderList();
+}
+
+function computeViralAudit(v) {
+  const brand = v.brand || 'akilalmaz';
+  const isWide = (Number(v.width) || 0) > (Number(v.height) || 0);
+  const ytTitle = (v.meta?.youtube?.title || v.title || '').trim();
+  const ytDesc = (v.meta?.youtube?.description || '').trim();
+  const igCap = (v.meta?.instagram?.caption || '').trim();
+  const script = (v.script || '').trim();
+  const cleanTopic = _cleanTopicText(v.title || ytTitle, 90) || 'bu konu';
+  const hasCover = !!getCoverUrl(v.slug, v.scheduledPost?.cover_url || '');
+
+  const checks = [];
+  let score = 0;
+
+  // 1. First 1-3s Hook Check (viral-hooks)
+  const firstLine = script
+    ? (script.split(/\n|(?<=[.!?…])\s+/)[0] || '').trim()
+    : ytTitle;
+  const hookWords = firstLine ? firstLine.split(/\s+/).filter(Boolean).length : 0;
+  const weakOpeners = /\b(merhaba|selam|arkadaşlar|bugün sizlere|bu videoda|hoş geldiniz|hepimiz biliriz|selamlar)\b/i;
+  const strongHookSignal = /(\d|!|\?|\bama\b|\bfakat\b|\baslında\b|\bgizli\b|\bimkânsız\b|\bgerçekten\b|\bşaka değil\b|\bsanıp\b|\bkaybetti\b|\böldü\b|\byıl\b)/i;
+
+  if (firstLine && !weakOpeners.test(firstLine) && hookWords >= 4 && hookWords <= 24) {
+    score += strongHookSignal.test(firstLine) ? 24 : 18;
+    checks.push({
+      level: 'ok',
+      tag: 'viral-hooks',
+      title: 'İlk 1–3 Saniye Kancası Güçlü',
+      detail: `Açılış (${hookWords} kelime): "${firstLine.slice(0, 110)}${firstLine.length > 110 ? '…' : ''}" — doğrudan gerilim/olayla giriyor.`,
+    });
+  } else {
+    score += 8;
+    const reason = weakOpeners.test(firstLine)
+      ? 'Yavaş giriş tespit edildi ("Merhaba / Bugün sizlere" kalıpları ilk 2 saniyede VVSA düşürür).'
+      : hookWords > 24
+        ? `İlk cümle uzun (${hookWords} kelime); 0–3 saniyede vurması için ≤20 kelimeye kısalt.`
+        : 'Açılış kancası çok kısa veya senaryo eklenmemiş; ilk karede görsel + sözlü + ekran metni 3 katmanı eşleştir.';
+    checks.push({ level: 'warn', tag: 'viral-hooks', title: 'İlk 3 Saniye Kancası İyileştirilebilir', detail: reason });
+  }
+
+  // 2. YouTube Title & Format Check (viral-youtube-shorts)
+  const titleLen = ytTitle.length;
+  const hasShortsTag = /#shorts\b/i.test(ytTitle + ' ' + ytDesc);
+  if (isWide) {
+    if (titleLen > 0 && titleLen <= 72) {
+      score += 18;
+      checks.push({
+        level: 'ok',
+        tag: 'YouTube 16:9',
+        title: `Uzun Video Başlığı Dengeli (${titleLen} krk)`,
+        detail: '16:9 YouTube ana sayfa ve önerilenler rafında kesilmeden merak uyandırır.',
+      });
+    } else {
+      score += 10;
+      checks.push({ level: 'warn', tag: 'YouTube 16:9', title: `Uzun Video Başlık Uzunluğu (${titleLen} krk)`, detail: 'Mobilde kesilmemesi için 60–70 karakter aralığında tut.' });
+    }
+  } else if (titleLen > 0 && titleLen <= 62 && hasShortsTag) {
+    score += 18;
+    checks.push({
+      level: 'ok',
+      tag: 'viral-youtube-shorts',
+      title: `Shorts Başlığı & Etiket Uyumu (${titleLen} krk)`,
+      detail: 'Mobil Shorts rafında kesilmeden okunur ve #shorts sinyali mevcut.',
+    });
+  } else {
+    score += 9;
+    const msgs = [];
+    if (titleLen > 62) msgs.push(`Başlık ${titleLen} karakter (mobilde 55–60 karakterde kesilir)`);
+    if (!hasShortsTag) msgs.push('#shorts etiketi başlık veya açıklamada eksik');
+    checks.push({ level: 'warn', tag: 'viral-youtube-shorts', title: 'YouTube Shorts Başlık Kontrolü', detail: msgs.join(' · ') || 'Başlık ekleyin.' });
+  }
+
+  // 3. Duration & Pacing Check (viral-youtube-shorts)
+  if (v.duration && v.duration > 0) {
+    const wpm = v.words ? Math.round((v.words / v.duration) * 60) : 0;
+    const durOk = isWide ? (v.duration >= 90) : (v.duration >= 28 && v.duration <= 58.5);
+    const paceOk = !wpm || (wpm >= 115 && wpm <= 195);
+    if (durOk && paceOk) {
+      score += 16;
+      checks.push({
+        level: 'ok',
+        tag: 'VVSA & Tempo',
+        title: `Süre & Akış Dengesi (${fmt(v.duration)}${wpm ? ` · ${wpm} klm/dk` : ''})`,
+        detail: isWide
+          ? '16:9 uzun format anlatım için akıcı tempo ve yeterli izlenme derinliği.'
+          : 'Shorts tam izlenme ve döngü (loop) tekrar izlenmesi için ideal aralıkta.',
+      });
+    } else {
+      score += 8;
+      checks.push({
+        level: 'warn',
+        tag: 'VVSA & Tempo',
+        title: `Tempo Uyarısı (${fmt(v.duration)}${wpm ? ` · ${wpm} klm/dk` : ''})`,
+        detail: !durOk ? (isWide ? '16:9 uzun videolar için ≥2 dk daha güçlü oturum süresi sağlar.' : 'Shorts için ideal süre 30–58 saniyedir.') : 'Konuşma temposu 130–185 klm/dk aralığında daha yüksek retention verir.',
+      });
+    }
+  } else {
+    score += 12;
+    checks.push({
+      level: 'info',
+      tag: 'VVSA & Tempo',
+      title: 'Bulut Videosu (Süre Oynatıcıdan Kontrol)',
+      detail: '/api/schedule üzerinden yüklü video; ilk 3 saniyedeki görsel değişimi soldaki oynatıcıda sessiz izleyerek kontrol et.',
+    });
+  }
+
+  // 4. Hashtag Reality (viral-captions-and-ctas)
+  const ytTags = (ytDesc.match(/#[\p{L}\p{N}_]+/gu) || []).length;
+  const igTags = (igCap.match(/#[\p{L}\p{N}_]+/gu) || []).length;
+  const maxTags = Math.max(ytTags, igTags);
+  if (maxTags >= 3 && maxTags <= 7) {
+    score += 14;
+    checks.push({
+      level: 'ok',
+      tag: 'hashtag-reality',
+      title: `Odaklı Hashtag Sayısı (YT: ${ytTags}${isWide ? '' : ` · IG: ${igTags}`})`,
+      detail: '3–7 odaklı niş etiket, konu sınıflandırmasını bozmadan keşfet SEO sinyali verir.',
+    });
+  } else {
+    score += 7;
+    checks.push({
+      level: 'warn',
+      tag: 'hashtag-reality',
+      title: `Hashtag Dengesi (YT: ${ytTags}${isWide ? '' : ` · IG: ${igTags}`})`,
+      detail: maxTags > 7
+        ? '8+ genel hashtag (#keşfet vb.) algoritma konu sinyalini sulandırır; 3–5 nokta atışı niş etikete indir.'
+        : 'En az 3 konu odaklı Türkçe hashtag ekle (IG ve YT aramaları metin + 3–5 etiketten beslenir).',
+    });
+  }
+
+  // 5. Engagement-Bait Filter & Sends/Saves CTA (viral-captions-and-ctas + viral-instagram-reels)
+  const combinedCopy = `${ytDesc}\n${igCap}`;
+  const baitRe = /(beğenmeyi unutma|like at|abone olmayı unutma|kanalıma abone|takip etmeyi unutma|beğenip yorum|yorum yapmayı unutma)/i;
+  const hasBait = baitRe.test(combinedCopy);
+  const hasSendCue = /(\?|sence|arkadaş|etiketle|gönder|kaydet|hangisi|kaç|duymuş muydun)/i.test(combinedCopy);
+  const igSameAsYt = !isWide && !!(ytDesc && igCap && ytDesc.trim() === igCap.trim());
+
+  if (!hasBait && hasSendCue && !igSameAsYt) {
+    score += 16;
+    checks.push({
+      level: 'ok',
+      tag: 'Reels Sends & Bait-Check',
+      title: 'Temiz CTA · Sends/Saves Sinyali Aktif',
+      detail: 'Engagement-bait kalıbı yok, açıklama platforma özgü ve tartışma/gönderim sorusu içeriyor.',
+    });
+  } else {
+    score += hasBait ? 4 : 10;
+    const notes = [];
+    if (hasBait) notes.push('Engagement-bait ifadesi tespit edildi ("beğenmeyi unutma / takip et" kalıpları erişimi kısıtlar).');
+    if (!hasSendCue) notes.push('Paylaşım/yorum tetikleyen tek bir doğal tartışma sorusu ekle (Reels\'te Sends Per Reach en güçlü sinyaldir).');
+    if (igSameAsYt) notes.push('IG Reels açıklaması YouTube ile birebir aynı; Reels için ilk satırı kısa ve göndermeye dönük özelleştir.');
+    checks.push({ level: hasBait ? 'err' : 'warn', tag: 'Reels Sends & Bait-Check', title: 'CTA & Platform Uyarlama Uyarısı', detail: notes.join(' ') });
+  }
+
+  // 6. Cover & Visual Hook
+  if (hasCover) {
+    score += 12;
+    checks.push({
+      level: 'ok',
+      tag: 'Görsel Kanca',
+      title: `${isWide ? '16:9' : '9:16'} Özel Kapak Hazır`,
+      detail: 'Keşfet ve profil ızgarası tıklama oranı (CTR) için özel kapak görseli bağlı.',
+    });
+  } else {
+    score += 3;
+    checks.push({
+      level: 'warn',
+      tag: 'Görsel Kanca',
+      title: `${isWide ? '16:9' : '9:16'} Özel Kapak Eksik`,
+      detail: 'Kapak & Thumbnail Üret sekmesinden markaya özel kapak üretip veya yükleyip bağla.',
+    });
+  }
+
+  // Generate 3 Brand-Aware Alternative Hooks (viral-hooks archetypes)
+  const hooks = [
+    {
+      label: '1 · Merak Boşluğu (Curiosity Gap)',
+      text: `Bunu duyduğunda şaka sanacaksın ama "${cleanTopic}" olayı tarihte birebir yaşandı — üstelik kimsenin beklemediği o tek detay yüzünden…`,
+    },
+    {
+      label: '2 · Karşıt Gerçek / İddia (Contrarian)',
+      text: `Herkes bunun imkânsız olduğunu düşündü, ta ki "${cleanTopic}" gerçekleşene kadar. Peki işin asıl sırrı neydi?`,
+    },
+    {
+      label: '3 · 3 Katmanlı Açılış Paketi (Görsel + Sözlü + Ekran Metni)',
+      text: `[GÖRSEL 0-2sn]: Ana olayın en şok edici karesiyle başla, hızlı zoom-in.\n[EKRAN METNİ]: "${cleanTopic.toUpperCase().slice(0, 34)}"\n[SÖZLÜ KANCA]: "${firstLine ? firstLine.slice(0, 95) : cleanTopic + ' — gerçekten yaşandı!'}"`,
+    },
+  ];
+
+  // Generate 3 Pinned Comment Templates (viral-captions-and-ctas)
+  const pinnedByBrand = {
+    kadimanadolu: [
+      `Bu antik sırrı daha önce duymuş muydun? Anadolu'nun en gizemli yeri sence hangisi? 👇🏛️`,
+      `Sıradaki bölümde hangi kadim Anadolu uygarlığını veya tapınağını işleyelim? En çok beğeni alan yorumu çekiyoruz 👇`,
+      `Tarihe meraklı bir arkadaşına gönder — bakalım "${cleanTopic}" detayını biliyor mu? 🗺️`,
+    ],
+    foodballstv: [
+      `Dürüst ol: Buna 10 üzerinden kaç puan verirsin? 👇🍔`,
+      `Bunu beraber yemek isteyeceğin kişiye gönder — borçlu çıksın! 😂🔥`,
+      `Sıradaki bölümde hangi efsane lezzeti kapıştıralım? Yorumda kapışın 👇`,
+    ],
+    likyastudios: [
+      `Bu sahnede en çok hangi detay dikkatini çekti? 10 üzerinden puanın kaç? 🎬`,
+      `Böyle sinematik içerikleri seven arkadaşına gönder — sence sıradaki konsept ne olsun? 👇`,
+      `İlk 3 saniyedeki o detayı fark edenler kimler? Yorumda kendini belli et 👀`,
+    ],
+    akilalmaz: [
+      `Dürüst ol: Aynı durumda kalsan sen ne yapardın? Yorumda en mantıklı planı seçiyoruz 👇⚡`,
+      `Bu gerçek olaya 10 üzerinden "akılalmazlık" puanın kaç? 🤯`,
+      `Buna asla inanmayacak arkadaşına gönder — tepkisini görmek gerek 😂👇`,
+    ],
+  };
+  const pinned = pinnedByBrand[brand] || pinnedByBrand.akilalmaz;
+
+  score = Math.min(100, Math.max(0, score));
+  const grade = score >= 82 ? { label: 'Yayına Hazır · Güçlü', cls: 'b-ok', color: 'var(--ok)' }
+    : score >= 62 ? { label: 'İyileştirilebilir', cls: 'b-warn', color: 'var(--warn)' }
+    : { label: 'Düşük Retention Riski', cls: 'b-err', color: 'var(--err)' };
+
+  return { score, grade, checks, hooks, pinned };
+}
+
+function renderViralAuditTab(v) {
+  const audit = computeViralAudit(v);
+  const iconMap = { ok: '✅', warn: '⚠️', err: '🛑', info: 'ℹ️' };
+  const clsMap = { ok: 'b-ok', warn: 'b-warn', err: 'b-err', info: 'b-info' };
+
+  return `
+    <div class="viral-score-card">
+      <div>
+        <div class="block-label">Vyral Content Skills · Viral Hazırlık Denetimi</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+          <span class="viral-score-num" style="color:${audit.grade.color}">${audit.score}<span style="font-size:15px;color:var(--ink-faint)">/100</span></span>
+          <span class="badge ${audit.grade.cls}"><span class="dot"></span>${esc(audit.grade.label)}</span>
+        </div>
+        <div class="panel-sub" style="margin-top:6px">İlk 3 sn kanca · VVSA · Reels Sends Per Reach · Hashtag & Engagement-Bait filtresi</div>
+      </div>
+      <div class="row">
+        <span class="badge b-mut">${esc(brandLabel(v.brand || 'akilalmaz'))}</span>
+      </div>
+    </div>
+
+    <div class="viral-check-list">
+      ${audit.checks.map(c => `
+        <div class="viral-check-item">
+          <span style="font-size:15px;line-height:1.2">${iconMap[c.level] || '•'}</span>
+          <div>
+            <b>${esc(c.title)}</b>
+            <div class="sub">${esc(c.detail)}</div>
+          </div>
+          <span class="badge ${clsMap[c.level] || 'b-mut'} mono">${esc(c.tag)}</span>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="block-label" style="margin:14px 0 8px">🎣 3 Katmanlı Alternatif Açılış Kancaları (viral-hooks)</div>
+    ${audit.hooks.map((h, i) => copyBlock(`${v.slug}_vh_${i}`, h.label, h.text)).join('')}
+
+    <div class="block-label" style="margin:16px 0 8px">📌 Sabitlenmiş İlk Yorum Şablonları (viral-captions-and-ctas)</div>
+    ${audit.pinned.map((p, i) => copyBlock(`${v.slug}_vp_${i}`, `Sabitlenmiş Yorum Önerisi ${i + 1}`, p)).join('')}
+  `;
 }
 
 function renderAll(force) {
@@ -1427,8 +1787,12 @@ function renderAll(force) {
       <div class="workspace-videos">
         <aside class="sidebar">
           <div class="sidebar-head">
-            <span>Arşiv · Video Kuyruğu</span>
+            <span>4 Marka · Video Kuyruğu</span>
             <span id="q-count" class="mono"></span>
+          </div>
+          <div class="brand-mini-pills" id="v-brand-bar">
+            <button data-b="all" class="${videoBrandFilter==='all'?'on':''}" onclick="setVideoBrandFilter('all')">Tümü</button>
+            ${BRANDS_LIST.map(b => `<button data-b="${b.id}" class="${videoBrandFilter===b.id?'on':''}" onclick="setVideoBrandFilter('${b.id}')" title="${esc(b.label)}">${b.icon} ${esc(b.label.split(' ')[0])}</button>`).join('')}
           </div>
           <div class="search-wrap">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1447,22 +1811,30 @@ function renderAll(force) {
 function renderList() {
   const listEl = document.getElementById('list');
   if (!listEl) return;
+  const allVids = getAllWorkspaceVideos();
+  const byBrand = videoBrandFilter === 'all'
+    ? allVids
+    : allVids.filter(v => (v.brand || 'akilalmaz') === videoBrandFilter);
   const q = searchQuery.trim().toLowerCase();
-  const filtered = q ? videos.filter(v => (v.title + ' ' + v.slug + ' ' + v.status).toLowerCase().includes(q)) : videos;
+  const filtered = q
+    ? byBrand.filter(v => (v.title + ' ' + v.slug + ' ' + v.status + ' ' + (v.brand || '')).toLowerCase().includes(q))
+    : byBrand;
   const cnt = document.getElementById('q-count');
-  if (cnt) cnt.textContent = `${filtered.length}/${videos.length}`;
-  listEl.innerHTML = filtered.map(v => {
-    const cov = getCoverUrl(v.slug);
-    const sch = scheduledPosts.find(p => p.video_id === v.slug && p.status === 'Planlandı');
+  if (cnt) cnt.textContent = `${filtered.length}/${allVids.length}`;
+  listEl.innerHTML = filtered.map((v, idx) => {
+    const cov = getCoverUrl(v.slug, v.scheduledPost?.cover_url || '');
+    const sch = v.scheduledPost;
+    const bObj = BRANDS_LIST.find(x => x.id === (v.brand || 'akilalmaz'));
     return `
       <div class="q-item ${v.slug === sel ? 'active' : ''}" onclick="pick('${escJsAttr(v.slug)}')">
-        <div class="q-thumb">${cov ? `<img src="${esc(cov)}" alt="">` : `${videos.indexOf(v) + 1}`}</div>
+        <div class="q-thumb">${cov ? `<img src="${esc(cov)}" alt="">` : `${bObj?.icon || (idx + 1)}`}</div>
         <div class="q-meta">
           <div class="q-title">${esc(v.title)}</div>
           <div class="q-sub">
-            <span>${v.video ? fmt(v.duration) : v.status}</span>
+            <span>${bObj?.icon || '⚡'}</span>
+            <span>${v.duration ? fmt(v.duration) : (v.source === 'schedule' ? 'Bulut MP4' : v.status)}</span>
             ${v.sizeMB ? `<span>· ${v.sizeMB} MB</span>` : ''}
-            ${sch ? `<span style="color:var(--coral)">· ${sch.yt_uploaded ? 'YT Planlı' : 'Planlı'}</span>` : ''}
+            ${sch ? `<span style="color:var(--coral)">· ${sch.yt_uploaded ? 'YT Planlı' : sch.status}</span>` : ''}
           </div>
           ${platformBadgesHtml(v.slug)}
         </div>
@@ -1472,8 +1844,8 @@ function renderList() {
 
 function pick(slug) {
   sel = slug;
-  const v = videos.find(x => x.slug === slug);
-  if (tab === 'social' && !v?.meta) tab = 'script';
+  const v = findWorkspaceVideo(slug);
+  if (tab === 'social' && !v?.meta) tab = 'viral';
   renderList();
   renderDetail(true);
 }
@@ -1491,38 +1863,43 @@ function renderSocialTextOnly(v) {
 
 function renderVideoCoverTab(v) {
   const m = v.meta || {};
-  const sch = scheduledPosts.find(p => p.video_id === v.slug || safeCoverKey(p.video_id) === safeCoverKey(v.slug)) || null;
-  const brand = sch?.brand || 'akilalmaz';
+  const sch = v.scheduledPost || scheduledPosts.find(p => p.video_id === v.slug || safeCoverKey(p.video_id) === safeCoverKey(v.slug)) || null;
+  const brand = sch?.brand || v.brand || 'akilalmaz';
+  const isWide = (Number(v.width) || 0) > (Number(v.height) || 0);
   return coverWorkbenchHtml(
     v.slug,
     'Görsel Kapak & Thumbnail Üretimi',
     m.flow_prompt || buildDefaultCoverPrompt(brand, v.title, m.youtube?.description || ''),
-    '9:16',
-    `${v.title} için dikey kapak tasarımı · Başlığı video başlığından ayrı özelleştirebilirsiniz`,
-    { brand, scheduledPost: sch, defaultStyle: m.flow_prompt ? 'default' : getBrandConfig(brand).defaultStyle }
+    isWide ? '16:9' : '9:16',
+    `${v.title} için ${isWide ? '16:9 yatay' : '9:16 dikey'} kapak tasarımı · Başlığı video başlığından ayrı özelleştirebilirsiniz`,
+    { brand, scheduledPost: sch, defaultStyle: (v.source === 'archive' && m.flow_prompt) ? 'default' : getBrandConfig(brand).defaultStyle }
   );
 }
 
 function renderDetail(full, tabOnly) {
-  const v = videos.find(x => x.slug === sel);
+  const v = findWorkspaceVideo(sel);
   const el = document.getElementById('detail');
   if (!el) return;
   if (!v) { el.innerHTML = '<div class="panel ph">Henüz proje yok.</div>'; return; }
-  if (tab === 'social' && !v.meta) tab = 'script';
+  if (tab === 'social' && !v.meta) tab = 'viral';
+  if (tab === 'qa' && !v.qa) tab = 'viral';
+  if (tab === 'voice' && !v.voice) tab = 'viral';
 
   const tabsHtml = `
     <div class="utabs" role="tablist">
       ${v.meta ? `<button class="${tab==='social'?'on':''}" onclick="setTab('social')">Paylaşım Metinleri</button>` : ''}
+      <button class="${tab==='viral'?'on':''}" onclick="setTab('viral')">🔥 Viral Kontrol</button>
       <button class="${tab==='cover'?'on':''}" onclick="setTab('cover')">🎨 Kapak & Thumbnail Üret</button>
-      <button class="${tab==='script'?'on':''}" onclick="setTab('script')">Senaryo</button>
+      ${v.script ? `<button class="${tab==='script'?'on':''}" onclick="setTab('script')">Senaryo</button>` : ''}
       ${v.qa ? `<button class="${tab==='qa'?'on':''}" onclick="setTab('qa')">Kare Önizleme</button>` : ''}
       ${v.voice ? `<button class="${tab==='voice'?'on':''}" onclick="setTab('voice')">Seslendirme</button>` : ''}
     </div>
     ${tab==='social' && v.meta ? renderSocialTextOnly(v) :
+      tab==='viral' ? renderViralAuditTab(v) :
       tab==='cover' ? renderVideoCoverTab(v) :
       tab==='qa' && v.qa ? `<img class="qa" src="${v.qa}?t=${encodeURIComponent(v.updated||Date.now())}" alt="Kare önizleme">` :
       tab==='voice' && v.voice ? `<div class="block"><div class="block-head"><span class="block-label">Seslendirme Kaydı</span></div><audio controls style="width:100%" src="${v.voice}?t=${encodeURIComponent(v.updated||Date.now())}"></audio></div>` :
-      `<pre class="script-pre">${esc(v.script || 'Senaryo bulunamadı.')}</pre>`}`;
+      `<pre class="script-pre">${esc(v.script || 'Bu bulut videosu için ayrı senaryo metni kaydedilmedi.')}</pre>`}`;
 
   if (tabOnly && document.getElementById('tabbox')) {
     document.getElementById('tabbox').innerHTML = tabsHtml;
@@ -1535,23 +1912,31 @@ function renderDetail(full, tabOnly) {
     return;
   }
 
-  const hasCov = !!getCoverUrl(v.slug);
+  const hasCov = !!getCoverUrl(v.slug, v.scheduledPost?.cover_url || '');
   const isWide = (Number(v.width) || 0) > (Number(v.height) || 0);
+  const viralSummary = computeViralAudit(v);
+  const videoSrc = v.video
+    ? (/^https?:\/\//i.test(v.video) ? v.video : `${v.video}?v=${encodeURIComponent(v.updated || '')}`)
+    : '';
+  const sch = v.scheduledPost;
+
   el.innerHTML = `
     <div class="stage${isWide ? ' wide' : ''}">
       <div class="monitor-wrap">
-        <div class="player${isWide ? ' wide' : ''}">${v.video
-          ? `<video data-slug="${v.slug}" data-upd="${esc(v.updated||'')}" src="${v.video}?v=${encodeURIComponent(v.updated)}" controls playsinline loop preload="metadata"></video>`
-          : `<div class="ph">Video henüz hazır değil.<br><span class="badge ${badge(v.status)}" style="margin-top:8px">${v.status}</span></div>`}
+        <div class="player${isWide ? ' wide' : ''}">${videoSrc
+          ? `<video data-slug="${esc(v.slug)}" data-upd="${esc(v.updated||'')}" src="${esc(videoSrc)}" controls playsinline loop preload="metadata"></video>`
+          : `<div class="ph">Video henüz hazır değil.<br><span class="badge ${badge(v.status)}" style="margin-top:8px">${esc(v.status)}</span></div>`}
         </div>
-        ${v.video ? `
+        ${videoSrc ? `
           <div class="monitor-actions">
-            <button class="btn primary" onclick="openPublishModal('${escJsAttr(v.slug)}')">📅 Yayınla / Planla</button>
-            <a class="btn" href="${v.video}" download="${v.fileName}">⬇ MP4 İndir</a>
+            ${sch
+              ? `<button class="btn primary" onclick="openScheduleCoverModal(${Number(sch.id)})">🎨 Kapak Üret / Yenile</button>`
+              : `<button class="btn primary" onclick="openPublishModal('${escJsAttr(v.slug)}')">📅 Yayınla / Planla</button>`}
+            <a class="btn" href="${esc(v.video)}" download="${esc(v.fileName || (v.slug + '.mp4'))}" target="_blank">⬇ MP4 İndir</a>
           </div>
           <div class="monitor-foot">
             <label class="tg"><input type="checkbox" checked onchange="document.querySelector('#detail video').loop=this.checked"> Döngüde oynat</label>
-            <span class="panel-sub mono">${v.sizeMB} MB</span>
+            <span class="panel-sub mono">${v.sizeMB ? v.sizeMB + ' MB' : (sch?.label_tr || 'Bulut MP4')}</span>
           </div>
           <div id="platbox">${platformBadgesHtml(v.slug)}</div>
         ` : ''}
@@ -1561,16 +1946,19 @@ function renderDetail(full, tabOnly) {
         <div class="panel-head">
           <div>
             <h2 class="panel-title">${esc(v.title)}</h2>
-            <div class="panel-sub mono">${esc(v.fileName || v.slug)}</div>
+            <div class="panel-sub mono">${esc(brandLabel(v.brand || 'akilalmaz'))} · ${esc(v.fileName || v.slug)}</div>
           </div>
-          <span class="badge ${badge(v.status)}"><span class="dot"></span>${esc(v.status)}</span>
+          <div class="row">
+            ${sch?.yt_uploaded ? `<a class="badge b-ok" href="${esc(sch.yt_video_url || '#')}" target="_blank" rel="noreferrer"><span class="dot"></span>YT Planlandı ↗</a>` : ''}
+            <span class="badge ${badge(v.status)}"><span class="dot"></span>${esc(v.status)}</span>
+          </div>
         </div>
 
         <div class="spec-strip">
           <div class="spec-item"><small>Süre</small><b>${fmt(v.duration)}</b></div>
           <div class="spec-item"><small>Çözünürlük</small><b>${v.width ? v.width + '×' + v.height : '—'}</b></div>
-          <div class="spec-item"><small>Boyut</small><b>${v.sizeMB ? v.sizeMB + ' MB' : '—'}</b></div>
-          <div class="spec-item"><small>Senaryo</small><b>${v.words} kelime</b></div>
+          <div class="spec-item"><small>Boyut</small><b>${v.sizeMB ? v.sizeMB + ' MB' : 'Bulut'}</b></div>
+          <div class="spec-item"><small>Viral Skor</small><b style="color:${viralSummary.grade.color};cursor:pointer" onclick="setTab('viral')" title="Viral Kontrol sekmesini aç">${viralSummary.score}/100</b></div>
           <div class="spec-item"><small>Kapak</small><b style="color:${hasCov ? 'var(--ok)' : 'var(--ink-faint)'}">${hasCov ? 'Hazır' : 'Yok'}</b></div>
         </div>
 
@@ -1800,12 +2188,12 @@ function togglePubMode(mode) {
 }
 
 function openPublishModal(slug) {
-  const v = videos.find(x => x.slug === slug);
+  const v = findWorkspaceVideo(slug);
   if (!v) return;
   const { apiUrl } = getCfg();
   const absUrl = new URL(v.video, location.href).href;
-  const coverUrl = getCoverUrl(v.slug);
-  const pubSlot = nextByBrand.akilalmaz || nextSlot;
+  const coverUrl = getCoverUrl(v.slug, v.scheduledPost?.cover_url || '');
+  const pubSlot = nextByBrand[v.brand || 'akilalmaz'] || nextSlot;
   const defaultTrLocal = pubSlot?.scheduled_at_tr ? pubSlot.scheduled_at_tr.slice(0, 16) : '';
 
   const coverBannerHtml = coverUrl ? `

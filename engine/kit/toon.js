@@ -289,6 +289,66 @@ function drawHeldProp(ctx, prop, hx, hy, side, t) {
     ctx.beginPath();
     ctx.ellipse(0, -92, 9, 18 * fl, 0, 0, Math.PI * 2);
     ctx.fill();
+  } else if (prop === 'shell') {
+    // Giant gleaming 215kg brass artillery shell (Seyit Onbaşı!)
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 7;
+    ctx.fillStyle = '#d4a017';
+    ctx.beginPath();
+    ctx.moveTo(-34, 24);
+    ctx.lineTo(-34, -84);
+    ctx.quadraticCurveTo(-30, -142, 0, -162);
+    ctx.quadraticCurveTo(30, -142, 34, -84);
+    ctx.lineTo(34, 24);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    // Copper driving band & specular highlight
+    ctx.fillStyle = '#b85d19';
+    ctx.fillRect(-34, -12, 68, 18);
+    ctx.strokeRect(-34, -12, 68, 18);
+    ctx.fillStyle = 'rgba(255,248,200,0.45)';
+    ctx.beginPath();
+    ctx.ellipse(-12, -74, 8, 40, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (prop === 'wing') {
+    // Large wooden-and-feather eagle wing held/worn by Hezarfen
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 6.5;
+    ctx.fillStyle = '#a66b38';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(side * 95, -90, side * 165, -45);
+    ctx.quadraticCurveTo(side * 125, 10, side * 75, 22);
+    ctx.quadraticCurveTo(side * 35, 32, 0, 14);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    // Feather rib lines
+    ctx.strokeStyle = '#5c3a1a';
+    ctx.lineWidth = 4;
+    for (let i = 1; i <= 4; i++) {
+      ctx.beginPath();
+      ctx.moveTo(side * i * 24, -i * 8);
+      ctx.lineTo(side * (i * 32 + 18), 16 - i * 6);
+      ctx.stroke();
+    }
+  } else if (prop === 'mine') {
+    // Naval contact mine icon
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 6;
+    ctx.fillStyle = '#2b303a';
+    ctx.beginPath();
+    ctx.arc(0, -32, 34, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * 32, -32 + Math.sin(a) * 32);
+      ctx.lineTo(Math.cos(a) * 48, -32 + Math.sin(a) * 48);
+      ctx.stroke();
+    }
   }
   ctx.restore();
 }
@@ -821,6 +881,29 @@ function drawHat(ctx, hat, hatColor, hatAccent, hx, hy, hr) {
     ctx.closePath();
     ctx.fill();
     ctx.lineWidth = 6;
+    ctx.stroke();
+  } else if (hat === 'kabalak') {
+    // 1915 Ottoman WWI khaki cloth kabalak (Enveriye) cap with folded crown & crescent pin
+    ctx.fillStyle = hatColor || '#8d7b52';
+    ctx.beginPath();
+    ctx.moveTo(hx - 76, topY + 26);
+    ctx.lineTo(hx - 62, topY - 46);
+    ctx.quadraticCurveTo(hx, topY - 62, hx + 66, topY - 40);
+    ctx.lineTo(hx + 76, topY + 26);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    // Folded side wrap band
+    ctx.fillStyle = hatAccent || '#6f5e3c';
+    roundRectPath(ctx, hx - 80, topY + 6, 160, 24, 9);
+    ctx.fill();
+    ctx.stroke();
+    // Small brass crescent emblem on front
+    ctx.fillStyle = '#ffd60a';
+    ctx.beginPath();
+    ctx.arc(hx, topY - 12, 11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 4.5;
     ctx.stroke();
   } else if (hat === 'hair') {
     // Classic scientist/Fermi swept hair tuft

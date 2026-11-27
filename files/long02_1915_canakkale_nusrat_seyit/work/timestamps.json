@@ -1,0 +1,3170 @@
+{
+  "voice_id": "jdpQqF5lMnLWcXlPOnAU",
+  "model": "eleven_v4",
+  "duration": 209.736,
+  "words": [
+    {
+      "word": "On",
+      "start": 0.08,
+      "end": 0.24
+    },
+    {
+      "word": "sekiz",
+      "start": 0.32,
+      "end": 0.56
+    },
+    {
+      "word": "Mart",
+      "start": 0.64,
+      "end": 0.88
+    },
+    {
+      "word": "bin",
+      "start": 0.96,
+      "end": 1.04
+    },
+    {
+      "word": "dokuz",
+      "start": 1.12,
+      "end": 1.36
+    },
+    {
+      "word": "yüz",
+      "start": 1.44,
+      "end": 1.52
+    },
+    {
+      "word": "on",
+      "start": 1.6,
+      "end": 1.68
+    },
+    {
+      "word": "beş",
+      "start": 1.76,
+      "end": 1.88
+    },
+    {
+      "word": "sabahı,",
+      "start": 1.92,
+      "end": 2.72
+    },
+    {
+      "word": "dünyanın",
+      "start": 2.8,
+      "end": 3.28
+    },
+    {
+      "word": "en",
+      "start": 3.36,
+      "end": 3.52
+    },
+    {
+      "word": "büyük",
+      "start": 3.6,
+      "end": 3.76
+    },
+    {
+      "word": "imparatorlukları",
+      "start": 3.84,
+      "end": 4.72
+    },
+    {
+      "word": "Çanakkale",
+      "start": 4.96,
+      "end": 5.44
+    },
+    {
+      "word": "Boğazı'nın",
+      "start": 5.52,
+      "end": 5.92
+    },
+    {
+      "word": "girişinde",
+      "start": 6.0,
+      "end": 6.48
+    },
+    {
+      "word": "tek",
+      "start": 6.64,
+      "end": 6.88
+    },
+    {
+      "word": "bir",
+      "start": 6.96,
+      "end": 7.04
+    },
+    {
+      "word": "hedefle",
+      "start": 7.08,
+      "end": 7.44
+    },
+    {
+      "word": "toplandı.",
+      "start": 7.52,
+      "end": 8.16
+    },
+    {
+      "word": "On",
+      "start": 8.4,
+      "end": 8.48
+    },
+    {
+      "word": "sekiz",
+      "start": 8.56,
+      "end": 8.88
+    },
+    {
+      "word": "dev",
+      "start": 9.04,
+      "end": 9.2
+    },
+    {
+      "word": "zırhlı",
+      "start": 9.28,
+      "end": 9.56
+    },
+    {
+      "word": "savaş",
+      "start": 9.6,
+      "end": 9.92
+    },
+    {
+      "word": "gemisi,",
+      "start": 10.0,
+      "end": 10.64
+    },
+    {
+      "word": "yüzlerce",
+      "start": 10.68,
+      "end": 11.2
+    },
+    {
+      "word": "ağır",
+      "start": 11.28,
+      "end": 11.44
+    },
+    {
+      "word": "top",
+      "start": 11.52,
+      "end": 11.76
+    },
+    {
+      "word": "ve",
+      "start": 11.92,
+      "end": 12.0
+    },
+    {
+      "word": "binlerce",
+      "start": 12.08,
+      "end": 12.64
+    },
+    {
+      "word": "denizci!",
+      "start": 12.72,
+      "end": 13.2
+    },
+    {
+      "word": "İngiliz",
+      "start": 13.6,
+      "end": 13.92
+    },
+    {
+      "word": "ve",
+      "start": 14.0,
+      "end": 14.08
+    },
+    {
+      "word": "Fransız",
+      "start": 14.16,
+      "end": 14.48
+    },
+    {
+      "word": "amiraller",
+      "start": 14.56,
+      "end": 15.12
+    },
+    {
+      "word": "o",
+      "start": 15.2,
+      "end": 15.28
+    },
+    {
+      "word": "kadar",
+      "start": 15.28,
+      "end": 15.52
+    },
+    {
+      "word": "emindi",
+      "start": 15.6,
+      "end": 15.92
+    },
+    {
+      "word": "ki,",
+      "start": 16.0,
+      "end": 16.4
+    },
+    {
+      "word": "aynı",
+      "start": 16.48,
+      "end": 16.64
+    },
+    {
+      "word": "akşam",
+      "start": 16.72,
+      "end": 17.04
+    },
+    {
+      "word": "İstanbul'da",
+      "start": 17.12,
+      "end": 17.64
+    },
+    {
+      "word": "çay",
+      "start": 17.68,
+      "end": 17.84
+    },
+    {
+      "word": "içeceklerini",
+      "start": 17.88,
+      "end": 18.4
+    },
+    {
+      "word": "söylüyorlardı.",
+      "start": 18.48,
+      "end": 19.2
+    },
+    {
+      "word": "Ama",
+      "start": 19.589,
+      "end": 19.76
+    },
+    {
+      "word": "gün",
+      "start": 19.84,
+      "end": 20.0
+    },
+    {
+      "word": "bittiğinde",
+      "start": 20.04,
+      "end": 20.56
+    },
+    {
+      "word": "o",
+      "start": 20.72,
+      "end": 20.8
+    },
+    {
+      "word": "yenilmez",
+      "start": 20.88,
+      "end": 21.36
+    },
+    {
+      "word": "denen",
+      "start": 21.44,
+      "end": 21.68
+    },
+    {
+      "word": "donanmanın",
+      "start": 21.76,
+      "end": 22.24
+    },
+    {
+      "word": "üçte",
+      "start": 22.32,
+      "end": 22.56
+    },
+    {
+      "word": "biri",
+      "start": 22.64,
+      "end": 22.8
+    },
+    {
+      "word": "ya",
+      "start": 22.88,
+      "end": 23.04
+    },
+    {
+      "word": "Boğaz'ın",
+      "start": 23.12,
+      "end": 23.44
+    },
+    {
+      "word": "dibindeydi",
+      "start": 23.48,
+      "end": 24.08
+    },
+    {
+      "word": "ya",
+      "start": 24.32,
+      "end": 24.4
+    },
+    {
+      "word": "da",
+      "start": 24.44,
+      "end": 24.52
+    },
+    {
+      "word": "ağır",
+      "start": 24.64,
+      "end": 24.8
+    },
+    {
+      "word": "hasarla",
+      "start": 24.88,
+      "end": 25.2
+    },
+    {
+      "word": "kaçıyordu!",
+      "start": 25.28,
+      "end": 25.96
+    },
+    {
+      "word": "Peki",
+      "start": 26.16,
+      "end": 26.4
+    },
+    {
+      "word": "nasıl",
+      "start": 26.48,
+      "end": 26.72
+    },
+    {
+      "word": "oldu",
+      "start": 26.8,
+      "end": 27.013
+    },
+    {
+      "word": "da",
+      "start": 27.067,
+      "end": 27.147
+    },
+    {
+      "word": "tek",
+      "start": 27.2,
+      "end": 27.36
+    },
+    {
+      "word": "bir",
+      "start": 27.44,
+      "end": 27.52
+    },
+    {
+      "word": "günde",
+      "start": 27.6,
+      "end": 27.84
+    },
+    {
+      "word": "her",
+      "start": 27.92,
+      "end": 28.08
+    },
+    {
+      "word": "şey",
+      "start": 28.16,
+      "end": 28.24
+    },
+    {
+      "word": "tersine",
+      "start": 28.32,
+      "end": 28.72
+    },
+    {
+      "word": "döndü?",
+      "start": 28.76,
+      "end": 29.36
+    },
+    {
+      "word": "Cevap,",
+      "start": 29.6,
+      "end": 30.32
+    },
+    {
+      "word": "on",
+      "start": 30.4,
+      "end": 30.48
+    },
+    {
+      "word": "gün",
+      "start": 30.56,
+      "end": 30.64
+    },
+    {
+      "word": "önce",
+      "start": 30.72,
+      "end": 30.96
+    },
+    {
+      "word": "zifiri",
+      "start": 31.04,
+      "end": 31.36
+    },
+    {
+      "word": "karanlıkta",
+      "start": 31.44,
+      "end": 31.92
+    },
+    {
+      "word": "denize",
+      "start": 32.0,
+      "end": 32.24
+    },
+    {
+      "word": "bırakılan",
+      "start": 32.32,
+      "end": 32.8
+    },
+    {
+      "word": "yirmi",
+      "start": 32.88,
+      "end": 33.08
+    },
+    {
+      "word": "altı",
+      "start": 33.12,
+      "end": 33.28
+    },
+    {
+      "word": "gizli",
+      "start": 33.44,
+      "end": 33.68
+    },
+    {
+      "word": "mayın",
+      "start": 33.84,
+      "end": 34.0
+    },
+    {
+      "word": "ve",
+      "start": 34.24,
+      "end": 34.4
+    },
+    {
+      "word": "iki",
+      "start": 34.48,
+      "end": 34.56
+    },
+    {
+      "word": "yüz",
+      "start": 34.64,
+      "end": 34.72
+    },
+    {
+      "word": "on",
+      "start": 34.8,
+      "end": 34.88
+    },
+    {
+      "word": "beş",
+      "start": 34.96,
+      "end": 35.08
+    },
+    {
+      "word": "kiloluk",
+      "start": 35.12,
+      "end": 35.44
+    },
+    {
+      "word": "bir",
+      "start": 35.52,
+      "end": 35.6
+    },
+    {
+      "word": "top",
+      "start": 35.68,
+      "end": 35.84
+    },
+    {
+      "word": "mermisinde",
+      "start": 35.92,
+      "end": 36.4
+    },
+    {
+      "word": "saklıydı!",
+      "start": 36.44,
+      "end": 37.2
+    },
+    {
+      "word": "Önce",
+      "start": 37.62,
+      "end": 38.02
+    },
+    {
+      "word": "yedi",
+      "start": 38.1,
+      "end": 38.26
+    },
+    {
+      "word": "Mart'ı",
+      "start": 38.34,
+      "end": 38.66
+    },
+    {
+      "word": "sekiz",
+      "start": 38.74,
+      "end": 38.98
+    },
+    {
+      "word": "Mart'a",
+      "start": 39.06,
+      "end": 39.38
+    },
+    {
+      "word": "bağlayan",
+      "start": 39.46,
+      "end": 39.86
+    },
+    {
+      "word": "o",
+      "start": 40.02,
+      "end": 40.1
+    },
+    {
+      "word": "soğuk",
+      "start": 40.26,
+      "end": 40.66
+    },
+    {
+      "word": "ve",
+      "start": 40.74,
+      "end": 40.82
+    },
+    {
+      "word": "sisli",
+      "start": 40.98,
+      "end": 41.3
+    },
+    {
+      "word": "geceye",
+      "start": 41.38,
+      "end": 41.7
+    },
+    {
+      "word": "gidelim.",
+      "start": 41.74,
+      "end": 42.3
+    },
+    {
+      "word": "Çanakkale",
+      "start": 42.58,
+      "end": 43.06
+    },
+    {
+      "word": "Boğazı'nda",
+      "start": 43.1,
+      "end": 43.7
+    },
+    {
+      "word": "on",
+      "start": 43.78,
+      "end": 43.94
+    },
+    {
+      "word": "hat",
+      "start": 44.06,
+      "end": 44.18
+    },
+    {
+      "word": "mayın",
+      "start": 44.34,
+      "end": 44.5
+    },
+    {
+      "word": "zaten",
+      "start": 44.54,
+      "end": 44.9
+    },
+    {
+      "word": "döşenmişti",
+      "start": 44.927,
+      "end": 45.54
+    },
+    {
+      "word": "ve",
+      "start": 45.86,
+      "end": 46.02
+    },
+    {
+      "word": "düşman",
+      "start": 46.073,
+      "end": 46.42
+    },
+    {
+      "word": "mayın",
+      "start": 46.5,
+      "end": 46.74
+    },
+    {
+      "word": "tarama",
+      "start": 46.78,
+      "end": 47.06
+    },
+    {
+      "word": "gemileri",
+      "start": 47.14,
+      "end": 47.62
+    },
+    {
+      "word": "her",
+      "start": 47.74,
+      "end": 47.86
+    },
+    {
+      "word": "gece",
+      "start": 47.94,
+      "end": 48.1
+    },
+    {
+      "word": "Boğaz'ı",
+      "start": 48.18,
+      "end": 48.5
+    },
+    {
+      "word": "temizliyordu.",
+      "start": 48.58,
+      "end": 49.62
+    },
+    {
+      "word": "Ama",
+      "start": 49.66,
+      "end": 49.86
+    },
+    {
+      "word": "Türk",
+      "start": 49.94,
+      "end": 50.06
+    },
+    {
+      "word": "komutanlar",
+      "start": 50.1,
+      "end": 50.66
+    },
+    {
+      "word": "kritik",
+      "start": 50.74,
+      "end": 51.06
+    },
+    {
+      "word": "bir",
+      "start": 51.1,
+      "end": 51.18
+    },
+    {
+      "word": "detayı",
+      "start": 51.22,
+      "end": 51.46
+    },
+    {
+      "word": "fark",
+      "start": 51.5,
+      "end": 51.7
+    },
+    {
+      "word": "etti:",
+      "start": 51.86,
+      "end": 52.42
+    },
+    {
+      "word": "İtilaf",
+      "start": 52.5,
+      "end": 52.82
+    },
+    {
+      "word": "zırhlıları",
+      "start": 52.9,
+      "end": 53.38
+    },
+    {
+      "word": "ateş",
+      "start": 53.46,
+      "end": 53.62
+    },
+    {
+      "word": "ederken",
+      "start": 53.74,
+      "end": 54.1
+    },
+    {
+      "word": "manevra",
+      "start": 54.18,
+      "end": 54.5
+    },
+    {
+      "word": "yapmak",
+      "start": 54.58,
+      "end": 54.82
+    },
+    {
+      "word": "için",
+      "start": 54.9,
+      "end": 55.14
+    },
+    {
+      "word": "sürekli",
+      "start": 55.22,
+      "end": 55.7
+    },
+    {
+      "word": "Erenköy",
+      "start": 55.74,
+      "end": 56.18
+    },
+    {
+      "word": "Koyu'nun",
+      "start": 56.22,
+      "end": 56.5
+    },
+    {
+      "word": "içine",
+      "start": 56.58,
+      "end": 56.82
+    },
+    {
+      "word": "doğru",
+      "start": 56.9,
+      "end": 57.06
+    },
+    {
+      "word": "dönüyordu!",
+      "start": 57.14,
+      "end": 58.02
+    },
+    {
+      "word": "Elde",
+      "start": 58.153,
+      "end": 58.26
+    },
+    {
+      "word": "kalan",
+      "start": 58.34,
+      "end": 58.58
+    },
+    {
+      "word": "son",
+      "start": 58.66,
+      "end": 58.9
+    },
+    {
+      "word": "yirmi",
+      "start": 58.98,
+      "end": 59.18
+    },
+    {
+      "word": "altı",
+      "start": 59.22,
+      "end": 59.38
+    },
+    {
+      "word": "mayın",
+      "start": 59.46,
+      "end": 59.62
+    },
+    {
+      "word": "vardı.",
+      "start": 59.7,
+      "end": 60.34
+    },
+    {
+      "word": "Bu",
+      "start": 60.42,
+      "end": 60.5
+    },
+    {
+      "word": "görevi",
+      "start": 60.5,
+      "end": 60.9
+    },
+    {
+      "word": "küçücük,",
+      "start": 60.98,
+      "end": 61.62
+    },
+    {
+      "word": "yalnızca",
+      "start": 61.7,
+      "end": 62.18
+    },
+    {
+      "word": "kırk",
+      "start": 62.26,
+      "end": 62.38
+    },
+    {
+      "word": "metre",
+      "start": 62.42,
+      "end": 62.66
+    },
+    {
+      "word": "boyundaki",
+      "start": 62.74,
+      "end": 63.22
+    },
+    {
+      "word": "Nusrat",
+      "start": 63.26,
+      "end": 63.62
+    },
+    {
+      "word": "Mayın",
+      "start": 63.7,
+      "end": 63.86
+    },
+    {
+      "word": "Gemisi",
+      "start": 63.94,
+      "end": 64.18
+    },
+    {
+      "word": "üstlendi.",
+      "start": 64.26,
+      "end": 65.14
+    },
+    {
+      "word": "Yüzbaşı",
+      "start": 65.18,
+      "end": 65.54
+    },
+    {
+      "word": "Tophaneli",
+      "start": 65.62,
+      "end": 66.1
+    },
+    {
+      "word": "İsmail",
+      "start": 66.14,
+      "end": 66.5
+    },
+    {
+      "word": "Hakkı",
+      "start": 66.58,
+      "end": 66.82
+    },
+    {
+      "word": "Bey",
+      "start": 66.86,
+      "end": 67.06
+    },
+    {
+      "word": "ve",
+      "start": 67.14,
+      "end": 67.22
+    },
+    {
+      "word": "Mayın",
+      "start": 67.3,
+      "end": 67.54
+    },
+    {
+      "word": "Grup",
+      "start": 67.62,
+      "end": 67.78
+    },
+    {
+      "word": "Komutanı",
+      "start": 67.86,
+      "end": 68.26
+    },
+    {
+      "word": "Binbaşı",
+      "start": 68.34,
+      "end": 68.66
+    },
+    {
+      "word": "Nazmi",
+      "start": 68.74,
+      "end": 69.06
+    },
+    {
+      "word": "Bey,",
+      "start": 69.1,
+      "end": 69.54
+    },
+    {
+      "word": "ışıkları",
+      "start": 69.62,
+      "end": 70.02
+    },
+    {
+      "word": "tamamen",
+      "start": 70.1,
+      "end": 70.58
+    },
+    {
+      "word": "söndürülmüş",
+      "start": 70.62,
+      "end": 71.14
+    },
+    {
+      "word": "gemiyle",
+      "start": 71.22,
+      "end": 71.62
+    },
+    {
+      "word": "sessizce",
+      "start": 71.78,
+      "end": 72.34
+    },
+    {
+      "word": "karanlığa",
+      "start": 72.42,
+      "end": 72.9
+    },
+    {
+      "word": "süzüldü.",
+      "start": 72.94,
+      "end": 73.54
+    },
+    {
+      "word": "Düşman",
+      "start": 74.04,
+      "end": 74.44
+    },
+    {
+      "word": "gemilerinin",
+      "start": 74.52,
+      "end": 75.0
+    },
+    {
+      "word": "dev",
+      "start": 75.08,
+      "end": 75.32
+    },
+    {
+      "word": "projektörleri",
+      "start": 75.44,
+      "end": 76.04
+    },
+    {
+      "word": "suların",
+      "start": 76.12,
+      "end": 76.44
+    },
+    {
+      "word": "üzerinde",
+      "start": 76.52,
+      "end": 76.84
+    },
+    {
+      "word": "dolaşırken,",
+      "start": 76.92,
+      "end": 77.8
+    },
+    {
+      "word": "Nusrat",
+      "start": 77.84,
+      "end": 78.2
+    },
+    {
+      "word": "mürettebatı",
+      "start": 78.28,
+      "end": 78.92
+    },
+    {
+      "word": "kazan",
+      "start": 79.0,
+      "end": 79.32
+    },
+    {
+      "word": "dairesinden",
+      "start": 79.36,
+      "end": 80.04
+    },
+    {
+      "word": "tek",
+      "start": 80.12,
+      "end": 80.28
+    },
+    {
+      "word": "bir",
+      "start": 80.36,
+      "end": 80.44
+    },
+    {
+      "word": "kıvılcım",
+      "start": 80.52,
+      "end": 80.92
+    },
+    {
+      "word": "bile",
+      "start": 80.973,
+      "end": 81.08
+    },
+    {
+      "word": "çıkmasın",
+      "start": 81.16,
+      "end": 81.64
+    },
+    {
+      "word": "diye",
+      "start": 81.68,
+      "end": 81.8
+    },
+    {
+      "word": "nefeslerini",
+      "start": 81.88,
+      "end": 82.44
+    },
+    {
+      "word": "tuttu!",
+      "start": 82.52,
+      "end": 82.92
+    },
+    {
+      "word": "Ve",
+      "start": 83.373,
+      "end": 83.453
+    },
+    {
+      "word": "dâhice",
+      "start": 83.56,
+      "end": 84.12
+    },
+    {
+      "word": "bir",
+      "start": 84.16,
+      "end": 84.24
+    },
+    {
+      "word": "hamle",
+      "start": 84.28,
+      "end": 84.52
+    },
+    {
+      "word": "yaptılar:",
+      "start": 84.6,
+      "end": 85.32
+    },
+    {
+      "word": "Bu",
+      "start": 85.4,
+      "end": 85.48
+    },
+    {
+      "word": "kez",
+      "start": 85.56,
+      "end": 85.72
+    },
+    {
+      "word": "mayınları",
+      "start": 85.8,
+      "end": 86.2
+    },
+    {
+      "word": "Boğaz'a",
+      "start": 86.28,
+      "end": 86.6
+    },
+    {
+      "word": "dik",
+      "start": 86.653,
+      "end": 86.76
+    },
+    {
+      "word": "değil,",
+      "start": 86.84,
+      "end": 87.32
+    },
+    {
+      "word": "kıyıya",
+      "start": 87.4,
+      "end": 87.72
+    },
+    {
+      "word": "paralel",
+      "start": 87.8,
+      "end": 88.08
+    },
+    {
+      "word": "olarak,",
+      "start": 88.12,
+      "end": 88.68
+    },
+    {
+      "word": "yüz",
+      "start": 88.76,
+      "end": 88.84
+    },
+    {
+      "word": "metre",
+      "start": 88.92,
+      "end": 89.24
+    },
+    {
+      "word": "arayla,",
+      "start": 89.32,
+      "end": 89.8
+    },
+    {
+      "word": "dört",
+      "start": 89.84,
+      "end": 89.96
+    },
+    {
+      "word": "buçuk",
+      "start": 90.04,
+      "end": 90.28
+    },
+    {
+      "word": "metre",
+      "start": 90.36,
+      "end": 90.6
+    },
+    {
+      "word": "derinliğe",
+      "start": 90.68,
+      "end": 91.0
+    },
+    {
+      "word": "döşediler!",
+      "start": 91.04,
+      "end": 91.88
+    },
+    {
+      "word": "Gün",
+      "start": 91.96,
+      "end": 92.12
+    },
+    {
+      "word": "doğmadan",
+      "start": 92.2,
+      "end": 92.6
+    },
+    {
+      "word": "hemen",
+      "start": 92.68,
+      "end": 92.92
+    },
+    {
+      "word": "önce",
+      "start": 93.0,
+      "end": 93.24
+    },
+    {
+      "word": "yirmi",
+      "start": 93.4,
+      "end": 93.6
+    },
+    {
+      "word": "altıncı",
+      "start": 93.64,
+      "end": 94.0
+    },
+    {
+      "word": "mayın",
+      "start": 94.04,
+      "end": 94.28
+    },
+    {
+      "word": "da",
+      "start": 94.32,
+      "end": 94.4
+    },
+    {
+      "word": "suya",
+      "start": 94.44,
+      "end": 94.6
+    },
+    {
+      "word": "bırakıldı",
+      "start": 94.68,
+      "end": 95.16
+    },
+    {
+      "word": "ve",
+      "start": 95.48,
+      "end": 95.56
+    },
+    {
+      "word": "Nusrat",
+      "start": 95.64,
+      "end": 96.04
+    },
+    {
+      "word": "fark",
+      "start": 96.12,
+      "end": 96.36
+    },
+    {
+      "word": "edilmeden",
+      "start": 96.4,
+      "end": 96.84
+    },
+    {
+      "word": "geri",
+      "start": 96.92,
+      "end": 97.12
+    },
+    {
+      "word": "döndü.",
+      "start": 97.16,
+      "end": 97.88
+    },
+    {
+      "word": "İngiliz",
+      "start": 97.92,
+      "end": 98.28
+    },
+    {
+      "word": "keşif",
+      "start": 98.36,
+      "end": 98.52
+    },
+    {
+      "word": "uçakları",
+      "start": 98.6,
+      "end": 99.0
+    },
+    {
+      "word": "ve",
+      "start": 99.08,
+      "end": 99.16
+    },
+    {
+      "word": "mayın",
+      "start": 99.24,
+      "end": 99.48
+    },
+    {
+      "word": "tarayıcılar",
+      "start": 99.56,
+      "end": 100.04
+    },
+    {
+      "word": "günlerce",
+      "start": 100.2,
+      "end": 100.68
+    },
+    {
+      "word": "Boğaz'ı",
+      "start": 100.76,
+      "end": 101.08
+    },
+    {
+      "word": "kontrol",
+      "start": 101.2,
+      "end": 101.4
+    },
+    {
+      "word": "etti",
+      "start": 101.48,
+      "end": 101.8
+    },
+    {
+      "word": "ama",
+      "start": 102.12,
+      "end": 102.36
+    },
+    {
+      "word": "o",
+      "start": 102.44,
+      "end": 102.52
+    },
+    {
+      "word": "paralel",
+      "start": 102.6,
+      "end": 102.88
+    },
+    {
+      "word": "hattı",
+      "start": 102.92,
+      "end": 103.32
+    },
+    {
+      "word": "asla",
+      "start": 103.44,
+      "end": 103.72
+    },
+    {
+      "word": "göremedi.",
+      "start": 103.8,
+      "end": 104.6
+    },
+    {
+      "word": "Kapan",
+      "start": 104.64,
+      "end": 104.92
+    },
+    {
+      "word": "artık",
+      "start": 105.0,
+      "end": 105.24
+    },
+    {
+      "word": "kurulmuştu!",
+      "start": 105.32,
+      "end": 106.12
+    },
+    {
+      "word": "Ve",
+      "start": 106.54,
+      "end": 106.62
+    },
+    {
+      "word": "beklenen",
+      "start": 106.7,
+      "end": 107.18
+    },
+    {
+      "word": "gün",
+      "start": 107.26,
+      "end": 107.34
+    },
+    {
+      "word": "geldi:",
+      "start": 107.42,
+      "end": 108.22
+    },
+    {
+      "word": "On",
+      "start": 108.3,
+      "end": 108.38
+    },
+    {
+      "word": "sekiz",
+      "start": 108.46,
+      "end": 108.7
+    },
+    {
+      "word": "Mart",
+      "start": 108.78,
+      "end": 109.02
+    },
+    {
+      "word": "bin",
+      "start": 109.1,
+      "end": 109.18
+    },
+    {
+      "word": "dokuz",
+      "start": 109.22,
+      "end": 109.5
+    },
+    {
+      "word": "yüz",
+      "start": 109.54,
+      "end": 109.66
+    },
+    {
+      "word": "on",
+      "start": 109.74,
+      "end": 109.82
+    },
+    {
+      "word": "beş,",
+      "start": 109.82,
+      "end": 110.18
+    },
+    {
+      "word": "saat",
+      "start": 110.38,
+      "end": 110.7
+    },
+    {
+      "word": "on",
+      "start": 110.78,
+      "end": 110.86
+    },
+    {
+      "word": "bir!",
+      "start": 110.94,
+      "end": 111.66
+    },
+    {
+      "word": "Amiral",
+      "start": 111.74,
+      "end": 112.06
+    },
+    {
+      "word": "de",
+      "start": 112.1,
+      "end": 112.18
+    },
+    {
+      "word": "Robeck",
+      "start": 112.22,
+      "end": 112.54
+    },
+    {
+      "word": "emri",
+      "start": 112.62,
+      "end": 112.78
+    },
+    {
+      "word": "verdi,",
+      "start": 112.86,
+      "end": 113.58
+    },
+    {
+      "word": "dev",
+      "start": 113.7,
+      "end": 113.82
+    },
+    {
+      "word": "zırhlılar",
+      "start": 113.86,
+      "end": 114.3
+    },
+    {
+      "word": "Boğaz'a",
+      "start": 114.38,
+      "end": 114.74
+    },
+    {
+      "word": "girip",
+      "start": 114.78,
+      "end": 115.02
+    },
+    {
+      "word": "Türk",
+      "start": 115.1,
+      "end": 115.3
+    },
+    {
+      "word": "tabyalarını",
+      "start": 115.34,
+      "end": 115.9
+    },
+    {
+      "word": "cehennem",
+      "start": 115.98,
+      "end": 116.38
+    },
+    {
+      "word": "ateşine",
+      "start": 116.5,
+      "end": 116.78
+    },
+    {
+      "word": "tuttu.",
+      "start": 116.82,
+      "end": 117.38
+    },
+    {
+      "word": "Saat",
+      "start": 117.66,
+      "end": 117.9
+    },
+    {
+      "word": "on",
+      "start": 117.98,
+      "end": 118.06
+    },
+    {
+      "word": "dörde",
+      "start": 118.14,
+      "end": 118.3
+    },
+    {
+      "word": "doğru",
+      "start": 118.38,
+      "end": 118.62
+    },
+    {
+      "word": "Fransız",
+      "start": 118.7,
+      "end": 119.02
+    },
+    {
+      "word": "zırhlısı",
+      "start": 119.1,
+      "end": 119.5
+    },
+    {
+      "word": "Bouvet,",
+      "start": 119.54,
+      "end": 120.14
+    },
+    {
+      "word": "tam",
+      "start": 120.22,
+      "end": 120.3
+    },
+    {
+      "word": "da",
+      "start": 120.38,
+      "end": 120.46
+    },
+    {
+      "word": "Nusrat'ın",
+      "start": 120.5,
+      "end": 120.86
+    },
+    {
+      "word": "döşediği",
+      "start": 120.94,
+      "end": 121.34
+    },
+    {
+      "word": "o",
+      "start": 121.38,
+      "end": 121.46
+    },
+    {
+      "word": "gizli",
+      "start": 121.5,
+      "end": 121.74
+    },
+    {
+      "word": "hatta",
+      "start": 121.86,
+      "end": 122.06
+    },
+    {
+      "word": "girdi!",
+      "start": 122.1,
+      "end": 122.46
+    },
+    {
+      "word": "Korkunç",
+      "start": 122.86,
+      "end": 123.34
+    },
+    {
+      "word": "bir",
+      "start": 123.42,
+      "end": 123.5
+    },
+    {
+      "word": "patlama",
+      "start": 123.58,
+      "end": 123.9
+    },
+    {
+      "word": "Boğaz'ı",
+      "start": 123.98,
+      "end": 124.353
+    },
+    {
+      "word": "sarstı.",
+      "start": 124.407,
+      "end": 125.1
+    },
+    {
+      "word": "Koskoca",
+      "start": 125.14,
+      "end": 125.58
+    },
+    {
+      "word": "savaş",
+      "start": 125.66,
+      "end": 125.9
+    },
+    {
+      "word": "gemisi",
+      "start": 125.98,
+      "end": 126.3
+    },
+    {
+      "word": "sadece",
+      "start": 126.38,
+      "end": 126.78
+    },
+    {
+      "word": "iki",
+      "start": 126.86,
+      "end": 127.02
+    },
+    {
+      "word": "dakika",
+      "start": 127.06,
+      "end": 127.42
+    },
+    {
+      "word": "içinde,",
+      "start": 127.46,
+      "end": 128.14
+    },
+    {
+      "word": "altı",
+      "start": 128.3,
+      "end": 128.46
+    },
+    {
+      "word": "yüzden",
+      "start": 128.54,
+      "end": 128.78
+    },
+    {
+      "word": "fazla",
+      "start": 128.86,
+      "end": 129.1
+    },
+    {
+      "word": "denizcisiyle",
+      "start": 129.18,
+      "end": 129.66
+    },
+    {
+      "word": "birlikte",
+      "start": 129.74,
+      "end": 130.06
+    },
+    {
+      "word": "sulara",
+      "start": 130.14,
+      "end": 130.46
+    },
+    {
+      "word": "gömüldü!",
+      "start": 130.54,
+      "end": 131.1
+    },
+    {
+      "word": "Ardından",
+      "start": 131.327,
+      "end": 131.74
+    },
+    {
+      "word": "İngiliz",
+      "start": 131.9,
+      "end": 132.22
+    },
+    {
+      "word": "zırhlısı",
+      "start": 132.3,
+      "end": 132.7
+    },
+    {
+      "word": "Inflexible",
+      "start": 132.78,
+      "end": 133.42
+    },
+    {
+      "word": "ve",
+      "start": 133.46,
+      "end": 133.54
+    },
+    {
+      "word": "Irresistible",
+      "start": 133.66,
+      "end": 134.3
+    },
+    {
+      "word": "da",
+      "start": 134.38,
+      "end": 134.46
+    },
+    {
+      "word": "aynı",
+      "start": 134.54,
+      "end": 134.7
+    },
+    {
+      "word": "tuzağa",
+      "start": 134.78,
+      "end": 135.047
+    },
+    {
+      "word": "yakalandı.",
+      "start": 135.073,
+      "end": 135.9
+    },
+    {
+      "word": "Müttefik",
+      "start": 135.94,
+      "end": 136.3
+    },
+    {
+      "word": "donanmasında",
+      "start": 136.38,
+      "end": 137.1
+    },
+    {
+      "word": "tam",
+      "start": 137.22,
+      "end": 137.34
+    },
+    {
+      "word": "bir",
+      "start": 137.42,
+      "end": 137.5
+    },
+    {
+      "word": "şok",
+      "start": 137.54,
+      "end": 137.74
+    },
+    {
+      "word": "ve",
+      "start": 137.78,
+      "end": 137.86
+    },
+    {
+      "word": "panik",
+      "start": 137.9,
+      "end": 138.14
+    },
+    {
+      "word": "başladı.",
+      "start": 138.22,
+      "end": 138.86
+    },
+    {
+      "word": "Aynı",
+      "start": 139.28,
+      "end": 139.52
+    },
+    {
+      "word": "dakikalarda",
+      "start": 139.56,
+      "end": 140.24
+    },
+    {
+      "word": "Rumeli",
+      "start": 140.4,
+      "end": 140.72
+    },
+    {
+      "word": "Mecidiye",
+      "start": 140.76,
+      "end": 141.12
+    },
+    {
+      "word": "Tabyası'nda",
+      "start": 141.2,
+      "end": 141.68
+    },
+    {
+      "word": "ise",
+      "start": 141.76,
+      "end": 142.0
+    },
+    {
+      "word": "tarihe",
+      "start": 142.32,
+      "end": 142.72
+    },
+    {
+      "word": "geçecek",
+      "start": 142.76,
+      "end": 143.12
+    },
+    {
+      "word": "bir",
+      "start": 143.2,
+      "end": 143.28
+    },
+    {
+      "word": "mucize",
+      "start": 143.36,
+      "end": 143.76
+    },
+    {
+      "word": "yaşanıyordu.",
+      "start": 143.84,
+      "end": 144.68
+    },
+    {
+      "word": "Yoğun",
+      "start": 145.04,
+      "end": 145.28
+    },
+    {
+      "word": "bombardımanda",
+      "start": 145.36,
+      "end": 146.08
+    },
+    {
+      "word": "tabyadaki",
+      "start": 146.24,
+      "end": 146.72
+    },
+    {
+      "word": "topların",
+      "start": 146.8,
+      "end": 147.12
+    },
+    {
+      "word": "çoğu",
+      "start": 147.2,
+      "end": 147.44
+    },
+    {
+      "word": "sustu;",
+      "start": 147.48,
+      "end": 148.32
+    },
+    {
+      "word": "ayakta",
+      "start": 148.4,
+      "end": 148.72
+    },
+    {
+      "word": "kalan",
+      "start": 148.8,
+      "end": 148.96
+    },
+    {
+      "word": "tek",
+      "start": 149.12,
+      "end": 149.28
+    },
+    {
+      "word": "iki",
+      "start": 149.36,
+      "end": 149.52
+    },
+    {
+      "word": "yüz",
+      "start": 149.56,
+      "end": 149.68
+    },
+    {
+      "word": "kırk",
+      "start": 149.76,
+      "end": 149.88
+    },
+    {
+      "word": "milimetrelik",
+      "start": 149.92,
+      "end": 150.4
+    },
+    {
+      "word": "topun",
+      "start": 150.48,
+      "end": 150.72
+    },
+    {
+      "word": "da",
+      "start": 150.8,
+      "end": 150.88
+    },
+    {
+      "word": "mermi",
+      "start": 151.2,
+      "end": 151.44
+    },
+    {
+      "word": "kaldırma",
+      "start": 151.52,
+      "end": 151.84
+    },
+    {
+      "word": "vinci",
+      "start": 151.92,
+      "end": 152.16
+    },
+    {
+      "word": "kırıldı!",
+      "start": 152.24,
+      "end": 152.88
+    },
+    {
+      "word": "Top",
+      "start": 153.12,
+      "end": 153.28
+    },
+    {
+      "word": "sağlamdı,",
+      "start": 153.36,
+      "end": 154.08
+    },
+    {
+      "word": "mermi",
+      "start": 154.16,
+      "end": 154.4
+    },
+    {
+      "word": "yerdeydi",
+      "start": 154.48,
+      "end": 154.96
+    },
+    {
+      "word": "ama",
+      "start": 155.28,
+      "end": 155.44
+    },
+    {
+      "word": "onu",
+      "start": 155.52,
+      "end": 155.68
+    },
+    {
+      "word": "namluya",
+      "start": 155.72,
+      "end": 156.08
+    },
+    {
+      "word": "kaldıracak",
+      "start": 156.16,
+      "end": 156.56
+    },
+    {
+      "word": "mekanizma",
+      "start": 156.64,
+      "end": 157.12
+    },
+    {
+      "word": "yoktu.",
+      "start": 157.16,
+      "end": 157.52
+    },
+    {
+      "word": "İşte",
+      "start": 158.053,
+      "end": 158.24
+    },
+    {
+      "word": "o",
+      "start": 158.32,
+      "end": 158.4
+    },
+    {
+      "word": "an",
+      "start": 158.48,
+      "end": 158.64
+    },
+    {
+      "word": "Balıkesirli",
+      "start": 158.72,
+      "end": 159.28
+    },
+    {
+      "word": "topçu",
+      "start": 159.36,
+      "end": 159.6
+    },
+    {
+      "word": "eri",
+      "start": 159.72,
+      "end": 159.84
+    },
+    {
+      "word": "Seyit",
+      "start": 159.88,
+      "end": 160.08
+    },
+    {
+      "word": "Ali",
+      "start": 160.2,
+      "end": 160.32
+    },
+    {
+      "word": "Çabuk",
+      "start": 160.36,
+      "end": 160.64
+    },
+    {
+      "word": "ileri",
+      "start": 160.72,
+      "end": 160.88
+    },
+    {
+      "word": "atıldı.",
+      "start": 160.96,
+      "end": 161.68
+    },
+    {
+      "word": "Silah",
+      "start": 161.76,
+      "end": 161.92
+    },
+    {
+      "word": "arkadaşı",
+      "start": 162.0,
+      "end": 162.4
+    },
+    {
+      "word": "Niğdeli",
+      "start": 162.48,
+      "end": 162.8
+    },
+    {
+      "word": "Ali'nin",
+      "start": 162.88,
+      "end": 163.12
+    },
+    {
+      "word": "yardımıyla",
+      "start": 163.24,
+      "end": 163.68
+    },
+    {
+      "word": "tam",
+      "start": 163.92,
+      "end": 164.16
+    },
+    {
+      "word": "iki",
+      "start": 164.24,
+      "end": 164.4
+    },
+    {
+      "word": "yüz",
+      "start": 164.48,
+      "end": 164.56
+    },
+    {
+      "word": "on",
+      "start": 164.72,
+      "end": 164.8
+    },
+    {
+      "word": "beş",
+      "start": 164.8,
+      "end": 164.96
+    },
+    {
+      "word": "kiloluk",
+      "start": 165.04,
+      "end": 165.36
+    },
+    {
+      "word": "o",
+      "start": 165.44,
+      "end": 165.52
+    },
+    {
+      "word": "dev",
+      "start": 165.6,
+      "end": 165.84
+    },
+    {
+      "word": "mermiyi",
+      "start": 165.92,
+      "end": 166.24
+    },
+    {
+      "word": "sırtladı!",
+      "start": 166.32,
+      "end": 167.2
+    },
+    {
+      "word": "Demir",
+      "start": 167.28,
+      "end": 167.44
+    },
+    {
+      "word": "basamakları",
+      "start": 167.52,
+      "end": 168.0
+    },
+    {
+      "word": "titreyerek",
+      "start": 168.08,
+      "end": 168.56
+    },
+    {
+      "word": "çıktı,",
+      "start": 168.64,
+      "end": 169.2
+    },
+    {
+      "word": "mermiyi",
+      "start": 169.32,
+      "end": 169.6
+    },
+    {
+      "word": "kundağa",
+      "start": 169.68,
+      "end": 170.0
+    },
+    {
+      "word": "sürdü",
+      "start": 170.08,
+      "end": 170.4
+    },
+    {
+      "word": "ve",
+      "start": 170.64,
+      "end": 170.72
+    },
+    {
+      "word": "ateşledi.",
+      "start": 170.8,
+      "end": 171.76
+    },
+    {
+      "word": "Üçüncü",
+      "start": 171.8,
+      "end": 172.08
+    },
+    {
+      "word": "atışında",
+      "start": 172.16,
+      "end": 172.64
+    },
+    {
+      "word": "İngilizlerin",
+      "start": 172.88,
+      "end": 173.52
+    },
+    {
+      "word": "dev",
+      "start": 173.6,
+      "end": 173.76
+    },
+    {
+      "word": "zırhlısı",
+      "start": 173.84,
+      "end": 174.32
+    },
+    {
+      "word": "Ocean'ı",
+      "start": 174.52,
+      "end": 174.8
+    },
+    {
+      "word": "tam",
+      "start": 174.96,
+      "end": 175.2
+    },
+    {
+      "word": "dümenden",
+      "start": 175.24,
+      "end": 175.68
+    },
+    {
+      "word": "vurdu!",
+      "start": 175.76,
+      "end": 176.32
+    },
+    {
+      "word": "Dümeni",
+      "start": 176.74,
+      "end": 177.06
+    },
+    {
+      "word": "kilitlenen",
+      "start": 177.14,
+      "end": 177.62
+    },
+    {
+      "word": "Ocean",
+      "start": 177.82,
+      "end": 178.02
+    },
+    {
+      "word": "kontrolden",
+      "start": 178.1,
+      "end": 178.66
+    },
+    {
+      "word": "çıkıp",
+      "start": 178.74,
+      "end": 179.06
+    },
+    {
+      "word": "döne",
+      "start": 179.14,
+      "end": 179.38
+    },
+    {
+      "word": "döne",
+      "start": 179.42,
+      "end": 179.62
+    },
+    {
+      "word": "Erenköy",
+      "start": 179.7,
+      "end": 180.18
+    },
+    {
+      "word": "Koyu'na",
+      "start": 180.22,
+      "end": 180.5
+    },
+    {
+      "word": "sürüklendi",
+      "start": 180.54,
+      "end": 181.06
+    },
+    {
+      "word": "ve",
+      "start": 181.38,
+      "end": 181.46
+    },
+    {
+      "word": "Nusrat'ın",
+      "start": 181.54,
+      "end": 182.02
+    },
+    {
+      "word": "mayınlarından",
+      "start": 182.14,
+      "end": 182.66
+    },
+    {
+      "word": "birine",
+      "start": 182.74,
+      "end": 182.98
+    },
+    {
+      "word": "çarpıp",
+      "start": 183.06,
+      "end": 183.54
+    },
+    {
+      "word": "battı!",
+      "start": 183.647,
+      "end": 184.26
+    },
+    {
+      "word": "Saat",
+      "start": 184.58,
+      "end": 184.82
+    },
+    {
+      "word": "on",
+      "start": 184.98,
+      "end": 185.06
+    },
+    {
+      "word": "yedi",
+      "start": 185.14,
+      "end": 185.22
+    },
+    {
+      "word": "ellide",
+      "start": 185.3,
+      "end": 185.7
+    },
+    {
+      "word": "Amiral",
+      "start": 185.86,
+      "end": 186.18
+    },
+    {
+      "word": "de",
+      "start": 186.22,
+      "end": 186.3
+    },
+    {
+      "word": "Robeck",
+      "start": 186.34,
+      "end": 186.66
+    },
+    {
+      "word": "yenilgiyi",
+      "start": 186.74,
+      "end": 187.14
+    },
+    {
+      "word": "kabul",
+      "start": 187.22,
+      "end": 187.46
+    },
+    {
+      "word": "edip",
+      "start": 187.5,
+      "end": 187.78
+    },
+    {
+      "word": "donanmaya",
+      "start": 187.86,
+      "end": 188.34
+    },
+    {
+      "word": "geri",
+      "start": 188.38,
+      "end": 188.5
+    },
+    {
+      "word": "çekilme",
+      "start": 188.58,
+      "end": 188.9
+    },
+    {
+      "word": "emri",
+      "start": 188.94,
+      "end": 189.06
+    },
+    {
+      "word": "verdi.",
+      "start": 189.14,
+      "end": 189.94
+    },
+    {
+      "word": "Ertesi",
+      "start": 190.02,
+      "end": 190.34
+    },
+    {
+      "word": "gün",
+      "start": 190.42,
+      "end": 190.5
+    },
+    {
+      "word": "komutanlar",
+      "start": 190.58,
+      "end": 191.14
+    },
+    {
+      "word": "Seyit",
+      "start": 191.22,
+      "end": 191.46
+    },
+    {
+      "word": "Onbaşı'dan",
+      "start": 191.54,
+      "end": 192.02
+    },
+    {
+      "word": "fotoğraf",
+      "start": 192.14,
+      "end": 192.42
+    },
+    {
+      "word": "için",
+      "start": 192.46,
+      "end": 192.74
+    },
+    {
+      "word": "aynı",
+      "start": 192.82,
+      "end": 193.06
+    },
+    {
+      "word": "mermiyi",
+      "start": 193.14,
+      "end": 193.46
+    },
+    {
+      "word": "tekrar",
+      "start": 193.54,
+      "end": 193.78
+    },
+    {
+      "word": "kaldırmasını",
+      "start": 193.86,
+      "end": 194.34
+    },
+    {
+      "word": "istedi",
+      "start": 194.5,
+      "end": 194.98
+    },
+    {
+      "word": "ama",
+      "start": 195.1,
+      "end": 195.22
+    },
+    {
+      "word": "kaldıramadı;",
+      "start": 195.3,
+      "end": 196.22
+    },
+    {
+      "word": "fotoğraf",
+      "start": 196.26,
+      "end": 196.74
+    },
+    {
+      "word": "ancak",
+      "start": 196.86,
+      "end": 197.22
+    },
+    {
+      "word": "tahta",
+      "start": 197.26,
+      "end": 197.54
+    },
+    {
+      "word": "bir",
+      "start": 197.62,
+      "end": 197.7
+    },
+    {
+      "word": "maketle",
+      "start": 197.78,
+      "end": 198.1
+    },
+    {
+      "word": "çekilebildi.",
+      "start": 198.18,
+      "end": 198.98
+    },
+    {
+      "word": "Çünkü",
+      "start": 199.049,
+      "end": 199.3
+    },
+    {
+      "word": "o",
+      "start": 199.34,
+      "end": 199.42
+    },
+    {
+      "word": "güç",
+      "start": 199.46,
+      "end": 199.62
+    },
+    {
+      "word": "sadece",
+      "start": 199.7,
+      "end": 200.1
+    },
+    {
+      "word": "kasta",
+      "start": 200.18,
+      "end": 200.42
+    },
+    {
+      "word": "değil,",
+      "start": 200.5,
+      "end": 200.98
+    },
+    {
+      "word": "o",
+      "start": 201.06,
+      "end": 201.14
+    },
+    {
+      "word": "anın",
+      "start": 201.22,
+      "end": 201.54
+    },
+    {
+      "word": "inancındaydı!",
+      "start": 201.62,
+      "end": 202.82
+    },
+    {
+      "word": "Nusrat'ın",
+      "start": 202.9,
+      "end": 203.3
+    },
+    {
+      "word": "yirmi",
+      "start": 203.38,
+      "end": 203.58
+    },
+    {
+      "word": "altı",
+      "start": 203.62,
+      "end": 203.78
+    },
+    {
+      "word": "mayını",
+      "start": 203.86,
+      "end": 204.18
+    },
+    {
+      "word": "ve",
+      "start": 204.26,
+      "end": 204.34
+    },
+    {
+      "word": "Seyit",
+      "start": 204.42,
+      "end": 204.66
+    },
+    {
+      "word": "Onbaşı'nın",
+      "start": 204.74,
+      "end": 205.22
+    },
+    {
+      "word": "o",
+      "start": 205.3,
+      "end": 205.38
+    },
+    {
+      "word": "atışı,",
+      "start": 205.46,
+      "end": 206.02
+    },
+    {
+      "word": "dünyaya",
+      "start": 206.1,
+      "end": 206.58
+    },
+    {
+      "word": "tek",
+      "start": 206.66,
+      "end": 206.74
+    },
+    {
+      "word": "bir",
+      "start": 206.82,
+      "end": 206.9
+    },
+    {
+      "word": "cümle",
+      "start": 206.98,
+      "end": 207.22
+    },
+    {
+      "word": "ezberletti:",
+      "start": 207.3,
+      "end": 208.26
+    },
+    {
+      "word": "Çanakkale",
+      "start": 208.3,
+      "end": 208.82
+    },
+    {
+      "word": "Geçilmez!",
+      "start": 208.9,
+      "end": 209.78
+    }
+  ],
+  "chunks": [
+    {
+      "text": "On sekiz Mart bin dokuz",
+      "start": 0.08,
+      "end": 1.44
+    },
+    {
+      "text": "yüz on beş sabahı,",
+      "start": 1.44,
+      "end": 2.8
+    },
+    {
+      "text": "dünyanın en büyük imparatorlukları",
+      "start": 2.8,
+      "end": 4.72
+    },
+    {
+      "text": "Çanakkale Boğazı'nın girişinde tek",
+      "start": 4.96,
+      "end": 6.96
+    },
+    {
+      "text": "bir hedefle toplandı.",
+      "start": 6.96,
+      "end": 8.16
+    },
+    {
+      "text": "On sekiz dev zırhlı savaş",
+      "start": 8.4,
+      "end": 10.0
+    },
+    {
+      "text": "gemisi, yüzlerce ağır top ve",
+      "start": 10.0,
+      "end": 12.08
+    },
+    {
+      "text": "binlerce denizci!",
+      "start": 12.08,
+      "end": 13.2
+    },
+    {
+      "text": "İngiliz ve Fransız amiraller o",
+      "start": 13.6,
+      "end": 15.28
+    },
+    {
+      "text": "kadar emindi ki,",
+      "start": 15.28,
+      "end": 16.48
+    },
+    {
+      "text": "aynı akşam İstanbul'da çay",
+      "start": 16.48,
+      "end": 17.88
+    },
+    {
+      "text": "içeceklerini söylüyorlardı.",
+      "start": 17.88,
+      "end": 19.2
+    },
+    {
+      "text": "Ama gün bittiğinde o yenilmez",
+      "start": 19.589,
+      "end": 21.44
+    },
+    {
+      "text": "denen donanmanın üçte biri ya",
+      "start": 21.44,
+      "end": 23.12
+    },
+    {
+      "text": "Boğaz'ın dibindeydi ya da ağır",
+      "start": 23.12,
+      "end": 24.88
+    },
+    {
+      "text": "hasarla kaçıyordu!",
+      "start": 24.88,
+      "end": 25.96
+    },
+    {
+      "text": "Peki nasıl oldu da tek",
+      "start": 26.16,
+      "end": 27.44
+    },
+    {
+      "text": "bir günde her şey tersine",
+      "start": 27.44,
+      "end": 28.76
+    },
+    {
+      "text": "döndü?",
+      "start": 28.76,
+      "end": 29.36
+    },
+    {
+      "text": "Cevap, on gün önce zifiri",
+      "start": 29.6,
+      "end": 31.44
+    },
+    {
+      "text": "karanlıkta denize bırakılan yirmi",
+      "start": 31.44,
+      "end": 33.12
+    },
+    {
+      "text": "altı gizli mayın ve iki",
+      "start": 33.12,
+      "end": 34.64
+    },
+    {
+      "text": "yüz on beş kiloluk bir",
+      "start": 34.64,
+      "end": 35.68
+    },
+    {
+      "text": "top mermisinde saklıydı!",
+      "start": 35.68,
+      "end": 37.2
+    },
+    {
+      "text": "Önce yedi Mart'ı sekiz Mart'a",
+      "start": 37.62,
+      "end": 39.46
+    },
+    {
+      "text": "bağlayan o soğuk ve sisli",
+      "start": 39.46,
+      "end": 41.38
+    },
+    {
+      "text": "geceye gidelim.",
+      "start": 41.38,
+      "end": 42.3
+    },
+    {
+      "text": "Çanakkale Boğazı'nda on hat mayın",
+      "start": 42.58,
+      "end": 44.54
+    },
+    {
+      "text": "zaten döşenmişti ve düşman mayın",
+      "start": 44.54,
+      "end": 46.78
+    },
+    {
+      "text": "tarama gemileri her gece Boğaz'ı",
+      "start": 46.78,
+      "end": 48.58
+    },
+    {
+      "text": "temizliyordu.",
+      "start": 48.58,
+      "end": 49.66
+    },
+    {
+      "text": "Ama Türk komutanlar kritik bir",
+      "start": 49.66,
+      "end": 51.22
+    },
+    {
+      "text": "detayı fark etti:",
+      "start": 51.22,
+      "end": 52.5
+    },
+    {
+      "text": "İtilaf zırhlıları ateş ederken",
+      "start": 52.5,
+      "end": 54.18
+    },
+    {
+      "text": "manevra yapmak için sürekli",
+      "start": 54.18,
+      "end": 55.74
+    },
+    {
+      "text": "Erenköy Koyu'nun içine doğru",
+      "start": 55.74,
+      "end": 57.14
+    },
+    {
+      "text": "dönüyordu!",
+      "start": 57.14,
+      "end": 58.153
+    },
+    {
+      "text": "Elde kalan son yirmi altı",
+      "start": 58.153,
+      "end": 59.46
+    },
+    {
+      "text": "mayın vardı.",
+      "start": 59.46,
+      "end": 60.42
+    },
+    {
+      "text": "Bu görevi küçücük,",
+      "start": 60.42,
+      "end": 61.7
+    },
+    {
+      "text": "yalnızca kırk metre boyundaki",
+      "start": 61.7,
+      "end": 63.26
+    },
+    {
+      "text": "Nusrat Mayın Gemisi üstlendi.",
+      "start": 63.26,
+      "end": 65.18
+    },
+    {
+      "text": "Yüzbaşı Tophaneli İsmail Hakkı Bey",
+      "start": 65.18,
+      "end": 67.14
+    },
+    {
+      "text": "ve Mayın Grup Komutanı Binbaşı",
+      "start": 67.14,
+      "end": 68.74
+    },
+    {
+      "text": "Nazmi Bey, ışıkları tamamen",
+      "start": 68.74,
+      "end": 70.62
+    },
+    {
+      "text": "söndürülmüş gemiyle sessizce",
+      "start": 70.62,
+      "end": 72.42
+    },
+    {
+      "text": "karanlığa süzüldü.",
+      "start": 72.42,
+      "end": 73.54
+    },
+    {
+      "text": "Düşman gemilerinin dev",
+      "start": 74.04,
+      "end": 75.44
+    },
+    {
+      "text": "projektörleri suların üzerinde",
+      "start": 75.44,
+      "end": 76.92
+    },
+    {
+      "text": "dolaşırken, Nusrat mürettebatı",
+      "start": 76.92,
+      "end": 79.0
+    },
+    {
+      "text": "kazan dairesinden tek bir kıvılcım",
+      "start": 79.0,
+      "end": 80.973
+    },
+    {
+      "text": "bile çıkmasın diye nefeslerini",
+      "start": 80.973,
+      "end": 82.52
+    },
+    {
+      "text": "tuttu!",
+      "start": 82.52,
+      "end": 82.92
+    },
+    {
+      "text": "Ve dâhice bir hamle yaptılar:",
+      "start": 83.373,
+      "end": 85.4
+    },
+    {
+      "text": "Bu kez mayınları Boğaz'a dik",
+      "start": 85.4,
+      "end": 86.84
+    },
+    {
+      "text": "değil, kıyıya paralel olarak,",
+      "start": 86.84,
+      "end": 88.76
+    },
+    {
+      "text": "yüz metre arayla,",
+      "start": 88.76,
+      "end": 89.84
+    },
+    {
+      "text": "dört buçuk metre derinliğe",
+      "start": 89.84,
+      "end": 91.04
+    },
+    {
+      "text": "döşediler!",
+      "start": 91.04,
+      "end": 91.96
+    },
+    {
+      "text": "Gün doğmadan hemen önce yirmi",
+      "start": 91.96,
+      "end": 93.64
+    },
+    {
+      "text": "altıncı mayın da suya bırakıldı",
+      "start": 93.64,
+      "end": 95.16
+    },
+    {
+      "text": "ve Nusrat fark edilmeden geri",
+      "start": 95.48,
+      "end": 97.16
+    },
+    {
+      "text": "döndü.",
+      "start": 97.16,
+      "end": 97.92
+    },
+    {
+      "text": "İngiliz keşif uçakları ve mayın",
+      "start": 97.92,
+      "end": 99.56
+    },
+    {
+      "text": "tarayıcılar günlerce Boğaz'ı",
+      "start": 99.56,
+      "end": 101.2
+    },
+    {
+      "text": "kontrol etti ama o paralel",
+      "start": 101.2,
+      "end": 102.92
+    },
+    {
+      "text": "hattı asla göremedi.",
+      "start": 102.92,
+      "end": 104.64
+    },
+    {
+      "text": "Kapan artık kurulmuştu!",
+      "start": 104.64,
+      "end": 106.12
+    },
+    {
+      "text": "Ve beklenen gün geldi:",
+      "start": 106.54,
+      "end": 108.3
+    },
+    {
+      "text": "On sekiz Mart bin dokuz",
+      "start": 108.3,
+      "end": 109.54
+    },
+    {
+      "text": "yüz on beş,",
+      "start": 109.54,
+      "end": 110.18
+    },
+    {
+      "text": "saat on bir!",
+      "start": 110.38,
+      "end": 111.74
+    },
+    {
+      "text": "Amiral de Robeck emri verdi,",
+      "start": 111.74,
+      "end": 113.7
+    },
+    {
+      "text": "dev zırhlılar Boğaz'a girip Türk",
+      "start": 113.7,
+      "end": 115.34
+    },
+    {
+      "text": "tabyalarını cehennem ateşine",
+      "start": 115.34,
+      "end": 116.82
+    },
+    {
+      "text": "tuttu.",
+      "start": 116.82,
+      "end": 117.38
+    },
+    {
+      "text": "Saat on dörde doğru Fransız",
+      "start": 117.66,
+      "end": 119.1
+    },
+    {
+      "text": "zırhlısı Bouvet, tam da Nusrat'ın",
+      "start": 119.1,
+      "end": 120.94
+    },
+    {
+      "text": "döşediği o gizli hatta girdi!",
+      "start": 120.94,
+      "end": 122.46
+    },
+    {
+      "text": "Korkunç bir patlama Boğaz'ı",
+      "start": 122.86,
+      "end": 124.407
+    },
+    {
+      "text": "sarstı.",
+      "start": 124.407,
+      "end": 125.14
+    },
+    {
+      "text": "Koskoca savaş gemisi sadece iki",
+      "start": 125.14,
+      "end": 127.06
+    },
+    {
+      "text": "dakika içinde, altı yüzden fazla",
+      "start": 127.06,
+      "end": 129.18
+    },
+    {
+      "text": "denizcisiyle birlikte sulara",
+      "start": 129.18,
+      "end": 130.54
+    },
+    {
+      "text": "gömüldü!",
+      "start": 130.54,
+      "end": 131.1
+    },
+    {
+      "text": "Ardından İngiliz zırhlısı",
+      "start": 131.327,
+      "end": 132.78
+    },
+    {
+      "text": "Inflexible ve Irresistible da aynı",
+      "start": 132.78,
+      "end": 134.78
+    },
+    {
+      "text": "tuzağa yakalandı.",
+      "start": 134.78,
+      "end": 135.94
+    },
+    {
+      "text": "Müttefik donanmasında tam bir şok",
+      "start": 135.94,
+      "end": 137.78
+    },
+    {
+      "text": "ve panik başladı.",
+      "start": 137.78,
+      "end": 138.86
+    },
+    {
+      "text": "Aynı dakikalarda Rumeli Mecidiye",
+      "start": 139.28,
+      "end": 141.2
+    },
+    {
+      "text": "Tabyası'nda ise tarihe geçecek bir",
+      "start": 141.2,
+      "end": 143.36
+    },
+    {
+      "text": "mucize yaşanıyordu.",
+      "start": 143.36,
+      "end": 144.68
+    },
+    {
+      "text": "Yoğun bombardımanda tabyadaki",
+      "start": 145.04,
+      "end": 146.8
+    },
+    {
+      "text": "topların çoğu sustu;",
+      "start": 146.8,
+      "end": 148.4
+    },
+    {
+      "text": "ayakta kalan tek iki yüz",
+      "start": 148.4,
+      "end": 149.76
+    },
+    {
+      "text": "kırk milimetrelik topun da mermi",
+      "start": 149.76,
+      "end": 151.52
+    },
+    {
+      "text": "kaldırma vinci kırıldı!",
+      "start": 151.52,
+      "end": 152.88
+    },
+    {
+      "text": "Top sağlamdı, mermi yerdeydi ama",
+      "start": 153.12,
+      "end": 155.52
+    },
+    {
+      "text": "onu namluya kaldıracak mekanizma",
+      "start": 155.52,
+      "end": 157.16
+    },
+    {
+      "text": "yoktu.",
+      "start": 157.16,
+      "end": 157.52
+    },
+    {
+      "text": "İşte o an Balıkesirli topçu",
+      "start": 158.053,
+      "end": 159.72
+    },
+    {
+      "text": "eri Seyit Ali Çabuk ileri",
+      "start": 159.72,
+      "end": 160.96
+    },
+    {
+      "text": "atıldı.",
+      "start": 160.96,
+      "end": 161.76
+    },
+    {
+      "text": "Silah arkadaşı Niğdeli Ali'nin",
+      "start": 161.76,
+      "end": 163.24
+    },
+    {
+      "text": "yardımıyla tam iki yüz on",
+      "start": 163.24,
+      "end": 164.8
+    },
+    {
+      "text": "beş kiloluk o dev mermiyi",
+      "start": 164.8,
+      "end": 166.32
+    },
+    {
+      "text": "sırtladı!",
+      "start": 166.32,
+      "end": 167.28
+    },
+    {
+      "text": "Demir basamakları titreyerek",
+      "start": 167.28,
+      "end": 168.64
+    },
+    {
+      "text": "çıktı, mermiyi kundağa sürdü ve",
+      "start": 168.64,
+      "end": 170.8
+    },
+    {
+      "text": "ateşledi.",
+      "start": 170.8,
+      "end": 171.8
+    },
+    {
+      "text": "Üçüncü atışında İngilizlerin dev",
+      "start": 171.8,
+      "end": 173.84
+    },
+    {
+      "text": "zırhlısı Ocean'ı tam dümenden",
+      "start": 173.84,
+      "end": 175.76
+    },
+    {
+      "text": "vurdu!",
+      "start": 175.76,
+      "end": 176.32
+    },
+    {
+      "text": "Dümeni kilitlenen Ocean kontrolden",
+      "start": 176.74,
+      "end": 178.74
+    },
+    {
+      "text": "çıkıp döne döne Erenköy Koyu'na",
+      "start": 178.74,
+      "end": 180.54
+    },
+    {
+      "text": "sürüklendi ve Nusrat'ın",
+      "start": 180.54,
+      "end": 182.14
+    },
+    {
+      "text": "mayınlarından birine çarpıp battı!",
+      "start": 182.14,
+      "end": 184.26
+    },
+    {
+      "text": "Saat on yedi ellide Amiral",
+      "start": 184.58,
+      "end": 186.22
+    },
+    {
+      "text": "de Robeck yenilgiyi kabul edip",
+      "start": 186.22,
+      "end": 187.86
+    },
+    {
+      "text": "donanmaya geri çekilme emri verdi.",
+      "start": 187.86,
+      "end": 190.02
+    },
+    {
+      "text": "Ertesi gün komutanlar Seyit",
+      "start": 190.02,
+      "end": 191.54
+    },
+    {
+      "text": "Onbaşı'dan fotoğraf için aynı",
+      "start": 191.54,
+      "end": 193.14
+    },
+    {
+      "text": "mermiyi tekrar kaldırmasını istedi",
+      "start": 193.14,
+      "end": 195.1
+    },
+    {
+      "text": "ama kaldıramadı;",
+      "start": 195.1,
+      "end": 196.26
+    },
+    {
+      "text": "fotoğraf ancak tahta bir maketle",
+      "start": 196.26,
+      "end": 198.18
+    },
+    {
+      "text": "çekilebildi.",
+      "start": 198.18,
+      "end": 199.049
+    },
+    {
+      "text": "Çünkü o güç sadece kasta",
+      "start": 199.049,
+      "end": 200.5
+    },
+    {
+      "text": "değil, o anın inancındaydı!",
+      "start": 200.5,
+      "end": 202.9
+    },
+    {
+      "text": "Nusrat'ın yirmi altı mayını ve",
+      "start": 202.9,
+      "end": 204.42
+    },
+    {
+      "text": "Seyit Onbaşı'nın o atışı,",
+      "start": 204.42,
+      "end": 206.1
+    },
+    {
+      "text": "dünyaya tek bir cümle ezberletti:",
+      "start": 206.1,
+      "end": 208.3
+    },
+    {
+      "text": "Çanakkale Geçilmez!",
+      "start": 208.3,
+      "end": 209.78
+    }
+  ],
+  "chapters": 6
+}

@@ -1,0 +1,3190 @@
+{
+  "voice_id": "jdpQqF5lMnLWcXlPOnAU",
+  "model": "eleven_v4",
+  "duration": 218.616,
+  "words": [
+    {
+      "word": "Wright",
+      "start": 0.08,
+      "end": 0.32
+    },
+    {
+      "word": "Kardeşler'in",
+      "start": 0.36,
+      "end": 1.36
+    },
+    {
+      "word": "ilk",
+      "start": 1.48,
+      "end": 1.6
+    },
+    {
+      "word": "uçağı",
+      "start": 1.64,
+      "end": 1.88
+    },
+    {
+      "word": "havalandırmasından",
+      "start": 1.92,
+      "end": 2.88
+    },
+    {
+      "word": "tam",
+      "start": 2.96,
+      "end": 3.2
+    },
+    {
+      "word": "iki",
+      "start": 3.28,
+      "end": 3.44
+    },
+    {
+      "word": "yüz",
+      "start": 3.52,
+      "end": 3.6
+    },
+    {
+      "word": "yetmiş",
+      "start": 3.68,
+      "end": 4.0
+    },
+    {
+      "word": "yıl",
+      "start": 4.08,
+      "end": 4.16
+    },
+    {
+      "word": "önce,",
+      "start": 4.24,
+      "end": 4.88
+    },
+    {
+      "word": "bin",
+      "start": 4.92,
+      "end": 5.0
+    },
+    {
+      "word": "altı",
+      "start": 5.04,
+      "end": 5.2
+    },
+    {
+      "word": "yüz",
+      "start": 5.28,
+      "end": 5.36
+    },
+    {
+      "word": "otuzların",
+      "start": 5.44,
+      "end": 5.92
+    },
+    {
+      "word": "İstanbul'unda",
+      "start": 5.96,
+      "end": 6.64
+    },
+    {
+      "word": "gökyüzüne",
+      "start": 6.72,
+      "end": 7.2
+    },
+    {
+      "word": "bakan",
+      "start": 7.24,
+      "end": 7.52
+    },
+    {
+      "word": "herkes",
+      "start": 7.6,
+      "end": 8.08
+    },
+    {
+      "word": "gözlerine",
+      "start": 8.16,
+      "end": 8.64
+    },
+    {
+      "word": "inanamadı!",
+      "start": 8.76,
+      "end": 9.28
+    },
+    {
+      "word": "İddiaya",
+      "start": 9.737,
+      "end": 10.0
+    },
+    {
+      "word": "göre",
+      "start": 10.08,
+      "end": 10.32
+    },
+    {
+      "word": "önce",
+      "start": 10.48,
+      "end": 10.72
+    },
+    {
+      "word": "bir",
+      "start": 10.8,
+      "end": 10.88
+    },
+    {
+      "word": "mucit,",
+      "start": 10.96,
+      "end": 11.6
+    },
+    {
+      "word": "sırtına",
+      "start": 11.64,
+      "end": 12.0
+    },
+    {
+      "word": "taktığı",
+      "start": 12.04,
+      "end": 12.4
+    },
+    {
+      "word": "dev",
+      "start": 12.48,
+      "end": 12.64
+    },
+    {
+      "word": "kartal",
+      "start": 12.72,
+      "end": 13.04
+    },
+    {
+      "word": "kanatlarıyla",
+      "start": 13.12,
+      "end": 13.76
+    },
+    {
+      "word": "Galata",
+      "start": 14.0,
+      "end": 14.32
+    },
+    {
+      "word": "Kulesi'nin",
+      "start": 14.36,
+      "end": 14.72
+    },
+    {
+      "word": "tepesinden",
+      "start": 14.8,
+      "end": 15.28
+    },
+    {
+      "word": "atlayıp",
+      "start": 15.36,
+      "end": 15.68
+    },
+    {
+      "word": "İstanbul",
+      "start": 15.76,
+      "end": 16.24
+    },
+    {
+      "word": "Boğazı'nı",
+      "start": 16.28,
+      "end": 16.64
+    },
+    {
+      "word": "aştı",
+      "start": 16.68,
+      "end": 16.96
+    },
+    {
+      "word": "ve",
+      "start": 17.2,
+      "end": 17.36
+    },
+    {
+      "word": "Üsküdar'a",
+      "start": 17.44,
+      "end": 17.92
+    },
+    {
+      "word": "indi.",
+      "start": 18.08,
+      "end": 18.4
+    },
+    {
+      "word": "Bir",
+      "start": 18.64,
+      "end": 18.72
+    },
+    {
+      "word": "yıl",
+      "start": 18.8,
+      "end": 18.96
+    },
+    {
+      "word": "sonra",
+      "start": 19.04,
+      "end": 19.28
+    },
+    {
+      "word": "ise",
+      "start": 19.4,
+      "end": 19.52
+    },
+    {
+      "word": "başka",
+      "start": 19.6,
+      "end": 19.92
+    },
+    {
+      "word": "bir",
+      "start": 19.96,
+      "end": 20.04
+    },
+    {
+      "word": "mucit,",
+      "start": 20.08,
+      "end": 20.72
+    },
+    {
+      "word": "altmış",
+      "start": 20.84,
+      "end": 21.04
+    },
+    {
+      "word": "dört",
+      "start": 21.12,
+      "end": 21.2
+    },
+    {
+      "word": "kilo",
+      "start": 21.36,
+      "end": 21.52
+    },
+    {
+      "word": "barut",
+      "start": 21.6,
+      "end": 21.84
+    },
+    {
+      "word": "doldurduğu",
+      "start": 21.88,
+      "end": 22.48
+    },
+    {
+      "word": "yedi",
+      "start": 22.56,
+      "end": 22.72
+    },
+    {
+      "word": "kollu",
+      "start": 22.8,
+      "end": 23.12
+    },
+    {
+      "word": "dev",
+      "start": 23.2,
+      "end": 23.36
+    },
+    {
+      "word": "bir",
+      "start": 23.44,
+      "end": 23.52
+    },
+    {
+      "word": "roketin",
+      "start": 23.6,
+      "end": 23.92
+    },
+    {
+      "word": "içine",
+      "start": 23.96,
+      "end": 24.16
+    },
+    {
+      "word": "oturup",
+      "start": 24.24,
+      "end": 24.48
+    },
+    {
+      "word": "kendini",
+      "start": 24.72,
+      "end": 25.12
+    },
+    {
+      "word": "gökyüzüne",
+      "start": 25.2,
+      "end": 25.68
+    },
+    {
+      "word": "fırlattı!",
+      "start": 25.72,
+      "end": 26.4
+    },
+    {
+      "word": "Peki",
+      "start": 26.773,
+      "end": 26.88
+    },
+    {
+      "word": "Hezârfen",
+      "start": 27.12,
+      "end": 27.6
+    },
+    {
+      "word": "Ahmed",
+      "start": 27.68,
+      "end": 27.84
+    },
+    {
+      "word": "Çelebi",
+      "start": 27.92,
+      "end": 28.32
+    },
+    {
+      "word": "ve",
+      "start": 28.4,
+      "end": 28.48
+    },
+    {
+      "word": "Lagâri",
+      "start": 28.56,
+      "end": 29.04
+    },
+    {
+      "word": "Hasan",
+      "start": 29.12,
+      "end": 29.28
+    },
+    {
+      "word": "Çelebi'nin",
+      "start": 29.36,
+      "end": 29.84
+    },
+    {
+      "word": "bu",
+      "start": 29.92,
+      "end": 30.0
+    },
+    {
+      "word": "nefes",
+      "start": 30.08,
+      "end": 30.4
+    },
+    {
+      "word": "kesen",
+      "start": 30.48,
+      "end": 30.72
+    },
+    {
+      "word": "hikâyesi",
+      "start": 30.773,
+      "end": 31.2
+    },
+    {
+      "word": "gerçekten",
+      "start": 31.28,
+      "end": 31.76
+    },
+    {
+      "word": "yaşandı",
+      "start": 31.84,
+      "end": 32.28
+    },
+    {
+      "word": "mı,",
+      "start": 32.32,
+      "end": 32.8
+    },
+    {
+      "word": "yoksa",
+      "start": 32.84,
+      "end": 33.2
+    },
+    {
+      "word": "tarihin",
+      "start": 33.36,
+      "end": 33.84
+    },
+    {
+      "word": "en",
+      "start": 33.92,
+      "end": 34.08
+    },
+    {
+      "word": "büyüleyici",
+      "start": 34.16,
+      "end": 34.56
+    },
+    {
+      "word": "efsanesi",
+      "start": 34.68,
+      "end": 35.12
+    },
+    {
+      "word": "mi?",
+      "start": 35.2,
+      "end": 35.52
+    },
+    {
+      "word": "Hikâyemizin",
+      "start": 35.929,
+      "end": 36.58
+    },
+    {
+      "word": "tek",
+      "start": 36.66,
+      "end": 36.82
+    },
+    {
+      "word": "kaynağı,",
+      "start": 36.9,
+      "end": 37.7
+    },
+    {
+      "word": "ünlü",
+      "start": 37.74,
+      "end": 38.02
+    },
+    {
+      "word": "Osmanlı",
+      "start": 38.1,
+      "end": 38.58
+    },
+    {
+      "word": "gezgini",
+      "start": 38.66,
+      "end": 39.06
+    },
+    {
+      "word": "Evliya",
+      "start": 39.14,
+      "end": 39.46
+    },
+    {
+      "word": "Çelebi'nin",
+      "start": 39.54,
+      "end": 40.02
+    },
+    {
+      "word": "on",
+      "start": 40.26,
+      "end": 40.42
+    },
+    {
+      "word": "ciltlik",
+      "start": 40.5,
+      "end": 40.82
+    },
+    {
+      "word": "Seyahatnâme'sidir.",
+      "start": 40.9,
+      "end": 42.06
+    },
+    {
+      "word": "Evliya",
+      "start": 42.388,
+      "end": 42.66
+    },
+    {
+      "word": "Çelebi'nin",
+      "start": 42.7,
+      "end": 43.06
+    },
+    {
+      "word": "anlattığına",
+      "start": 43.14,
+      "end": 43.7
+    },
+    {
+      "word": "göre,",
+      "start": 43.74,
+      "end": 44.26
+    },
+    {
+      "word": "binlerce",
+      "start": 44.38,
+      "end": 44.82
+    },
+    {
+      "word": "fenni",
+      "start": 44.9,
+      "end": 45.22
+    },
+    {
+      "word": "bilen",
+      "start": 45.26,
+      "end": 45.46
+    },
+    {
+      "word": "anlamına",
+      "start": 45.54,
+      "end": 45.94
+    },
+    {
+      "word": "gelen",
+      "start": 45.98,
+      "end": 46.26
+    },
+    {
+      "word": "Hezârfen",
+      "start": 46.34,
+      "end": 46.82
+    },
+    {
+      "word": "lakaplı",
+      "start": 46.86,
+      "end": 47.3
+    },
+    {
+      "word": "Ahmed",
+      "start": 47.38,
+      "end": 47.62
+    },
+    {
+      "word": "Çelebi,",
+      "start": 47.7,
+      "end": 48.34
+    },
+    {
+      "word": "kuşların",
+      "start": 48.42,
+      "end": 48.82
+    },
+    {
+      "word": "uçuşunu",
+      "start": 48.86,
+      "end": 49.3
+    },
+    {
+      "word": "yıllarca",
+      "start": 49.34,
+      "end": 49.86
+    },
+    {
+      "word": "inceledi.",
+      "start": 49.98,
+      "end": 50.82
+    },
+    {
+      "word": "Önce",
+      "start": 50.9,
+      "end": 51.22
+    },
+    {
+      "word": "Okmeydanı'ndaki",
+      "start": 51.3,
+      "end": 52.1
+    },
+    {
+      "word": "yüksek",
+      "start": 52.18,
+      "end": 52.42
+    },
+    {
+      "word": "minberden",
+      "start": 52.5,
+      "end": 53.06
+    },
+    {
+      "word": "kartal",
+      "start": 53.22,
+      "end": 53.54
+    },
+    {
+      "word": "kanatlarına",
+      "start": 53.62,
+      "end": 54.18
+    },
+    {
+      "word": "benzeyen",
+      "start": 54.26,
+      "end": 54.58
+    },
+    {
+      "word": "kanatlarla",
+      "start": 54.66,
+      "end": 55.3
+    },
+    {
+      "word": "rüzgâra",
+      "start": 55.38,
+      "end": 55.78
+    },
+    {
+      "word": "karşı",
+      "start": 55.86,
+      "end": 56.18
+    },
+    {
+      "word": "sekiz",
+      "start": 56.26,
+      "end": 56.5
+    },
+    {
+      "word": "dokuz",
+      "start": 56.66,
+      "end": 56.9
+    },
+    {
+      "word": "kez",
+      "start": 56.98,
+      "end": 57.14
+    },
+    {
+      "word": "deneme",
+      "start": 57.22,
+      "end": 57.46
+    },
+    {
+      "word": "yaptı.",
+      "start": 57.5,
+      "end": 58.18
+    },
+    {
+      "word": "Hazır",
+      "start": 58.26,
+      "end": 58.5
+    },
+    {
+      "word": "olduğuna",
+      "start": 58.58,
+      "end": 58.9
+    },
+    {
+      "word": "inandığı",
+      "start": 59.06,
+      "end": 59.38
+    },
+    {
+      "word": "gün,",
+      "start": 59.46,
+      "end": 59.78
+    },
+    {
+      "word": "güçlü",
+      "start": 59.86,
+      "end": 60.1
+    },
+    {
+      "word": "bir",
+      "start": 60.18,
+      "end": 60.26
+    },
+    {
+      "word": "lodos",
+      "start": 60.34,
+      "end": 60.66
+    },
+    {
+      "word": "rüzgârında",
+      "start": 60.7,
+      "end": 61.22
+    },
+    {
+      "word": "Galata",
+      "start": 61.3,
+      "end": 61.62
+    },
+    {
+      "word": "Kulesi'nin",
+      "start": 61.66,
+      "end": 62.02
+    },
+    {
+      "word": "tepesine",
+      "start": 62.1,
+      "end": 62.58
+    },
+    {
+      "word": "çıktı!",
+      "start": 62.62,
+      "end": 63.38
+    },
+    {
+      "word": "Padişah",
+      "start": 63.46,
+      "end": 63.86
+    },
+    {
+      "word": "Dördüncü",
+      "start": 63.9,
+      "end": 64.26
+    },
+    {
+      "word": "Murad",
+      "start": 64.34,
+      "end": 64.58
+    },
+    {
+      "word": "ise",
+      "start": 64.74,
+      "end": 64.9
+    },
+    {
+      "word": "karşı",
+      "start": 65.02,
+      "end": 65.3
+    },
+    {
+      "word": "kıyıda,",
+      "start": 65.34,
+      "end": 65.86
+    },
+    {
+      "word": "Sarayburnu'ndaki",
+      "start": 65.94,
+      "end": 66.74
+    },
+    {
+      "word": "Sinan",
+      "start": 66.82,
+      "end": 67.06
+    },
+    {
+      "word": "Paşa",
+      "start": 67.14,
+      "end": 67.3
+    },
+    {
+      "word": "Köşkü'nden",
+      "start": 67.34,
+      "end": 67.86
+    },
+    {
+      "word": "dürbünle",
+      "start": 67.94,
+      "end": 68.34
+    },
+    {
+      "word": "izliyordu.",
+      "start": 68.42,
+      "end": 69.22
+    },
+    {
+      "word": "Hezârfen",
+      "start": 69.3,
+      "end": 69.78
+    },
+    {
+      "word": "kendini",
+      "start": 69.82,
+      "end": 70.1
+    },
+    {
+      "word": "boşluğa",
+      "start": 70.18,
+      "end": 70.5
+    },
+    {
+      "word": "bıraktı,",
+      "start": 70.58,
+      "end": 71.3
+    },
+    {
+      "word": "tam",
+      "start": 71.46,
+      "end": 71.62
+    },
+    {
+      "word": "üç",
+      "start": 71.7,
+      "end": 71.82
+    },
+    {
+      "word": "bin",
+      "start": 71.86,
+      "end": 71.94
+    },
+    {
+      "word": "üç",
+      "start": 72.02,
+      "end": 72.14
+    },
+    {
+      "word": "yüz",
+      "start": 72.18,
+      "end": 72.26
+    },
+    {
+      "word": "elli",
+      "start": 72.34,
+      "end": 72.5
+    },
+    {
+      "word": "sekiz",
+      "start": 72.58,
+      "end": 72.82
+    },
+    {
+      "word": "metre",
+      "start": 72.9,
+      "end": 73.14
+    },
+    {
+      "word": "süzülüp",
+      "start": 73.22,
+      "end": 73.62
+    },
+    {
+      "word": "Üsküdar",
+      "start": 73.78,
+      "end": 74.26
+    },
+    {
+      "word": "Doğancılar",
+      "start": 74.34,
+      "end": 74.82
+    },
+    {
+      "word": "Meydanı'na",
+      "start": 74.9,
+      "end": 75.38
+    },
+    {
+      "word": "yumuşak",
+      "start": 75.46,
+      "end": 75.86
+    },
+    {
+      "word": "bir",
+      "start": 75.94,
+      "end": 76.02
+    },
+    {
+      "word": "iniş",
+      "start": 76.14,
+      "end": 76.3
+    },
+    {
+      "word": "yaptı!",
+      "start": 76.34,
+      "end": 76.9
+    },
+    {
+      "word": "Padişah",
+      "start": 77.32,
+      "end": 77.88
+    },
+    {
+      "word": "Dördüncü",
+      "start": 77.96,
+      "end": 78.36
+    },
+    {
+      "word": "Murad",
+      "start": 78.44,
+      "end": 78.76
+    },
+    {
+      "word": "önce",
+      "start": 78.84,
+      "end": 79.16
+    },
+    {
+      "word": "hayran",
+      "start": 79.24,
+      "end": 79.48
+    },
+    {
+      "word": "kalıp",
+      "start": 79.56,
+      "end": 79.88
+    },
+    {
+      "word": "ona",
+      "start": 80.0,
+      "end": 80.12
+    },
+    {
+      "word": "bir",
+      "start": 80.2,
+      "end": 80.36
+    },
+    {
+      "word": "kese",
+      "start": 80.4,
+      "end": 80.6
+    },
+    {
+      "word": "altın",
+      "start": 80.68,
+      "end": 80.92
+    },
+    {
+      "word": "hediye",
+      "start": 81.0,
+      "end": 81.24
+    },
+    {
+      "word": "etti.",
+      "start": 81.4,
+      "end": 81.8
+    },
+    {
+      "word": "Ama",
+      "start": 82.107,
+      "end": 82.28
+    },
+    {
+      "word": "hemen",
+      "start": 82.36,
+      "end": 82.6
+    },
+    {
+      "word": "ardından",
+      "start": 82.68,
+      "end": 83.16
+    },
+    {
+      "word": "saray",
+      "start": 83.24,
+      "end": 83.48
+    },
+    {
+      "word": "erkânına",
+      "start": 83.6,
+      "end": 84.04
+    },
+    {
+      "word": "dönüp",
+      "start": 84.093,
+      "end": 84.28
+    },
+    {
+      "word": "tarihe",
+      "start": 84.44,
+      "end": 84.84
+    },
+    {
+      "word": "geçen",
+      "start": 84.88,
+      "end": 85.16
+    },
+    {
+      "word": "o",
+      "start": 85.24,
+      "end": 85.32
+    },
+    {
+      "word": "cümleyi",
+      "start": 85.36,
+      "end": 85.68
+    },
+    {
+      "word": "kurdu:",
+      "start": 85.72,
+      "end": 86.52
+    },
+    {
+      "word": "Bu",
+      "start": 86.6,
+      "end": 86.68
+    },
+    {
+      "word": "adam",
+      "start": 86.76,
+      "end": 87.0
+    },
+    {
+      "word": "pek",
+      "start": 87.08,
+      "end": 87.24
+    },
+    {
+      "word": "korkulacak",
+      "start": 87.32,
+      "end": 87.8
+    },
+    {
+      "word": "bir",
+      "start": 87.88,
+      "end": 87.96
+    },
+    {
+      "word": "adamdır,",
+      "start": 88.08,
+      "end": 88.68
+    },
+    {
+      "word": "her",
+      "start": 88.8,
+      "end": 88.92
+    },
+    {
+      "word": "ne",
+      "start": 89.0,
+      "end": 89.08
+    },
+    {
+      "word": "istese",
+      "start": 89.2,
+      "end": 89.48
+    },
+    {
+      "word": "elinden",
+      "start": 89.52,
+      "end": 89.88
+    },
+    {
+      "word": "geliyor,",
+      "start": 89.92,
+      "end": 90.6
+    },
+    {
+      "word": "böyle",
+      "start": 90.64,
+      "end": 90.84
+    },
+    {
+      "word": "kimselerin",
+      "start": 90.92,
+      "end": 91.4
+    },
+    {
+      "word": "burada",
+      "start": 91.48,
+      "end": 91.72
+    },
+    {
+      "word": "kalması",
+      "start": 91.8,
+      "end": 92.12
+    },
+    {
+      "word": "doğru",
+      "start": 92.2,
+      "end": 92.44
+    },
+    {
+      "word": "değil!",
+      "start": 92.52,
+      "end": 92.84
+    },
+    {
+      "word": "Ve",
+      "start": 93.32,
+      "end": 93.48
+    },
+    {
+      "word": "iddiaya",
+      "start": 93.6,
+      "end": 93.96
+    },
+    {
+      "word": "göre",
+      "start": 94.0,
+      "end": 94.2
+    },
+    {
+      "word": "Hezârfen,",
+      "start": 94.28,
+      "end": 95.0
+    },
+    {
+      "word": "ödülünün",
+      "start": 95.04,
+      "end": 95.48
+    },
+    {
+      "word": "hemen",
+      "start": 95.56,
+      "end": 95.8
+    },
+    {
+      "word": "ardından",
+      "start": 95.88,
+      "end": 96.28
+    },
+    {
+      "word": "Cezayir'e",
+      "start": 96.36,
+      "end": 96.88
+    },
+    {
+      "word": "sürgün",
+      "start": 96.92,
+      "end": 97.16
+    },
+    {
+      "word": "edildi",
+      "start": 97.24,
+      "end": 97.56
+    },
+    {
+      "word": "ve",
+      "start": 97.88,
+      "end": 97.96
+    },
+    {
+      "word": "orada",
+      "start": 98.04,
+      "end": 98.36
+    },
+    {
+      "word": "hayatını",
+      "start": 98.44,
+      "end": 98.76
+    },
+    {
+      "word": "kaybetti.",
+      "start": 98.84,
+      "end": 99.4
+    },
+    {
+      "word": "Ama",
+      "start": 99.864,
+      "end": 100.04
+    },
+    {
+      "word": "İstanbul",
+      "start": 100.08,
+      "end": 100.52
+    },
+    {
+      "word": "semalarındaki",
+      "start": 100.6,
+      "end": 101.32
+    },
+    {
+      "word": "asıl",
+      "start": 101.4,
+      "end": 101.64
+    },
+    {
+      "word": "çılgınlık",
+      "start": 101.72,
+      "end": 102.2
+    },
+    {
+      "word": "daha",
+      "start": 102.24,
+      "end": 102.44
+    },
+    {
+      "word": "bitmemişti!",
+      "start": 102.52,
+      "end": 103.4
+    },
+    {
+      "word": "Bin",
+      "start": 103.9,
+      "end": 103.98
+    },
+    {
+      "word": "altı",
+      "start": 104.06,
+      "end": 104.3
+    },
+    {
+      "word": "yüz",
+      "start": 104.34,
+      "end": 104.46
+    },
+    {
+      "word": "otuz",
+      "start": 104.54,
+      "end": 104.66
+    },
+    {
+      "word": "üç",
+      "start": 104.7,
+      "end": 104.82
+    },
+    {
+      "word": "yılında,",
+      "start": 104.86,
+      "end": 105.5
+    },
+    {
+      "word": "Dördüncü",
+      "start": 105.66,
+      "end": 106.06
+    },
+    {
+      "word": "Murad'ın",
+      "start": 106.14,
+      "end": 106.46
+    },
+    {
+      "word": "kızı",
+      "start": 106.54,
+      "end": 106.7
+    },
+    {
+      "word": "Kaya",
+      "start": 106.78,
+      "end": 107.02
+    },
+    {
+      "word": "Sultan'ın",
+      "start": 107.1,
+      "end": 107.5
+    },
+    {
+      "word": "doğum",
+      "start": 107.58,
+      "end": 107.82
+    },
+    {
+      "word": "şenlikleri",
+      "start": 107.9,
+      "end": 108.38
+    },
+    {
+      "word": "gecesinde",
+      "start": 108.42,
+      "end": 108.94
+    },
+    {
+      "word": "sahneye",
+      "start": 109.26,
+      "end": 109.74
+    },
+    {
+      "word": "Lagâri",
+      "start": 109.82,
+      "end": 110.22
+    },
+    {
+      "word": "Hasan",
+      "start": 110.3,
+      "end": 110.54
+    },
+    {
+      "word": "Çelebi",
+      "start": 110.62,
+      "end": 110.94
+    },
+    {
+      "word": "çıktı.",
+      "start": 110.98,
+      "end": 111.54
+    },
+    {
+      "word": "Padişahın",
+      "start": 111.807,
+      "end": 112.3
+    },
+    {
+      "word": "huzuruna",
+      "start": 112.34,
+      "end": 112.7
+    },
+    {
+      "word": "gelip,",
+      "start": 112.78,
+      "end": 113.18
+    },
+    {
+      "word": "Padişahım",
+      "start": 113.34,
+      "end": 113.9
+    },
+    {
+      "word": "seni",
+      "start": 114.22,
+      "end": 114.42
+    },
+    {
+      "word": "Hüda'ya",
+      "start": 114.46,
+      "end": 114.86
+    },
+    {
+      "word": "ısmarladım,",
+      "start": 114.9,
+      "end": 115.74
+    },
+    {
+      "word": "İsa",
+      "start": 115.82,
+      "end": 116.06
+    },
+    {
+      "word": "Peygamber",
+      "start": 116.14,
+      "end": 116.54
+    },
+    {
+      "word": "ile",
+      "start": 116.62,
+      "end": 116.7
+    },
+    {
+      "word": "konuşmaya",
+      "start": 116.78,
+      "end": 117.18
+    },
+    {
+      "word": "gidiyorum",
+      "start": 117.233,
+      "end": 117.58
+    },
+    {
+      "word": "dedi",
+      "start": 117.74,
+      "end": 118.06
+    },
+    {
+      "word": "ve",
+      "start": 118.38,
+      "end": 118.46
+    },
+    {
+      "word": "yedi",
+      "start": 118.62,
+      "end": 118.78
+    },
+    {
+      "word": "kollu,",
+      "start": 118.86,
+      "end": 119.58
+    },
+    {
+      "word": "elli",
+      "start": 119.7,
+      "end": 119.82
+    },
+    {
+      "word": "okka",
+      "start": 119.9,
+      "end": 120.3
+    },
+    {
+      "word": "yani",
+      "start": 120.54,
+      "end": 120.78
+    },
+    {
+      "word": "yaklaşık",
+      "start": 120.86,
+      "end": 121.34
+    },
+    {
+      "word": "altmış",
+      "start": 121.42,
+      "end": 121.74
+    },
+    {
+      "word": "dört",
+      "start": 121.82,
+      "end": 121.98
+    },
+    {
+      "word": "kilo",
+      "start": 122.06,
+      "end": 122.3
+    },
+    {
+      "word": "barut",
+      "start": 122.38,
+      "end": 122.62
+    },
+    {
+      "word": "macunuyla",
+      "start": 122.7,
+      "end": 123.18
+    },
+    {
+      "word": "dolu",
+      "start": 123.26,
+      "end": 123.5
+    },
+    {
+      "word": "konik",
+      "start": 123.74,
+      "end": 124.06
+    },
+    {
+      "word": "bir",
+      "start": 124.1,
+      "end": 124.18
+    },
+    {
+      "word": "roketin",
+      "start": 124.22,
+      "end": 124.54
+    },
+    {
+      "word": "içine",
+      "start": 124.58,
+      "end": 124.78
+    },
+    {
+      "word": "oturdu!",
+      "start": 124.86,
+      "end": 125.42
+    },
+    {
+      "word": "Yardımcıları",
+      "start": 125.66,
+      "end": 126.22
+    },
+    {
+      "word": "fitili",
+      "start": 126.3,
+      "end": 126.54
+    },
+    {
+      "word": "ateşledi!",
+      "start": 126.62,
+      "end": 127.18
+    },
+    {
+      "word": "Roket",
+      "start": 127.5,
+      "end": 127.9
+    },
+    {
+      "word": "korkunç",
+      "start": 127.98,
+      "end": 128.38
+    },
+    {
+      "word": "bir",
+      "start": 128.46,
+      "end": 128.54
+    },
+    {
+      "word": "gürültü",
+      "start": 128.58,
+      "end": 128.94
+    },
+    {
+      "word": "ve",
+      "start": 128.98,
+      "end": 129.06
+    },
+    {
+      "word": "alev",
+      "start": 129.18,
+      "end": 129.42
+    },
+    {
+      "word": "sütunuyla",
+      "start": 129.46,
+      "end": 129.9
+    },
+    {
+      "word": "göğe",
+      "start": 129.98,
+      "end": 130.14
+    },
+    {
+      "word": "fırladı,",
+      "start": 130.22,
+      "end": 130.94
+    },
+    {
+      "word": "yaklaşık",
+      "start": 130.993,
+      "end": 131.42
+    },
+    {
+      "word": "üç",
+      "start": 131.5,
+      "end": 131.66
+    },
+    {
+      "word": "yüz",
+      "start": 131.7,
+      "end": 131.78
+    },
+    {
+      "word": "metre",
+      "start": 131.82,
+      "end": 132.06
+    },
+    {
+      "word": "yükselip",
+      "start": 132.14,
+      "end": 132.54
+    },
+    {
+      "word": "yirmi",
+      "start": 132.78,
+      "end": 133.02
+    },
+    {
+      "word": "saniye",
+      "start": 133.1,
+      "end": 133.42
+    },
+    {
+      "word": "havada",
+      "start": 133.473,
+      "end": 133.74
+    },
+    {
+      "word": "kaldı.",
+      "start": 133.78,
+      "end": 134.54
+    },
+    {
+      "word": "Barut",
+      "start": 134.62,
+      "end": 134.78
+    },
+    {
+      "word": "bitince",
+      "start": 134.86,
+      "end": 135.34
+    },
+    {
+      "word": "Lagâri",
+      "start": 135.42,
+      "end": 135.9
+    },
+    {
+      "word": "sırtındaki",
+      "start": 135.98,
+      "end": 136.46
+    },
+    {
+      "word": "kanatları",
+      "start": 136.54,
+      "end": 136.94
+    },
+    {
+      "word": "açıp",
+      "start": 136.98,
+      "end": 137.26
+    },
+    {
+      "word": "yavaşça",
+      "start": 137.34,
+      "end": 137.74
+    },
+    {
+      "word": "denize",
+      "start": 137.82,
+      "end": 138.14
+    },
+    {
+      "word": "indi,",
+      "start": 138.3,
+      "end": 138.78
+    },
+    {
+      "word": "yüzerek",
+      "start": 138.82,
+      "end": 139.26
+    },
+    {
+      "word": "padişahın",
+      "start": 139.34,
+      "end": 139.82
+    },
+    {
+      "word": "önüne",
+      "start": 139.9,
+      "end": 140.06
+    },
+    {
+      "word": "geldi",
+      "start": 140.14,
+      "end": 140.46
+    },
+    {
+      "word": "ve",
+      "start": 140.7,
+      "end": 140.86
+    },
+    {
+      "word": "esprili",
+      "start": 140.94,
+      "end": 141.34
+    },
+    {
+      "word": "bir",
+      "start": 141.42,
+      "end": 141.5
+    },
+    {
+      "word": "selam",
+      "start": 141.58,
+      "end": 141.82
+    },
+    {
+      "word": "verdi!",
+      "start": 141.9,
+      "end": 142.46
+    },
+    {
+      "word": "Peki",
+      "start": 142.88,
+      "end": 143.12
+    },
+    {
+      "word": "modern",
+      "start": 143.2,
+      "end": 143.52
+    },
+    {
+      "word": "tarih",
+      "start": 143.6,
+      "end": 143.92
+    },
+    {
+      "word": "ve",
+      "start": 143.96,
+      "end": 144.04
+    },
+    {
+      "word": "fizik",
+      "start": 144.08,
+      "end": 144.4
+    },
+    {
+      "word": "bilimi",
+      "start": 144.48,
+      "end": 144.72
+    },
+    {
+      "word": "bu",
+      "start": 144.8,
+      "end": 144.88
+    },
+    {
+      "word": "iki",
+      "start": 144.96,
+      "end": 145.12
+    },
+    {
+      "word": "mucizeye",
+      "start": 145.2,
+      "end": 145.68
+    },
+    {
+      "word": "ne",
+      "start": 145.76,
+      "end": 145.84
+    },
+    {
+      "word": "diyor?",
+      "start": 145.88,
+      "end": 146.44
+    },
+    {
+      "word": "İşte",
+      "start": 146.72,
+      "end": 146.96
+    },
+    {
+      "word": "işin",
+      "start": 147.04,
+      "end": 147.28
+    },
+    {
+      "word": "en",
+      "start": 147.36,
+      "end": 147.44
+    },
+    {
+      "word": "çarpıcı",
+      "start": 147.52,
+      "end": 147.92
+    },
+    {
+      "word": "kısmı",
+      "start": 148.0,
+      "end": 148.24
+    },
+    {
+      "word": "burada",
+      "start": 148.32,
+      "end": 148.64
+    },
+    {
+      "word": "başlıyor!",
+      "start": 148.72,
+      "end": 149.36
+    },
+    {
+      "word": "Öncelikle",
+      "start": 149.6,
+      "end": 150.16
+    },
+    {
+      "word": "ne",
+      "start": 150.48,
+      "end": 150.56
+    },
+    {
+      "word": "Hezârfen'e",
+      "start": 150.64,
+      "end": 151.2
+    },
+    {
+      "word": "verilen",
+      "start": 151.28,
+      "end": 151.6
+    },
+    {
+      "word": "bir",
+      "start": 151.68,
+      "end": 151.76
+    },
+    {
+      "word": "kese",
+      "start": 151.84,
+      "end": 152.08
+    },
+    {
+      "word": "altının",
+      "start": 152.16,
+      "end": 152.56
+    },
+    {
+      "word": "ne",
+      "start": 152.88,
+      "end": 152.96
+    },
+    {
+      "word": "de",
+      "start": 153.04,
+      "end": 153.12
+    },
+    {
+      "word": "Lagâri'nin",
+      "start": 153.16,
+      "end": 153.68
+    },
+    {
+      "word": "maaşının",
+      "start": 153.76,
+      "end": 154.32
+    },
+    {
+      "word": "Osmanlı",
+      "start": 154.4,
+      "end": 154.88
+    },
+    {
+      "word": "saray",
+      "start": 154.96,
+      "end": 155.12
+    },
+    {
+      "word": "defterlerinde",
+      "start": 155.2,
+      "end": 155.92
+    },
+    {
+      "word": "bugüne",
+      "start": 156.08,
+      "end": 156.4
+    },
+    {
+      "word": "kadar",
+      "start": 156.44,
+      "end": 156.64
+    },
+    {
+      "word": "bir",
+      "start": 156.72,
+      "end": 156.8
+    },
+    {
+      "word": "kaydı",
+      "start": 156.88,
+      "end": 157.2
+    },
+    {
+      "word": "bulunabildi.",
+      "start": 157.24,
+      "end": 157.84
+    },
+    {
+      "word": "Fizik",
+      "start": 158.24,
+      "end": 158.48
+    },
+    {
+      "word": "hesabı",
+      "start": 158.56,
+      "end": 158.88
+    },
+    {
+      "word": "ise",
+      "start": 159.0,
+      "end": 159.12
+    },
+    {
+      "word": "daha",
+      "start": 159.2,
+      "end": 159.36
+    },
+    {
+      "word": "da",
+      "start": 159.44,
+      "end": 159.52
+    },
+    {
+      "word": "ilginç:",
+      "start": 159.6,
+      "end": 160.4
+    },
+    {
+      "word": "Galata",
+      "start": 160.48,
+      "end": 160.8
+    },
+    {
+      "word": "Kulesi'nin",
+      "start": 160.88,
+      "end": 161.28
+    },
+    {
+      "word": "denizden",
+      "start": 161.36,
+      "end": 161.76
+    },
+    {
+      "word": "yüksekliği",
+      "start": 161.84,
+      "end": 162.32
+    },
+    {
+      "word": "yüz",
+      "start": 162.4,
+      "end": 162.56
+    },
+    {
+      "word": "yirmi",
+      "start": 162.64,
+      "end": 162.8
+    },
+    {
+      "word": "sekiz",
+      "start": 162.88,
+      "end": 163.12
+    },
+    {
+      "word": "metre,",
+      "start": 163.2,
+      "end": 163.92
+    },
+    {
+      "word": "Üsküdar",
+      "start": 163.96,
+      "end": 164.32
+    },
+    {
+      "word": "Doğancılar",
+      "start": 164.4,
+      "end": 164.88
+    },
+    {
+      "word": "ise",
+      "start": 165.0,
+      "end": 165.12
+    },
+    {
+      "word": "kırk",
+      "start": 165.2,
+      "end": 165.32
+    },
+    {
+      "word": "beş",
+      "start": 165.36,
+      "end": 165.52
+    },
+    {
+      "word": "metre.",
+      "start": 165.6,
+      "end": 166.4
+    },
+    {
+      "word": "Üç",
+      "start": 166.48,
+      "end": 166.6
+    },
+    {
+      "word": "bin",
+      "start": 166.64,
+      "end": 166.72
+    },
+    {
+      "word": "üç",
+      "start": 166.8,
+      "end": 166.907
+    },
+    {
+      "word": "yüz",
+      "start": 166.933,
+      "end": 167.013
+    },
+    {
+      "word": "elli",
+      "start": 167.04,
+      "end": 167.2
+    },
+    {
+      "word": "sekiz",
+      "start": 167.28,
+      "end": 167.52
+    },
+    {
+      "word": "metreyi",
+      "start": 167.6,
+      "end": 167.92
+    },
+    {
+      "word": "aşmak",
+      "start": 168.0,
+      "end": 168.24
+    },
+    {
+      "word": "için",
+      "start": 168.32,
+      "end": 168.64
+    },
+    {
+      "word": "kırk",
+      "start": 168.72,
+      "end": 168.88
+    },
+    {
+      "word": "bire",
+      "start": 168.96,
+      "end": 169.2
+    },
+    {
+      "word": "bir",
+      "start": 169.24,
+      "end": 169.32
+    },
+    {
+      "word": "süzülme",
+      "start": 169.44,
+      "end": 169.76
+    },
+    {
+      "word": "oranı",
+      "start": 169.84,
+      "end": 170.04
+    },
+    {
+      "word": "gerekiyor!",
+      "start": 170.08,
+      "end": 170.96
+    },
+    {
+      "word": "Oysa",
+      "start": 171.0,
+      "end": 171.28
+    },
+    {
+      "word": "bugünün",
+      "start": 171.36,
+      "end": 171.76
+    },
+    {
+      "word": "en",
+      "start": 171.84,
+      "end": 171.92
+    },
+    {
+      "word": "modern",
+      "start": 172.0,
+      "end": 172.24
+    },
+    {
+      "word": "karbon",
+      "start": 172.32,
+      "end": 172.64
+    },
+    {
+      "word": "fiber",
+      "start": 172.72,
+      "end": 172.96
+    },
+    {
+      "word": "delta",
+      "start": 173.04,
+      "end": 173.28
+    },
+    {
+      "word": "kanatları",
+      "start": 173.36,
+      "end": 173.76
+    },
+    {
+      "word": "bile",
+      "start": 173.84,
+      "end": 174.24
+    },
+    {
+      "word": "ancak",
+      "start": 174.36,
+      "end": 174.72
+    },
+    {
+      "word": "on",
+      "start": 174.8,
+      "end": 174.88
+    },
+    {
+      "word": "beşe",
+      "start": 174.96,
+      "end": 175.2
+    },
+    {
+      "word": "bir",
+      "start": 175.24,
+      "end": 175.32
+    },
+    {
+      "word": "oranla",
+      "start": 175.4,
+      "end": 175.6
+    },
+    {
+      "word": "süzülebiliyor.",
+      "start": 175.68,
+      "end": 176.72
+    },
+    {
+      "word": "Üstelik",
+      "start": 176.76,
+      "end": 177.12
+    },
+    {
+      "word": "MythBusters",
+      "start": 177.2,
+      "end": 177.76
+    },
+    {
+      "word": "ekibi",
+      "start": 177.84,
+      "end": 178.24
+    },
+    {
+      "word": "Lagâri'nin",
+      "start": 178.32,
+      "end": 178.8
+    },
+    {
+      "word": "roketini",
+      "start": 178.88,
+      "end": 179.36
+    },
+    {
+      "word": "birebir",
+      "start": 179.44,
+      "end": 179.68
+    },
+    {
+      "word": "denediğinde",
+      "start": 179.76,
+      "end": 180.32
+    },
+    {
+      "word": "maket",
+      "start": 180.64,
+      "end": 181.04
+    },
+    {
+      "word": "sadece",
+      "start": 181.08,
+      "end": 181.6
+    },
+    {
+      "word": "beş",
+      "start": 181.64,
+      "end": 181.76
+    },
+    {
+      "word": "metre",
+      "start": 181.84,
+      "end": 182.08
+    },
+    {
+      "word": "yükselip",
+      "start": 182.12,
+      "end": 182.48
+    },
+    {
+      "word": "yere",
+      "start": 182.52,
+      "end": 182.64
+    },
+    {
+      "word": "çakıldı!",
+      "start": 182.72,
+      "end": 183.44
+    },
+    {
+      "word": "Peki",
+      "start": 183.86,
+      "end": 184.1
+    },
+    {
+      "word": "bu,",
+      "start": 184.18,
+      "end": 184.46
+    },
+    {
+      "word": "hikâyelerin",
+      "start": 184.58,
+      "end": 185.22
+    },
+    {
+      "word": "tamamen",
+      "start": 185.3,
+      "end": 185.7
+    },
+    {
+      "word": "uydurma",
+      "start": 185.78,
+      "end": 186.1
+    },
+    {
+      "word": "olduğu",
+      "start": 186.18,
+      "end": 186.42
+    },
+    {
+      "word": "anlamına",
+      "start": 186.46,
+      "end": 186.82
+    },
+    {
+      "word": "mı",
+      "start": 186.86,
+      "end": 186.94
+    },
+    {
+      "word": "geliyor?",
+      "start": 186.94,
+      "end": 187.5
+    },
+    {
+      "word": "Tarihçiler",
+      "start": 187.7,
+      "end": 188.26
+    },
+    {
+      "word": "ikiye",
+      "start": 188.38,
+      "end": 188.58
+    },
+    {
+      "word": "bölünmüş",
+      "start": 188.62,
+      "end": 188.98
+    },
+    {
+      "word": "durumda.",
+      "start": 189.06,
+      "end": 189.58
+    },
+    {
+      "word": "Bir",
+      "start": 189.86,
+      "end": 189.94
+    },
+    {
+      "word": "kesim",
+      "start": 190.02,
+      "end": 190.42
+    },
+    {
+      "word": "Evliya",
+      "start": 190.58,
+      "end": 190.9
+    },
+    {
+      "word": "Çelebi'nin",
+      "start": 190.98,
+      "end": 191.46
+    },
+    {
+      "word": "abartılı",
+      "start": 191.54,
+      "end": 192.02
+    },
+    {
+      "word": "üslubuyla",
+      "start": 192.06,
+      "end": 192.66
+    },
+    {
+      "word": "bunu",
+      "start": 192.82,
+      "end": 192.98
+    },
+    {
+      "word": "bir",
+      "start": 193.06,
+      "end": 193.14
+    },
+    {
+      "word": "masal",
+      "start": 193.26,
+      "end": 193.54
+    },
+    {
+      "word": "gibi",
+      "start": 193.58,
+      "end": 193.7
+    },
+    {
+      "word": "süslediğini",
+      "start": 193.78,
+      "end": 194.26
+    },
+    {
+      "word": "savunuyor.",
+      "start": 194.38,
+      "end": 195.22
+    },
+    {
+      "word": "Diğer",
+      "start": 195.26,
+      "end": 195.46
+    },
+    {
+      "word": "kesim",
+      "start": 195.54,
+      "end": 195.78
+    },
+    {
+      "word": "ise,",
+      "start": 195.94,
+      "end": 196.26
+    },
+    {
+      "word": "gerçekten",
+      "start": 196.42,
+      "end": 196.98
+    },
+    {
+      "word": "de",
+      "start": 197.06,
+      "end": 197.14
+    },
+    {
+      "word": "Galata",
+      "start": 197.22,
+      "end": 197.46
+    },
+    {
+      "word": "çevresinde",
+      "start": 197.54,
+      "end": 198.18
+    },
+    {
+      "word": "kısa",
+      "start": 198.26,
+      "end": 198.5
+    },
+    {
+      "word": "bir",
+      "start": 198.58,
+      "end": 198.66
+    },
+    {
+      "word": "planör",
+      "start": 198.78,
+      "end": 198.98
+    },
+    {
+      "word": "denemesi",
+      "start": 199.06,
+      "end": 199.86
+    },
+    {
+      "word": "ve",
+      "start": 199.9,
+      "end": 199.98
+    },
+    {
+      "word": "Sarayburnu'nda",
+      "start": 200.02,
+      "end": 200.74
+    },
+    {
+      "word": "şenlik",
+      "start": 200.82,
+      "end": 201.14
+    },
+    {
+      "word": "fişeğiyle",
+      "start": 201.22,
+      "end": 201.62
+    },
+    {
+      "word": "cesur",
+      "start": 201.7,
+      "end": 202.02
+    },
+    {
+      "word": "bir",
+      "start": 202.1,
+      "end": 202.18
+    },
+    {
+      "word": "fırlatma",
+      "start": 202.233,
+      "end": 202.58
+    },
+    {
+      "word": "yapılmış",
+      "start": 202.633,
+      "end": 202.98
+    },
+    {
+      "word": "olabileceğini,",
+      "start": 203.02,
+      "end": 204.02
+    },
+    {
+      "word": "halkın",
+      "start": 204.06,
+      "end": 204.5
+    },
+    {
+      "word": "ve",
+      "start": 204.54,
+      "end": 204.62
+    },
+    {
+      "word": "Evliya'nın",
+      "start": 204.74,
+      "end": 205.22
+    },
+    {
+      "word": "bunu",
+      "start": 205.3,
+      "end": 205.46
+    },
+    {
+      "word": "efsaneleştirdiğini",
+      "start": 205.58,
+      "end": 206.42
+    },
+    {
+      "word": "düşünüyor.",
+      "start": 206.473,
+      "end": 207.3
+    },
+    {
+      "word": "Gerçek",
+      "start": 207.506,
+      "end": 207.7
+    },
+    {
+      "word": "ya",
+      "start": 207.78,
+      "end": 207.86
+    },
+    {
+      "word": "da",
+      "start": 207.9,
+      "end": 207.98
+    },
+    {
+      "word": "abartı,",
+      "start": 208.02,
+      "end": 208.66
+    },
+    {
+      "word": "kesin",
+      "start": 208.78,
+      "end": 208.98
+    },
+    {
+      "word": "olan",
+      "start": 209.06,
+      "end": 209.22
+    },
+    {
+      "word": "bir",
+      "start": 209.3,
+      "end": 209.38
+    },
+    {
+      "word": "şey",
+      "start": 209.433,
+      "end": 209.54
+    },
+    {
+      "word": "var:",
+      "start": 209.66,
+      "end": 210.18
+    },
+    {
+      "word": "Bundan",
+      "start": 210.26,
+      "end": 210.58
+    },
+    {
+      "word": "dört",
+      "start": 210.62,
+      "end": 210.82
+    },
+    {
+      "word": "yüz",
+      "start": 210.9,
+      "end": 210.98
+    },
+    {
+      "word": "yıl",
+      "start": 211.06,
+      "end": 211.14
+    },
+    {
+      "word": "önce",
+      "start": 211.22,
+      "end": 211.46
+    },
+    {
+      "word": "İstanbul'da",
+      "start": 211.62,
+      "end": 212.18
+    },
+    {
+      "word": "birileri",
+      "start": 212.26,
+      "end": 212.58
+    },
+    {
+      "word": "gökyüzüne",
+      "start": 212.66,
+      "end": 213.14
+    },
+    {
+      "word": "bakıp",
+      "start": 213.22,
+      "end": 213.46
+    },
+    {
+      "word": "neden",
+      "start": 213.62,
+      "end": 213.94
+    },
+    {
+      "word": "biz",
+      "start": 214.02,
+      "end": 214.1
+    },
+    {
+      "word": "de",
+      "start": 214.14,
+      "end": 214.22
+    },
+    {
+      "word": "uçmayalım",
+      "start": 214.26,
+      "end": 214.66
+    },
+    {
+      "word": "diye",
+      "start": 214.74,
+      "end": 214.9
+    },
+    {
+      "word": "sordu!",
+      "start": 214.98,
+      "end": 215.78
+    },
+    {
+      "word": "Sizce",
+      "start": 215.82,
+      "end": 216.1
+    },
+    {
+      "word": "gerçekten",
+      "start": 216.22,
+      "end": 216.58
+    },
+    {
+      "word": "uçtular",
+      "start": 216.66,
+      "end": 217.06
+    },
+    {
+      "word": "mı?",
+      "start": 217.14,
+      "end": 217.54
+    },
+    {
+      "word": "Yorumlarda",
+      "start": 217.58,
+      "end": 218.1
+    },
+    {
+      "word": "yazın!",
+      "start": 218.153,
+      "end": 218.66
+    }
+  ],
+  "chunks": [
+    {
+      "text": "Wright Kardeşler'in ilk uçağı",
+      "start": 0.08,
+      "end": 1.92
+    },
+    {
+      "text": "havalandırmasından tam iki yüz",
+      "start": 1.92,
+      "end": 3.68
+    },
+    {
+      "text": "yetmiş yıl önce,",
+      "start": 3.68,
+      "end": 4.92
+    },
+    {
+      "text": "bin altı yüz otuzların",
+      "start": 4.92,
+      "end": 5.96
+    },
+    {
+      "text": "İstanbul'unda gökyüzüne bakan",
+      "start": 5.96,
+      "end": 7.6
+    },
+    {
+      "text": "herkes gözlerine inanamadı!",
+      "start": 7.6,
+      "end": 9.28
+    },
+    {
+      "text": "İddiaya göre önce bir mucit,",
+      "start": 9.737,
+      "end": 11.64
+    },
+    {
+      "text": "sırtına taktığı dev kartal",
+      "start": 11.64,
+      "end": 13.12
+    },
+    {
+      "text": "kanatlarıyla Galata Kulesi'nin",
+      "start": 13.12,
+      "end": 14.8
+    },
+    {
+      "text": "tepesinden atlayıp İstanbul",
+      "start": 14.8,
+      "end": 16.28
+    },
+    {
+      "text": "Boğazı'nı aştı ve Üsküdar'a indi.",
+      "start": 16.28,
+      "end": 18.4
+    },
+    {
+      "text": "Bir yıl sonra ise başka",
+      "start": 18.64,
+      "end": 19.96
+    },
+    {
+      "text": "bir mucit, altmış dört kilo",
+      "start": 19.96,
+      "end": 21.6
+    },
+    {
+      "text": "barut doldurduğu yedi kollu dev",
+      "start": 21.6,
+      "end": 23.44
+    },
+    {
+      "text": "bir roketin içine oturup kendini",
+      "start": 23.44,
+      "end": 25.2
+    },
+    {
+      "text": "gökyüzüne fırlattı!",
+      "start": 25.2,
+      "end": 26.4
+    },
+    {
+      "text": "Peki Hezârfen Ahmed Çelebi ve",
+      "start": 26.773,
+      "end": 28.56
+    },
+    {
+      "text": "Lagâri Hasan Çelebi'nin bu nefes",
+      "start": 28.56,
+      "end": 30.48
+    },
+    {
+      "text": "kesen hikâyesi gerçekten yaşandı",
+      "start": 30.48,
+      "end": 32.32
+    },
+    {
+      "text": "mı, yoksa tarihin en büyüleyici",
+      "start": 32.32,
+      "end": 34.68
+    },
+    {
+      "text": "efsanesi mi?",
+      "start": 34.68,
+      "end": 35.52
+    },
+    {
+      "text": "Hikâyemizin tek kaynağı,",
+      "start": 35.929,
+      "end": 37.74
+    },
+    {
+      "text": "ünlü Osmanlı gezgini Evliya",
+      "start": 37.74,
+      "end": 39.54
+    },
+    {
+      "text": "Çelebi'nin on ciltlik",
+      "start": 39.54,
+      "end": 40.9
+    },
+    {
+      "text": "Seyahatnâme'sidir.",
+      "start": 40.9,
+      "end": 42.06
+    },
+    {
+      "text": "Evliya Çelebi'nin anlattığına",
+      "start": 42.388,
+      "end": 43.74
+    },
+    {
+      "text": "göre, binlerce fenni bilen",
+      "start": 43.74,
+      "end": 45.54
+    },
+    {
+      "text": "anlamına gelen Hezârfen lakaplı",
+      "start": 45.54,
+      "end": 47.38
+    },
+    {
+      "text": "Ahmed Çelebi, kuşların uçuşunu",
+      "start": 47.38,
+      "end": 49.34
+    },
+    {
+      "text": "yıllarca inceledi.",
+      "start": 49.34,
+      "end": 50.9
+    },
+    {
+      "text": "Önce Okmeydanı'ndaki yüksek",
+      "start": 50.9,
+      "end": 52.5
+    },
+    {
+      "text": "minberden kartal kanatlarına",
+      "start": 52.5,
+      "end": 54.26
+    },
+    {
+      "text": "benzeyen kanatlarla rüzgâra karşı",
+      "start": 54.26,
+      "end": 56.26
+    },
+    {
+      "text": "sekiz dokuz kez deneme yaptı.",
+      "start": 56.26,
+      "end": 58.26
+    },
+    {
+      "text": "Hazır olduğuna inandığı gün,",
+      "start": 58.26,
+      "end": 59.86
+    },
+    {
+      "text": "güçlü bir lodos rüzgârında Galata",
+      "start": 59.86,
+      "end": 61.66
+    },
+    {
+      "text": "Kulesi'nin tepesine çıktı!",
+      "start": 61.66,
+      "end": 63.46
+    },
+    {
+      "text": "Padişah Dördüncü Murad ise karşı",
+      "start": 63.46,
+      "end": 65.34
+    },
+    {
+      "text": "kıyıda, Sarayburnu'ndaki Sinan",
+      "start": 65.34,
+      "end": 67.14
+    },
+    {
+      "text": "Paşa Köşkü'nden dürbünle",
+      "start": 67.14,
+      "end": 68.42
+    },
+    {
+      "text": "izliyordu.",
+      "start": 68.42,
+      "end": 69.3
+    },
+    {
+      "text": "Hezârfen kendini boşluğa bıraktı,",
+      "start": 69.3,
+      "end": 71.46
+    },
+    {
+      "text": "tam üç bin üç yüz",
+      "start": 71.46,
+      "end": 72.34
+    },
+    {
+      "text": "elli sekiz metre süzülüp Üsküdar",
+      "start": 72.34,
+      "end": 74.34
+    },
+    {
+      "text": "Doğancılar Meydanı'na yumuşak bir",
+      "start": 74.34,
+      "end": 76.14
+    },
+    {
+      "text": "iniş yaptı!",
+      "start": 76.14,
+      "end": 76.9
+    },
+    {
+      "text": "Padişah Dördüncü Murad önce hayran",
+      "start": 77.32,
+      "end": 79.56
+    },
+    {
+      "text": "kalıp ona bir kese altın",
+      "start": 79.56,
+      "end": 81.0
+    },
+    {
+      "text": "hediye etti.",
+      "start": 81.0,
+      "end": 81.8
+    },
+    {
+      "text": "Ama hemen ardından saray erkânına",
+      "start": 82.107,
+      "end": 84.093
+    },
+    {
+      "text": "dönüp tarihe geçen o cümleyi",
+      "start": 84.093,
+      "end": 85.72
+    },
+    {
+      "text": "kurdu:",
+      "start": 85.72,
+      "end": 86.6
+    },
+    {
+      "text": "Bu adam pek korkulacak bir",
+      "start": 86.6,
+      "end": 88.08
+    },
+    {
+      "text": "adamdır, her ne istese elinden",
+      "start": 88.08,
+      "end": 89.92
+    },
+    {
+      "text": "geliyor, böyle kimselerin burada",
+      "start": 89.92,
+      "end": 91.8
+    },
+    {
+      "text": "kalması doğru değil!",
+      "start": 91.8,
+      "end": 92.84
+    },
+    {
+      "text": "Ve iddiaya göre Hezârfen,",
+      "start": 93.32,
+      "end": 95.04
+    },
+    {
+      "text": "ödülünün hemen ardından Cezayir'e",
+      "start": 95.04,
+      "end": 96.92
+    },
+    {
+      "text": "sürgün edildi ve orada hayatını",
+      "start": 96.92,
+      "end": 98.84
+    },
+    {
+      "text": "kaybetti.",
+      "start": 98.84,
+      "end": 99.4
+    },
+    {
+      "text": "Ama İstanbul semalarındaki asıl",
+      "start": 99.864,
+      "end": 101.72
+    },
+    {
+      "text": "çılgınlık daha bitmemişti!",
+      "start": 101.72,
+      "end": 103.4
+    },
+    {
+      "text": "Bin altı yüz otuz üç",
+      "start": 103.9,
+      "end": 104.86
+    },
+    {
+      "text": "yılında, Dördüncü Murad'ın kızı",
+      "start": 104.86,
+      "end": 106.78
+    },
+    {
+      "text": "Kaya Sultan'ın doğum şenlikleri",
+      "start": 106.78,
+      "end": 108.42
+    },
+    {
+      "text": "gecesinde sahneye Lagâri Hasan",
+      "start": 108.42,
+      "end": 110.62
+    },
+    {
+      "text": "Çelebi çıktı.",
+      "start": 110.62,
+      "end": 111.54
+    },
+    {
+      "text": "Padişahın huzuruna gelip,",
+      "start": 111.807,
+      "end": 113.34
+    },
+    {
+      "text": "Padişahım seni Hüda'ya ısmarladım,",
+      "start": 113.34,
+      "end": 115.82
+    },
+    {
+      "text": "İsa Peygamber ile konuşmaya",
+      "start": 115.82,
+      "end": 117.233
+    },
+    {
+      "text": "gidiyorum dedi ve yedi kollu,",
+      "start": 117.233,
+      "end": 119.7
+    },
+    {
+      "text": "elli okka yani yaklaşık altmış",
+      "start": 119.7,
+      "end": 121.82
+    },
+    {
+      "text": "dört kilo barut macunuyla dolu",
+      "start": 121.82,
+      "end": 123.5
+    },
+    {
+      "text": "konik bir roketin içine oturdu!",
+      "start": 123.74,
+      "end": 125.42
+    },
+    {
+      "text": "Yardımcıları fitili ateşledi!",
+      "start": 125.66,
+      "end": 127.18
+    },
+    {
+      "text": "Roket korkunç bir gürültü ve",
+      "start": 127.5,
+      "end": 129.18
+    },
+    {
+      "text": "alev sütunuyla göğe fırladı,",
+      "start": 129.18,
+      "end": 130.993
+    },
+    {
+      "text": "yaklaşık üç yüz metre yükselip",
+      "start": 130.993,
+      "end": 132.54
+    },
+    {
+      "text": "yirmi saniye havada kaldı.",
+      "start": 132.78,
+      "end": 134.62
+    },
+    {
+      "text": "Barut bitince Lagâri sırtındaki",
+      "start": 134.62,
+      "end": 136.54
+    },
+    {
+      "text": "kanatları açıp yavaşça denize",
+      "start": 136.54,
+      "end": 138.3
+    },
+    {
+      "text": "indi, yüzerek padişahın önüne",
+      "start": 138.3,
+      "end": 140.14
+    },
+    {
+      "text": "geldi ve esprili bir selam",
+      "start": 140.14,
+      "end": 141.9
+    },
+    {
+      "text": "verdi!",
+      "start": 141.9,
+      "end": 142.46
+    },
+    {
+      "text": "Peki modern tarih ve fizik",
+      "start": 142.88,
+      "end": 144.48
+    },
+    {
+      "text": "bilimi bu iki mucizeye ne",
+      "start": 144.48,
+      "end": 145.88
+    },
+    {
+      "text": "diyor?",
+      "start": 145.88,
+      "end": 146.44
+    },
+    {
+      "text": "İşte işin en çarpıcı kısmı",
+      "start": 146.72,
+      "end": 148.32
+    },
+    {
+      "text": "burada başlıyor!",
+      "start": 148.32,
+      "end": 149.36
+    },
+    {
+      "text": "Öncelikle ne Hezârfen'e verilen",
+      "start": 149.6,
+      "end": 151.68
+    },
+    {
+      "text": "bir kese altının ne de",
+      "start": 151.68,
+      "end": 153.16
+    },
+    {
+      "text": "Lagâri'nin maaşının Osmanlı saray",
+      "start": 153.16,
+      "end": 155.2
+    },
+    {
+      "text": "defterlerinde bugüne kadar bir",
+      "start": 155.2,
+      "end": 156.88
+    },
+    {
+      "text": "kaydı bulunabildi.",
+      "start": 156.88,
+      "end": 157.84
+    },
+    {
+      "text": "Fizik hesabı ise daha da",
+      "start": 158.24,
+      "end": 159.6
+    },
+    {
+      "text": "ilginç:",
+      "start": 159.6,
+      "end": 160.48
+    },
+    {
+      "text": "Galata Kulesi'nin denizden",
+      "start": 160.48,
+      "end": 161.84
+    },
+    {
+      "text": "yüksekliği yüz yirmi sekiz metre,",
+      "start": 161.84,
+      "end": 163.96
+    },
+    {
+      "text": "Üsküdar Doğancılar ise kırk beş",
+      "start": 163.96,
+      "end": 165.6
+    },
+    {
+      "text": "metre.",
+      "start": 165.6,
+      "end": 166.48
+    },
+    {
+      "text": "Üç bin üç yüz elli",
+      "start": 166.48,
+      "end": 167.28
+    },
+    {
+      "text": "sekiz metreyi aşmak için kırk",
+      "start": 167.28,
+      "end": 168.96
+    },
+    {
+      "text": "bire bir süzülme oranı gerekiyor!",
+      "start": 168.96,
+      "end": 171.0
+    },
+    {
+      "text": "Oysa bugünün en modern karbon",
+      "start": 171.0,
+      "end": 172.72
+    },
+    {
+      "text": "fiber delta kanatları bile ancak",
+      "start": 172.72,
+      "end": 174.8
+    },
+    {
+      "text": "on beşe bir oranla süzülebiliyor.",
+      "start": 174.8,
+      "end": 176.76
+    },
+    {
+      "text": "Üstelik MythBusters ekibi",
+      "start": 176.76,
+      "end": 178.32
+    },
+    {
+      "text": "Lagâri'nin roketini birebir",
+      "start": 178.32,
+      "end": 179.76
+    },
+    {
+      "text": "denediğinde maket sadece beş metre",
+      "start": 179.76,
+      "end": 182.12
+    },
+    {
+      "text": "yükselip yere çakıldı!",
+      "start": 182.12,
+      "end": 183.44
+    },
+    {
+      "text": "Peki bu, hikâyelerin tamamen",
+      "start": 183.86,
+      "end": 185.78
+    },
+    {
+      "text": "uydurma olduğu anlamına mı",
+      "start": 185.78,
+      "end": 186.94
+    },
+    {
+      "text": "geliyor?",
+      "start": 186.94,
+      "end": 187.5
+    },
+    {
+      "text": "Tarihçiler ikiye bölünmüş durumda.",
+      "start": 187.7,
+      "end": 189.58
+    },
+    {
+      "text": "Bir kesim Evliya Çelebi'nin",
+      "start": 189.86,
+      "end": 191.54
+    },
+    {
+      "text": "abartılı üslubuyla bunu bir masal",
+      "start": 191.54,
+      "end": 193.58
+    },
+    {
+      "text": "gibi süslediğini savunuyor.",
+      "start": 193.58,
+      "end": 195.26
+    },
+    {
+      "text": "Diğer kesim ise,",
+      "start": 195.26,
+      "end": 196.42
+    },
+    {
+      "text": "gerçekten de Galata çevresinde",
+      "start": 196.42,
+      "end": 198.26
+    },
+    {
+      "text": "kısa bir planör denemesi ve",
+      "start": 198.26,
+      "end": 200.02
+    },
+    {
+      "text": "Sarayburnu'nda şenlik fişeğiyle",
+      "start": 200.02,
+      "end": 201.7
+    },
+    {
+      "text": "cesur bir fırlatma yapılmış",
+      "start": 201.7,
+      "end": 203.02
+    },
+    {
+      "text": "olabileceğini, halkın ve",
+      "start": 203.02,
+      "end": 204.74
+    },
+    {
+      "text": "Evliya'nın bunu efsaneleştirdiğini",
+      "start": 204.74,
+      "end": 206.473
+    },
+    {
+      "text": "düşünüyor.",
+      "start": 206.473,
+      "end": 207.3
+    },
+    {
+      "text": "Gerçek ya da abartı,",
+      "start": 207.506,
+      "end": 208.78
+    },
+    {
+      "text": "kesin olan bir şey var:",
+      "start": 208.78,
+      "end": 210.26
+    },
+    {
+      "text": "Bundan dört yüz yıl önce",
+      "start": 210.26,
+      "end": 211.62
+    },
+    {
+      "text": "İstanbul'da birileri gökyüzüne",
+      "start": 211.62,
+      "end": 213.22
+    },
+    {
+      "text": "bakıp neden biz de uçmayalım",
+      "start": 213.22,
+      "end": 214.74
+    },
+    {
+      "text": "diye sordu!",
+      "start": 214.74,
+      "end": 215.82
+    },
+    {
+      "text": "Sizce gerçekten uçtular mı?",
+      "start": 215.82,
+      "end": 217.58
+    },
+    {
+      "text": "Yorumlarda yazın!",
+      "start": 217.58,
+      "end": 218.66
+    }
+  ],
+  "chapters": 6
+}

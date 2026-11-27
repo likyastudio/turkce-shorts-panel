@@ -42,8 +42,9 @@ def load_api_key(cli_key: str) -> str:
 def main() -> None:
     p = argparse.ArgumentParser(description="Likya Studios 4-Marka Otomatik Video Yükleyici (Claude Code CLI)")
     p.add_argument("--brand", required=True, choices=VALID_BRANDS, help="Hedef marka")
-    p.add_argument("--video", required=True, help="Yerel .mp4 dosya yolu")
-    p.add_argument("--title", required=True, help="YouTube Shorts başlığı")
+    p.add_argument("--video", default="", help="Yerel .mp4 dosya yolu (<32 MB ise Cloud Run'a yüklenir)")
+    p.add_argument("--video-url", default="", help="Doğrudan herkese açık HTTPS MP4 URL'si (>32 MB uzun videolar için önerilir)")
+    p.add_argument("--title", required=True, help="YouTube başlığı")
     p.add_argument("--desc", default="", help="YouTube Shorts açıklaması")
     p.add_argument("--ig", default="", help="Instagram Reels açıklaması (boşsa YT açıklaması kullanılır)")
     p.add_argument("--video-id", default="", help="Özel video slug (opsiyonel)")
@@ -55,27 +56,31 @@ def main() -> None:
     p.add_argument("--api-key", default="", help="X-API-Key (opsiyonel, LIKYA_API_KEY env'den okunur)")
     args = p.parse_args()
 
-    mp4 = Path(args.video)
-    if not mp4.is_file():
-        sys.exit(f"HATA: Video dosyası bulunamadı: {mp4}")
-
     api_key = load_api_key(args.api_key)
     hdr = {"X-API-Key": api_key}
 
-    print(f"[1/3] MP4 yükleniyor ({args.brand} · {mp4.name})...")
-    with mp4.open("rb") as f:
-        r_up = requests.post(
-            f"{API_URL}/api/media/upload",
-            headers=hdr,
-            data={"brand": args.brand, "video_id": args.video_id},
-            files={"file": (mp4.name, f, "video/mp4")},
-            timeout=300,
-        )
-    r_up.raise_for_status()
-    up = r_up.json()
-    vid = up["video_id"]
-    video_url = up["video_url"]
-    print(f"  ✓ Yüklendi ({up['size_mb']} MB): {video_url}")
+    if args.video_url.strip():
+        vid = (args.video_id or Path(args.video or args.video_url).stem).strip()
+        video_url = args.video_url.strip()
+        print(f"[1/3] Doğrudan video URL kullanılıyor ({args.brand} · {vid}): {video_url}")
+    else:
+        mp4 = Path(args.video)
+        if not mp4.is_file():
+            sys.exit(f"HATA: Video dosyası bulunamadı: {mp4}")
+        print(f"[1/3] MP4 yükleniyor ({args.brand} · {mp4.name})...")
+        with mp4.open("rb") as f:
+            r_up = requests.post(
+                f"{API_URL}/api/media/upload",
+                headers=hdr,
+                data={"brand": args.brand, "video_id": args.video_id},
+                files={"file": (mp4.name, f, "video/mp4")},
+                timeout=300,
+            )
+        r_up.raise_for_status()
+        up = r_up.json()
+        vid = up["video_id"]
+        video_url = up["video_url"]
+        print(f"  ✓ Yüklendi ({up['size_mb']} MB): {video_url}")
 
     cover_url = None
     if args.cover_file.strip():

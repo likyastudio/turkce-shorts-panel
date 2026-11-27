@@ -92,12 +92,17 @@ jobs:
               cmd = [
                   sys.executable, "claude-code-kit/likya_push.py",
                   "--brand", "akilalmaz",
-                  "--video", mp4,
                   "--video-id", slug,
                   "--title", title,
                   "--desc", desc,
                   "--ig", ig_cap,
               ]
+              mp4_size = Path(mp4).stat().st_size if Path(mp4).is_file() else 0
+              if mp4_size > 28 * 1024 * 1024:
+                  raw_url = f"https://raw.githubusercontent.com/likyastudio/turkce-shorts-panel/main/{mp4}"
+                  cmd += ["--video-url", raw_url]
+              else:
+                  cmd += ["--video", mp4]
               if Path(cover_file).is_file():
                   cmd += ["--cover-file", cover_file]
               if meta.get("flow_prompt"):
